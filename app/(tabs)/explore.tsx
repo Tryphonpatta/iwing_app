@@ -6,22 +6,49 @@ import {
   Layout,
   Text,
   List,
+  Card,
 } from "@ui-kitten/components";
 import { BleManager, Device, State } from "react-native-ble-plx";
-import { PermissionsAndroid, Platform } from "react-native";
-
-const HomeScreen = ({ devices }: { devices: string[] }) => (
-  <Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-    <Text category="h1">HOME</Text>
-    <List data={devices} renderItem={({ item }) => <Text>{item}</Text>} />
-  </Layout>
-);
+import { PermissionsAndroid, Platform, View } from "react-native";
+import { CHARACTERISTIC } from "@/enum/characteristic";
 
 export default function Explore() {
   const bleManager = new BleManager();
-  const [deviceList, setDeviceList] = useState<string[]>([]);
-  const [connectingDevice, setConnectingDevice] = useState<string | null>(null);
+  const [deviceList, setDeviceList] = useState<Device[]>([]);
+  const [connectingDeviceList, setConnectingDeviceList] = useState<
+    string | null
+  >(null);
   const [scanning, setScanning] = useState<boolean>(false);
+
+  const connectingDevice = async (deviceId: string) => {
+    console.log("Connecting to", deviceId);
+    setConnectingDeviceList(deviceId);
+    await bleManager.connectToDevice(deviceId).then(async (device) => {
+      console.log("Connected to device:", device.name);
+
+      // Add your logic for handling the connected device
+      await readCharacteristic(
+        deviceId,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.BATT_VOLTAGE
+      );
+      return device.discoverAllServicesAndCharacteristics();
+    });
+  };
+  const readCharacteristic = async (
+    deviceId: string,
+    serviceUUID: string,
+    characteristicUUID: string
+  ) => {
+    const readData = await bleManager
+      .readCharacteristicForDevice(deviceId, serviceUUID, characteristicUUID)
+      .then((readData) => {
+        console.log("Data Read from the BLE device:", readData);
+      })
+      .catch((error) => {
+        console.log("Error while reading data from BLE device:", error);
+      });
+  };
 
   const startScan = async () => {
     setDeviceList([]);
@@ -40,9 +67,12 @@ export default function Explore() {
             }
             if (device) {
               setDeviceList((prev) => {
-                if (!prev.includes(device.id)) {
+                if (
+                  !prev.find((e) => e.id == device.id) &&
+                  device.name != null
+                ) {
                   console.log(device.name, device.id);
-                  return [...prev, device.id];
+                  return [...prev, device];
                 }
                 return prev;
               });
@@ -51,6 +81,33 @@ export default function Explore() {
         );
       }
     }, true);
+  };
+  const HomeScreen = ({ devices }: { devices: Device[] }) => {
+    return (
+      <Layout
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <Text category="h1">HOME</Text>
+        <List
+          data={devices}
+          renderItem={({ item }) => (
+            <Card>
+              <View>
+                <Text>{item.id}</Text>
+                <Text>{item.name ? item.name : "undefine"}</Text>
+                <Button
+                  onPress={async () => {
+                    await connectingDevice(item.id);
+                  }}
+                >
+                  connect
+                </Button>
+              </View>
+            </Card>
+          )}
+        />
+      </Layout>
+    );
   };
 
   return (
