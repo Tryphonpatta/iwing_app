@@ -11,6 +11,7 @@ import {
 import { BleManager, Device, State } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform, View } from "react-native";
 import { CHARACTERISTIC } from "@/enum/characteristic";
+import { connectingDevice } from "@/util/ble";
 
 export default function Explore() {
   const bleManager = new BleManager();
@@ -20,35 +21,35 @@ export default function Explore() {
   >(null);
   const [scanning, setScanning] = useState<boolean>(false);
 
-  const connectingDevice = async (deviceId: string) => {
-    console.log("Connecting to", deviceId);
-    setConnectingDeviceList(deviceId);
-    await bleManager.connectToDevice(deviceId).then(async (device) => {
-      console.log("Connected to device:", device.name);
+  // const connectingDevice = async (deviceId: string) => {
+  //   console.log("Connecting to", deviceId);
+  //   setConnectingDeviceList(deviceId);
+  //   await bleManager.connectToDevice(deviceId).then(async (device) => {
+  //     console.log("Connected to device:", device.name);
 
-      // Add your logic for handling the connected device
-      await readCharacteristic(
-        deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.BATT_VOLTAGE
-      );
-      return device.discoverAllServicesAndCharacteristics();
-    });
-  };
-  const readCharacteristic = async (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string
-  ) => {
-    const readData = await bleManager
-      .readCharacteristicForDevice(deviceId, serviceUUID, characteristicUUID)
-      .then((readData) => {
-        console.log("Data Read from the BLE device:", readData);
-      })
-      .catch((error) => {
-        console.log("Error while reading data from BLE device:", error);
-      });
-  };
+  //     // Add your logic for handling the connected device
+  //     await readCharacteristic(
+  //       deviceId,
+  //       CHARACTERISTIC.IWING_TRAINERPAD,
+  //       CHARACTERISTIC.BATT_VOLTAGE
+  //     );
+  //     return device.discoverAllServicesAndCharacteristics();
+  //   });
+  // };
+  // const readCharacteristic = async (
+  //   deviceId: string,
+  //   serviceUUID: string,
+  //   characteristicUUID: string
+  // ) => {
+  //   const readData = await bleManager
+  //     .readCharacteristicForDevice(deviceId, serviceUUID, characteristicUUID)
+  //     .then((readData) => {
+  //       console.log("Data Read from the BLE device:", readData);
+  //     })
+  //     .catch((error) => {
+  //       console.log("Error while reading data from BLE device:", error);
+  //     });
+  // };
 
   const startScan = async () => {
     setDeviceList([]);
@@ -97,7 +98,11 @@ export default function Explore() {
                 <Text>{item.name ? item.name : "undefine"}</Text>
                 <Button
                   onPress={async () => {
-                    await connectingDevice(item.id);
+                    await connectingDevice(
+                      bleManager,
+                      item.id,
+                      setConnectingDeviceList
+                    );
                   }}
                 >
                   connect
