@@ -10,7 +10,7 @@ import {
 } from "@ui-kitten/components";
 import { BleManager, Device, State } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform, View } from "react-native";
-import { CHARACTERISTIC } from "@/enum/characteristic";
+import { CHARACTERISTIC, prefix } from "@/enum/characteristic";
 import { connectingDevice } from "@/util/ble";
 
 export default function Explore() {
@@ -69,8 +69,10 @@ export default function Explore() {
             if (device) {
               setDeviceList((prev) => {
                 if (
-                  !prev.find((e) => e.id == device.id) &&
-                  device.name != null
+                  (!prev.find((e) => e.id == device.id) &&
+                    device.name != null) ||
+                  (device.serviceUUIDs &&
+                    device.serviceUUIDs[0].startsWith(prefix))
                 ) {
                   console.log(device.name, device.id);
                   return [...prev, device];
