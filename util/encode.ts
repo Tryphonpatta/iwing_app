@@ -17,4 +17,4 @@ function base64ToHex(base64: string): string {
 
 const base64String = 'IA==';
 const hexResult = Number(base64ToHex(base64String));
-console.log(Number(hexResult));
+console.log(hexResult); // base64 to string result
