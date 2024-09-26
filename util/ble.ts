@@ -1,6 +1,7 @@
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { PermissionsAndroid, Platform } from "react-native";
 import { BleManager } from "react-native-ble-plx";
+import { Module } from "./buttonType";
 
 export const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
@@ -47,7 +48,9 @@ export const requestBluetoothPermission = async () => {
 export const connectingDevice = async (
   bleManager: BleManager,
   deviceId: string,
-  setConnectingDeviceList: (value: React.SetStateAction<string | null>) => void
+  setConnectingDeviceList: (value: React.SetStateAction<string | null>) => void,
+  module: Module[],
+  setModule: React.Dispatch<React.SetStateAction<Module[]>>
 ) => {
   console.log("Connecting to", deviceId);
   setConnectingDeviceList(deviceId);
@@ -80,6 +83,25 @@ export const connectingDevice = async (
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.BATT_VOLTAGE
     );
+    if (!module.find((e) => e.deviceId == device.id)) {
+      setModule((prev) => {
+        return [
+          ...prev,
+          {
+            deviceId: device.id,
+            batteryVoltage: 0,
+            bleManager: bleManager,
+            battFull: false,
+            battCharging: false,
+            IR_RX_status: false,
+            VIB_threshold: 0,
+            IR_TX_status: false,
+            music: "",
+          },
+        ];
+      });
+      console.log("set module");
+    }
     return device.discoverAllServicesAndCharacteristics();
   });
 };

@@ -12,44 +12,16 @@ import { BleManager, Device, State } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform, View } from "react-native";
 import { CHARACTERISTIC, prefix } from "@/enum/characteristic";
 import { connectingDevice } from "@/util/ble";
+import { useModuleContext } from "./context/context";
 
 export default function Explore() {
+  const { module, setModule } = useModuleContext();
   const bleManager = new BleManager();
   const [deviceList, setDeviceList] = useState<Device[]>([]);
   const [connectingDeviceList, setConnectingDeviceList] = useState<
     string | null
   >(null);
   const [scanning, setScanning] = useState<boolean>(false);
-
-  // const connectingDevice = async (deviceId: string) => {
-  //   console.log("Connecting to", deviceId);
-  //   setConnectingDeviceList(deviceId);
-  //   await bleManager.connectToDevice(deviceId).then(async (device) => {
-  //     console.log("Connected to device:", device.name);
-
-  //     // Add your logic for handling the connected device
-  //     await readCharacteristic(
-  //       deviceId,
-  //       CHARACTERISTIC.IWING_TRAINERPAD,
-  //       CHARACTERISTIC.BATT_VOLTAGE
-  //     );
-  //     return device.discoverAllServicesAndCharacteristics();
-  //   });
-  // };
-  // const readCharacteristic = async (
-  //   deviceId: string,
-  //   serviceUUID: string,
-  //   characteristicUUID: string
-  // ) => {
-  //   const readData = await bleManager
-  //     .readCharacteristicForDevice(deviceId, serviceUUID, characteristicUUID)
-  //     .then((readData) => {
-  //       console.log("Data Read from the BLE device:", readData);
-  //     })
-  //     .catch((error) => {
-  //       console.log("Error while reading data from BLE device:", error);
-  //     });
-  // };
 
   const startScan = async () => {
     setDeviceList([]);
@@ -75,7 +47,6 @@ export default function Explore() {
                     device.serviceUUIDs[0].startsWith(prefix))
                 ) {
                   console.log(device.name, device.id);
-                  return [...prev, device];
                 }
                 return prev;
               });
@@ -103,7 +74,9 @@ export default function Explore() {
                     await connectingDevice(
                       bleManager,
                       item.id,
-                      setConnectingDeviceList
+                      setConnectingDeviceList,
+                      module,
+                      setModule
                     );
                   }}
                 >
