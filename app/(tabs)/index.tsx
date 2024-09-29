@@ -7,9 +7,17 @@ import {
 } from "@ui-kitten/components";
 import * as eva from "@eva-design/eva";
 import { useModuleContext } from "./context/context";
+import { disconnectDevice } from "@/util/ble";
+import { useBleManager } from "./context/blecontext";
 
 export default function App() {
-  const { module, setModule } = useModuleContext();
+  const {
+    bleManager,
+    connectedDevices,
+    setConnectedDevices,
+    updateAllConnectedDevices,
+    disconnectDevice,
+  } = useBleManager();
   console.log("app : ", module);
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
@@ -19,17 +27,35 @@ export default function App() {
         <Text>Welcome to UI Kitten</Text>
         {/* <Button
           onPress={() => {
-            console.log(module);
           }}
         >
           Print Module
         </Button> */}
-        {module.map((item, index) => {
-          return <Text key={index}>{item.deviceId}</Text>;
+        {connectedDevices.map((item, index) => {
+          return (
+            <>
+              <Text key={index}>{item.deviceId}</Text>
+              <Text>{item.batteryVoltage}</Text>
+              <Button
+                onPress={() => {
+                  disconnectDevice(item.deviceId);
+                }}
+              >
+                Disconnect
+              </Button>
+              <Button
+                onPress={() => {
+                  updateAllConnectedDevices(item.deviceId);
+                }}
+              >
+                Update
+              </Button>
+            </>
+          );
         })}
         <Button
           onPress={() => {
-            setModule([]);
+            setConnectedDevices([]);
           }}
         >
           Clear

@@ -13,10 +13,12 @@ import { PermissionsAndroid, Platform, View } from "react-native";
 import { CHARACTERISTIC, prefix } from "@/enum/characteristic";
 import { connectingDevice } from "@/util/ble";
 import { useModuleContext } from "./context/context";
+import { useBleManager } from "./context/blecontext";
 
 export default function Explore() {
   const { module, setModule } = useModuleContext();
-  const bleManager = new BleManager();
+  const { bleManager, connectedDevices, setConnectedDevices, connectToDevice } =
+    useBleManager();
   const [deviceList, setDeviceList] = useState<Device[]>([]);
   const [connectingDeviceList, setConnectingDeviceList] = useState<
     string | null
@@ -46,6 +48,7 @@ export default function Explore() {
                   (device.serviceUUIDs &&
                     device.serviceUUIDs[0].startsWith(prefix))
                 ) {
+                  prev.push(device);
                   console.log(device.name, device.id);
                 }
                 return prev;
@@ -65,19 +68,13 @@ export default function Explore() {
         <List
           data={devices}
           renderItem={({ item }) => (
-            <Card>
+            <Card key={item.id}>
               <View>
                 <Text>{item.id}</Text>
                 <Text>{item.name ? item.name : "undefine"}</Text>
                 <Button
                   onPress={async () => {
-                    await connectingDevice(
-                      bleManager,
-                      item.id,
-                      setConnectingDeviceList,
-                      module,
-                      setModule
-                    );
+                    await connectToDevice(item.id);
                   }}
                 >
                   connect

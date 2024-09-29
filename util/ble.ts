@@ -2,6 +2,7 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 import { PermissionsAndroid, Platform } from "react-native";
 import { BleManager } from "react-native-ble-plx";
 import { Module } from "./buttonType";
+import { base64ToDecimal, base64ToHex, hexstringtoDecimal } from "./encode";
 
 export const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
@@ -54,56 +55,66 @@ export const connectingDevice = async (
 ) => {
   console.log("Connecting to", deviceId);
   setConnectingDeviceList(deviceId);
-  await bleManager.connectToDevice(deviceId).then(async (device) => {
+
+  try {
+    const device = await bleManager.connectToDevice(deviceId);
     console.log("Connected to device:", device.name);
 
     await device.discoverAllServicesAndCharacteristics();
     const services = await device.services();
     console.log("Services:", services);
-    // Add your logic for handling the connected device
-    await device.services().then((services) => {
-      services.forEach((service) => {
-        console.log("Service UUID:", service.uuid);
-        service.characteristics().then((characteristics) => {
-          characteristics.forEach(async (characteristic) => {
-            console.log("Characteristic UUID:", characteristic.uuid);
-            console.log("Is Readable:", characteristic.isReadable);
-            if (characteristic.isReadable) {
-              const value = await characteristic.read();
-              console.log("uuid: ", characteristic.uuid);
-              console.log("Value:", value.value);
-            }
-          });
-        });
-      });
-    });
-    await readCharacteristic(
-      bleManager,
-      deviceId,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+
+    // Create a map to store characteristic values
+    const characteristicMap = new Map();
+
+    // Read each characteristic
+    for (const service of services) {
+      // console.log("Service UUID:", service.uuid);
+      const characteristics = await service.characteristics();
+
+      for (const characteristic of characteristics) {
+        // console.log("Characteristic UUID:", characteristic.uuid);
+        // console.log("Is Readable:", characteristic.isReadable);
+
+        if (characteristic.isReadable) {
+          const value = await characteristic.read();
+          console.log("Value:", value.value);
+
+          // Store the value in the characteristicMap
+          characteristicMap.set(
+            characteristic.uuid.toUpperCase(),
+            hexstringtoDecimal(base64ToHex(value.value as string))
+          );
+        }
+      }
+    }
+
+    // Now that we have read all values, we can set the module state
+    const batteryVoltageValue = characteristicMap.get(
       CHARACTERISTIC.BATT_VOLTAGE
     );
-    if (!module.find((e) => e.deviceId == device.id)) {
-      setModule((prev) => {
-        return [
-          ...prev,
-          {
-            deviceId: device.id,
-            batteryVoltage: 0,
-            bleManager: bleManager,
-            battFull: false,
-            battCharging: false,
-            IR_RX_status: false,
-            VIB_threshold: 0,
-            IR_TX_status: false,
-            music: "",
-          },
-        ];
-      });
-      console.log("set module");
+    const batteryVoltage = Number(batteryVoltageValue) || 0; // Default to 0 if NaN
+
+    if (!module.find((e) => e.deviceId === device.id)) {
+      setModule((prev) => [
+        ...prev,
+        {
+          deviceId: device.id,
+          batteryVoltage: batteryVoltage,
+          bleManager: bleManager,
+          battFull: false,
+          battCharging: false,
+          IR_RX_status: false,
+          VIB_threshold: 0,
+          IR_TX_status: false,
+          music: "",
+        },
+      ]);
+      console.log("set module with battery voltage:", batteryVoltage);
     }
-    return device.discoverAllServicesAndCharacteristics();
-  });
+  } catch (error) {
+    console.error("Error connecting to device:", error);
+  }
 };
 
 const readCharacteristic = async (
@@ -120,4 +131,35 @@ const readCharacteristic = async (
     .catch((error) => {
       console.log("Error while reading data from BLE device:", error);
     });
+};
+
+export const disconnectDevice = async (
+  bleManager: BleManager,
+  deviceId: string,
+  setModule: React.Dispatch<React.SetStateAction<Module[]>>
+) => {
+  try {
+    // Check if the device is connected before attempting to disconnect
+    const connectedDevice = await bleManager.isDeviceConnected(deviceId);
+    await bleManager.cancelDeviceConnection(deviceId);
+
+    if (connectedDevice) {
+      console.log(`Disconnecting from device: ${deviceId}`);
+
+      // Attempt to disconnect the device
+      await bleManager.cancelDeviceConnection(deviceId);
+      console.log(`Disconnected from device: ${deviceId}`);
+
+      // Update the connected devices state
+
+      // Optionally, update your module state
+      setModule((prev) =>
+        prev.filter((module) => module.deviceId !== deviceId)
+      );
+    } else {
+      console.log(`Device ${deviceId} is already disconnected`);
+    }
+  } catch (error) {
+    console.error(`Failed to disconnect from device: ${deviceId}`, error);
+  }
 };
