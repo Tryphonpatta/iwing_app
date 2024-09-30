@@ -220,6 +220,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     }
   };
+  
 
   useEffect(() => {
     // Cleanup on unmount
