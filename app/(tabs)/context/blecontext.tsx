@@ -1,6 +1,6 @@
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { Module } from "@/util/buttonType";
-import { base64toDec, base64ToHex, hexstringtoDecimal } from "@/util/encode";
+import { base64toDec, ,  } from "@/util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { BleManager } from "react-native-ble-plx";
 
@@ -102,9 +102,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
               ) || 0,
             IR_TX_status:
               base64toDec(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.IR_TX) as string
-                )
+                characteristicMap.get(CHARACTERISTIC.IR_TX) as string
               ) == 1,
             music: characteristicMap.get(CHARACTERISTIC.MUSIC) || "",
           };
@@ -220,7 +218,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     }
   };
-  
 
   useEffect(() => {
     // Cleanup on unmount
