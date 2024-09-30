@@ -49,6 +49,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     ]);
     const isConnected = await bleManager.isDeviceConnected(deviceId);
     console.log("isConnected: ", isConnected);
+    const characteristicMap = new Map<string, string>();
     if (isConnected) {
       if (connectedDevices.find((device) => device.deviceId === deviceId)) {
         const index = connectedDevices.findIndex(
@@ -71,10 +72,54 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
               );
               console.log("Battery Voltage: ", updatedModule.batteryVoltage);
             }
+            characteristicMap.set(
+              characteristic.uuid.toUpperCase(),
+              value.value as string
+            );
           }
         }
         setConnectedDevices((prev) => {
-          prev[index] = updatedModule;
+          prev[index] = {
+            deviceId: deviceId,
+            batteryVoltage:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) as string
+                )
+              ) || 0,
+            bleManager: bleManager,
+            battFull:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.BATT_FULL) as string
+                )
+              ) === 1,
+            battCharging:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.BATT_CHARGING) as string
+                )
+              ) == 1,
+            IR_RX_status:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.IR_RX) as string
+                )
+              ) == 1,
+            VIB_threshold:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.VIB_THRES) as string
+                )
+              ) || 0,
+            IR_TX_status:
+              hexstringtoDecimal(
+                base64ToHex(
+                  characteristicMap.get(CHARACTERISTIC.IR_TX) as string
+                )
+              ) == 1,
+            music: characteristicMap.get(CHARACTERISTIC.MUSIC) || "",
+          };
           return prev;
         });
         return;
