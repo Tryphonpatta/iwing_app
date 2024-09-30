@@ -232,10 +232,22 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  useEffect(() => {
+    useEffect(() => {
+    // interval every 5 second
+    const intervalID = setInterval(async () => {
+      // have module more than 1 module
+      if (connectedDevices.length > 0) {
+        // find value every module 
+        for (const device of connectedDevices)
+        {
+          await updateAllConnectedDevices(device.deviceId); // update value
+        }
+      }
+    }, 5000);
     // Cleanup on unmount
     return () => {
       bleManager.destroy();
+      clearInterval(intervalID);
     };
   }, [bleManager]);
 
