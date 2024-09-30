@@ -73,8 +73,8 @@ export default function Explore() {
                 <Text>{item.id}</Text>
                 <Text>{item.name ? item.name : "undefine"}</Text>
                 <Button
-                  onPress={async () => {
-                    await connectToDevice(item.id);
+                  onPress={() => {
+                    connectToDevice(item.id);
                   }}
                 >
                   connect
@@ -94,7 +94,11 @@ export default function Explore() {
       >
         <Text category="h4">BLE Devices:</Text>
         <HomeScreen devices={deviceList} />
-        <Button onPress={startScan}>
+        <Button
+          onPress={() => {
+            startScan();
+          }}
+        >
           {scanning ? "Scanning..." : "Start Scan"}
         </Button>
       </Layout>
