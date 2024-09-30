@@ -2,7 +2,7 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 import { PermissionsAndroid, Platform } from "react-native";
 import { BleManager } from "react-native-ble-plx";
 import { Module } from "./buttonType";
-import { base64ToDecimal, base64ToHex, hexstringtoDecimal } from "./encode";
+import { base64toDec, base64ToHex, hexstringtoDecimal } from "./encode";
 
 export const requestBluetoothPermission = async () => {
   if (Platform.OS === "ios") {
@@ -78,12 +78,12 @@ export const connectingDevice = async (
 
         if (characteristic.isReadable) {
           const value = await characteristic.read();
-          console.log("Value:", value.value);
-
+          console.log("Value:", base64toDec(value.value as string));
+          console.log();
           // Store the value in the characteristicMap
           characteristicMap.set(
             characteristic.uuid.toUpperCase(),
-            hexstringtoDecimal(base64ToHex(value.value as string))
+            base64toDec(value.value as string)
           );
         }
       }
@@ -93,14 +93,13 @@ export const connectingDevice = async (
     const batteryVoltageValue = characteristicMap.get(
       CHARACTERISTIC.BATT_VOLTAGE
     );
-    const batteryVoltage = Number(batteryVoltageValue) || 0; // Default to 0 if NaN
 
     if (!module.find((e) => e.deviceId === device.id)) {
       setModule((prev) => [
         ...prev,
         {
           deviceId: device.id,
-          batteryVoltage: batteryVoltage,
+          batteryVoltage: batteryVoltageValue,
           bleManager: bleManager,
           battFull: false,
           battCharging: false,
@@ -110,7 +109,7 @@ export const connectingDevice = async (
           music: "",
         },
       ]);
-      console.log("set module with battery voltage:", batteryVoltage);
+      console.log("set module with battery voltage:", batteryVoltageValue);
     }
   } catch (error) {
     console.error("Error connecting to device:", error);

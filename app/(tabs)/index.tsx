@@ -9,6 +9,7 @@ import * as eva from "@eva-design/eva";
 import { useModuleContext } from "./context/context";
 import { disconnectDevice } from "@/util/ble";
 import { useBleManager } from "./context/blecontext";
+import { View } from "react-native";
 
 export default function App() {
   const {
@@ -33,8 +34,8 @@ export default function App() {
         </Button> */}
         {connectedDevices.map((item, index) => {
           return (
-            <>
-              <Text key={index}>{item.deviceId}</Text>
+            <View key={index}>
+              <Text>{item.deviceId}</Text>
               <Text>{item.batteryVoltage}</Text>
               <Button
                 onPress={() => {
@@ -50,7 +51,7 @@ export default function App() {
               >
                 Update
               </Button>
-            </>
+            </View>
           );
         })}
         <Button
