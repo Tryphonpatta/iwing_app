@@ -136,7 +136,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       await device.discoverAllServicesAndCharacteristics();
 
       //   const isConnected = await bleManager.isDeviceConnected("deviceId");
-      //   console.log("isConnected: ", isConnected);
+        // console.log("isConnected: ", isConnected);
 
       //   if (isConnected) {
       const characteristicMap = new Map<string, number>();
