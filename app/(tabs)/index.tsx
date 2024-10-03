@@ -9,6 +9,8 @@ import * as eva from "@eva-design/eva";
 import { useModuleContext } from "./context/context";
 import { disconnectDevice } from "@/util/ble";
 import { useBleManager } from "./context/blecontext";
+import { View } from "react-native";
+import { CHARACTERISTIC } from "@/enum/characteristic";
 
 export default function App() {
   const {
@@ -17,6 +19,7 @@ export default function App() {
     setConnectedDevices,
     updateAllConnectedDevices,
     disconnectDevice,
+    writeCharacteristic,
   } = useBleManager();
   console.log("app : ", module);
   return (
@@ -33,8 +36,8 @@ export default function App() {
         </Button> */}
         {connectedDevices.map((item, index) => {
           return (
-            <>
-              <Text key={index}>{item.deviceId}</Text>
+            <View key={index}>
+              <Text>{item.deviceId}</Text>
               <Text>{item.batteryVoltage}</Text>
               <Button
                 onPress={() => {
@@ -50,7 +53,19 @@ export default function App() {
               >
                 Update
               </Button>
-            </>
+              <Button
+                onPress={() => {
+                  writeCharacteristic(
+                    item.deviceId,
+                    CHARACTERISTIC.IWING_TRAINERPAD.toLowerCase(),
+                    CHARACTERISTIC.LED,
+                    "AP8A"
+                  );
+                }}
+              >
+                Test
+              </Button>
+            </View>
           );
         })}
         <Button

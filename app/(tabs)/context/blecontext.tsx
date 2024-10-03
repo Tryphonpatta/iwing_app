@@ -1,6 +1,6 @@
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { Module } from "@/util/buttonType";
-import { base64ToHex, hexstringtoDecimal } from "@/util/encode";
+import { base64toDec } from "@/util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { BleManager } from "react-native-ble-plx";
 
@@ -11,6 +11,12 @@ interface BleManagerContextType {
   updateAllConnectedDevices: (deviceId: string) => void;
   disconnectDevice: (deviceId: string) => void;
   connectToDevice: (deviceId: string) => void;
+  writeCharacteristic: (
+    deviceId: string,
+    serviceUUID: string,
+    characteristicUUID: string,
+    value: string
+  ) => void;
   // Add other functions as needed
 }
 
@@ -63,13 +69,11 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           for (const characteristic of characteristics) {
             const value = await characteristic.read();
             console.log("Characteristic UUID:", characteristic.uuid);
-            console.log("Value:", value.value);
+            console.log("Value:", base64toDec(value.value as string));
             if (
               characteristic.uuid.toUpperCase() === CHARACTERISTIC.BATT_VOLTAGE
             ) {
-              updatedModule.batteryVoltage = hexstringtoDecimal(
-                base64ToHex(value.value as string)
-              );
+              updatedModule.batteryVoltage = base64toDec(value.value as string);
               console.log("Battery Voltage: ", updatedModule.batteryVoltage);
             }
             characteristicMap.set(
@@ -81,42 +85,30 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         setConnectedDevices((prev) => {
           prev[index] = {
             deviceId: deviceId,
-            batteryVoltage:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) as string
-                )
-              ) || 0,
+            batteryVoltage: base64toDec(
+              characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) as string
+            ),
             bleManager: bleManager,
             battFull:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.BATT_FULL) as string
-                )
-              ) === 1,
+              base64toDec(
+                characteristicMap.get(CHARACTERISTIC.BATT_FULL) as string
+              ) == 1,
+
             battCharging:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.BATT_CHARGING) as string
-                )
+              base64toDec(
+                characteristicMap.get(CHARACTERISTIC.BATT_CHARGING) as string
               ) == 1,
             IR_RX_status:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.IR_RX) as string
-                )
+              base64toDec(
+                characteristicMap.get(CHARACTERISTIC.IR_RX) as string
               ) == 1,
             VIB_threshold:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.VIB_THRES) as string
-                )
+              base64toDec(
+                characteristicMap.get(CHARACTERISTIC.VIB_THRES) as string
               ) || 0,
             IR_TX_status:
-              hexstringtoDecimal(
-                base64ToHex(
-                  characteristicMap.get(CHARACTERISTIC.IR_TX) as string
-                )
+              base64toDec(
+                characteristicMap.get(CHARACTERISTIC.IR_TX) as string
               ) == 1,
             music: characteristicMap.get(CHARACTERISTIC.MUSIC) || "",
           };
@@ -145,16 +137,18 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const connectToDevice = async (deviceId: string) => {
     try {
+      console.log(`Connecting to device: ${deviceId}`);
       const device = await bleManager.connectToDevice(deviceId);
+      console.log(`Connected to device: ${deviceId}`);
+
       await device.discoverAllServicesAndCharacteristics();
 
-      //   const isConnected = await bleManager.isDeviceConnected("deviceId");
-      //   console.log("isConnected: ", isConnected);
+      // //   const isConnected = await bleManager.isDeviceConnected("deviceId");
+      // //   console.log("isConnected: ", isConnected);
 
-      //   if (isConnected) {
+      // //   if (isConnected) {
       const characteristicMap = new Map<string, number>();
       const services = await device.services();
-      console.log(services);
       for (const service of services) {
         // console.log("Service UUID:", service.uuid);
         const characteristics = await service.characteristics();
@@ -162,14 +156,17 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         for (const characteristic of characteristics) {
           // console.log("Characteristic UUID:", characteristic.uuid);
           // console.log("Is Readable:", characteristic.isReadable);
-
+          if (!characteristic.isReadable) {
+            continue;
+          }
+          console.log("Characteristic UUID:", characteristic.uuid);
           const value = await characteristic.read();
-          console.log("Value:", value.value);
+          console.log("Value:", base64toDec(value.value as string));
 
           // Store the value in the characteristicMap
           characteristicMap.set(
             characteristic.uuid.toUpperCase(),
-            hexstringtoDecimal(base64ToHex(value.value as string))
+            base64toDec(value.value as string)
           );
         }
       }
@@ -205,7 +202,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return prev;
       });
-      //   }
     } catch (error) {
       console.error(`Failed to connect to device: ${deviceId}`, error);
     }
@@ -218,10 +214,19 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
+      console.log(
+        "Writing to characteristic: ",
+        characteristicUUID.toLowerCase()
+      );
+      console.log("Value: ", value);
       const device = await bleManager.connectToDevice(deviceId);
+      await device.discoverAllServicesAndCharacteristics();
+
+      console.log("Connected to device: ", deviceId);
+
       await device.writeCharacteristicWithResponseForService(
         serviceUUID,
-        characteristicUUID,
+        characteristicUUID.toLowerCase(),
         value
       );
     } catch (error) {
@@ -231,7 +236,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     }
   };
-  
 
   useEffect(() => {
     // Cleanup on unmount
@@ -249,6 +253,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         updateAllConnectedDevices,
         disconnectDevice,
         connectToDevice,
+        writeCharacteristic,
       }}
     >
       {children}

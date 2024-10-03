@@ -18,19 +18,21 @@ const base64String = "IA==";
 const hexResult = Number(base64ToHex(base64String));
 console.log(hexResult); // base64 to string result
 
-export const base64ToDecimal = (base64String: string): number => {
-  // Decode the base64 string into a Uint8Array (byte array)
-  const binaryString = atob(base64String);
-  let result = 0;
-
-  // Convert the byte array to a decimal number
-  for (let i = 0; i < binaryString.length; i++) {
-    result = result * 256 + binaryString.charCodeAt(i);
-  }
-
-  return result;
-};
-
 export const hexstringtoDecimal = (hexString: string): number => {
   return parseInt(hexString, 16);
+};
+
+export const base64toDec = (base64: string): number => {
+  console.log("base64: ", base64);
+  let i = 0;
+  const hexArray = [];
+  const hexstring = base64ToHex(base64);
+  while (i < hexstring.length) {
+    const hex = hexstring.slice(i, i + 2);
+    hexArray.push(hex);
+    i += 2;
+  }
+  hexArray.reverse();
+  const hexString = hexArray.join("");
+  return hexstringtoDecimal(hexString);
 };
