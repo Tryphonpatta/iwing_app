@@ -13,11 +13,15 @@
   },
   "dependencies": {
     "@eva-design/eva": "^2.2.0",
+    "@expo/config": "^8.1.1",
+    "@expo/metro-config": "^0.10.0",
     "@expo/vector-icons": "^14.0.2",
     "@react-navigation/native": "^6.0.2",
     "@ui-kitten/components": "^5.3.1",
     "expo": "~51.0.28",
     "expo-constants": "~16.0.2",
+    "expo-dev-client": "~4.0.27",
+    "expo-device": "~6.0.2",
     "expo-font": "~12.0.9",
     "expo-linking": "~6.3.1",
     "expo-router": "~3.5.23",
@@ -36,9 +40,7 @@
     "react-native-screens": "3.31.1",
     "react-native-svg": "15.2.0",
     "react-native-web": "~0.19.10",
-    "twrnc": "^4.5.1",
-    "expo-device": "~6.0.2",
-    "expo-dev-client": "~4.0.27"
+    "twrnc": "^4.5.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

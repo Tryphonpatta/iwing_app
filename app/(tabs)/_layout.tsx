@@ -1,13 +1,9 @@
 import React from "react";
-import { TabBarIcon } from "@/components/navigation/TabBarIcon";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { ModuleContextProvider } from "./context/context";
 import { BleManagerProvider } from "./context/blecontext";
 import { Tabs } from 'expo-router'; 
 import { Ionicons } from '@expo/vector-icons'; // Import icons for better visual design
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
 
   return (
     <BleManagerProvider>
