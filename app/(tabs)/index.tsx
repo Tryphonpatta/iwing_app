@@ -10,6 +10,7 @@ import { useModuleContext } from "./context/context";
 import { disconnectDevice } from "@/util/ble";
 import { useBleManager } from "./context/blecontext";
 import { View } from "react-native";
+import { CHARACTERISTIC } from "@/enum/characteristic";
 
 export default function App() {
   const {
@@ -18,6 +19,7 @@ export default function App() {
     setConnectedDevices,
     updateAllConnectedDevices,
     disconnectDevice,
+    writeCharacteristic,
   } = useBleManager();
   console.log("app : ", module);
   return (
@@ -50,6 +52,18 @@ export default function App() {
                 }}
               >
                 Update
+              </Button>
+              <Button
+                onPress={() => {
+                  writeCharacteristic(
+                    item.deviceId,
+                    CHARACTERISTIC.IWING_TRAINERPAD.toLowerCase(),
+                    CHARACTERISTIC.LED,
+                    "AP8A"
+                  );
+                }}
+              >
+                Test
               </Button>
             </View>
           );

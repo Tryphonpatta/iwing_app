@@ -11,6 +11,12 @@ interface BleManagerContextType {
   updateAllConnectedDevices: (deviceId: string) => void;
   disconnectDevice: (deviceId: string) => void;
   connectToDevice: (deviceId: string) => void;
+  writeCharacteristic: (
+    deviceId: string,
+    serviceUUID: string,
+    characteristicUUID: string,
+    value: string
+  ) => void;
   // Add other functions as needed
 }
 
@@ -133,15 +139,16 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log(`Connecting to device: ${deviceId}`);
       const device = await bleManager.connectToDevice(deviceId);
+      console.log(`Connected to device: ${deviceId}`);
+
       await device.discoverAllServicesAndCharacteristics();
 
-      //   const isConnected = await bleManager.isDeviceConnected("deviceId");
-      //   console.log("isConnected: ", isConnected);
+      // //   const isConnected = await bleManager.isDeviceConnected("deviceId");
+      // //   console.log("isConnected: ", isConnected);
 
-      //   if (isConnected) {
+      // //   if (isConnected) {
       const characteristicMap = new Map<string, number>();
       const services = await device.services();
-      console.log(services);
       for (const service of services) {
         // console.log("Service UUID:", service.uuid);
         const characteristics = await service.characteristics();
@@ -149,7 +156,10 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         for (const characteristic of characteristics) {
           // console.log("Characteristic UUID:", characteristic.uuid);
           // console.log("Is Readable:", characteristic.isReadable);
-
+          if (!characteristic.isReadable) {
+            continue;
+          }
+          console.log("Characteristic UUID:", characteristic.uuid);
           const value = await characteristic.read();
           console.log("Value:", base64toDec(value.value as string));
 
@@ -192,7 +202,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return prev;
       });
-      //   }
     } catch (error) {
       console.error(`Failed to connect to device: ${deviceId}`, error);
     }
@@ -205,10 +214,19 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
+      console.log(
+        "Writing to characteristic: ",
+        characteristicUUID.toLowerCase()
+      );
+      console.log("Value: ", value);
       const device = await bleManager.connectToDevice(deviceId);
+      await device.discoverAllServicesAndCharacteristics();
+
+      console.log("Connected to device: ", deviceId);
+
       await device.writeCharacteristicWithResponseForService(
         serviceUUID,
-        characteristicUUID,
+        characteristicUUID.toLowerCase(),
         value
       );
     } catch (error) {
@@ -235,6 +253,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         updateAllConnectedDevices,
         disconnectDevice,
         connectToDevice,
+        writeCharacteristic,
       }}
     >
       {children}

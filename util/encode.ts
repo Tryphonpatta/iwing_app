@@ -23,12 +23,16 @@ export const hexstringtoDecimal = (hexString: string): number => {
 };
 
 export const base64toDec = (base64: string): number => {
+  console.log("base64: ", base64);
   let i = 0;
   const hexArray = [];
-  while (i < base64.length) {
-    const hex = base64ToHex(base64.slice(i, i + 2));
+  const hexstring = base64ToHex(base64);
+  while (i < hexstring.length) {
+    const hex = hexstring.slice(i, i + 2);
     hexArray.push(hex);
+    i += 2;
   }
+  hexArray.reverse();
   const hexString = hexArray.join("");
   return hexstringtoDecimal(hexString);
 };
