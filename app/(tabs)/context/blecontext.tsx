@@ -68,8 +68,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           const characteristics = await service.characteristics();
           for (const characteristic of characteristics) {
             const value = await characteristic.read();
-            console.log("Characteristic UUID:", characteristic.uuid);
-            console.log("Value:", base64toDec(value.value as string));
+
             if (
               characteristic.uuid.toUpperCase() === CHARACTERISTIC.BATT_VOLTAGE
             ) {
