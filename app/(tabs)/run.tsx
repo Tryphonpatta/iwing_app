@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import tw from 'twrnc';
 
 // Helper function to format time in hh:mm:ss
@@ -80,18 +80,28 @@ const Run = () => {
             value={inputTime}
             onChangeText={setInputTime} // Update input value
         />
-        )}
-
+      )}
 
       {/* Start Button */}
-      {!isRunning && <Button title="Start Countdown" onPress={startCountdown} disabled={isRunning} />}
+      {!isRunning && (
+        <TouchableOpacity style={tw`bg-blue-500 p-3 rounded my-2`} onPress={startCountdown}>
+          <Text style={tw`text-white text-center`}>Start Countdown</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Stop Button */}
-      {isRunning && <Button title="Stop Countdown" onPress={stopCountdown} />}
+      {isRunning && (
+        <TouchableOpacity style={tw`bg-red-500 p-3 rounded my-2`} onPress={stopCountdown}>
+          <Text style={tw`text-white text-center`}>Stop Countdown</Text>
+        </TouchableOpacity>
+      )}
       
-      <View style={{paddingBottom: 12}}> </View>
       {/* Reset Button */}
-      {!isRunning && countdown !== initialTime && <Button title="Reset" onPress={resetCountdown} />}
+      {!isRunning && countdown !== initialTime && (
+        <TouchableOpacity style={tw`bg-gray-500 p-3 rounded my-2`} onPress={resetCountdown}>
+          <Text style={tw`text-white text-center`}>Reset</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Instructions */}
       <Text style={tw`text-lg text-gray-500 mt-4`}>

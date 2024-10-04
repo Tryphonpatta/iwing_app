@@ -7,10 +7,10 @@ import {
 } from "@ui-kitten/components";
 import * as eva from "@eva-design/eva";
 import { useModuleContext } from "./context/context";
-import { disconnectDevice } from "@/util/ble";
+import { disconnectDevice } from "../../util/ble";
 import { useBleManager } from "./context/blecontext";
 import { View } from "react-native";
-import { CHARACTERISTIC } from "@/enum/characteristic";
+import { CHARACTERISTIC } from "../../enum/characteristic";
 
 export default function App() {
   const {

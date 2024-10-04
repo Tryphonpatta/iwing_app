@@ -1,4 +1,3 @@
-// ble.tsx
 import React, { useEffect, useState } from "react";
 import * as eva from "@eva-design/eva";
 import {
@@ -21,6 +20,9 @@ export default function BLE() {
   const { bleManager, connectedDevices, setConnectedDevices, connectToDevice } =
     useBleManager();
   const [deviceList, setDeviceList] = useState<Device[]>([]);
+  const [connectingDeviceList, setConnectingDeviceList] = useState<
+    string | null
+  >(null);
   const [scanning, setScanning] = useState<boolean>(false);
 
   const startScan = async () => {
@@ -33,6 +35,7 @@ export default function BLE() {
           null,
           null,
           (error, device: Device | null) => {
+            // console.log(".");
             if (error) {
               console.log("Scan error:", error);
               return;
@@ -56,23 +59,25 @@ export default function BLE() {
       }
     }, true);
   };
-
   const HomeScreen = ({ devices }: { devices: Device[] }) => {
     return (
-      <Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Layout
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
+        <Text category="h1">HOME</Text>
         <List
           data={devices}
           renderItem={({ item }) => (
             <Card key={item.id}>
               <View>
                 <Text>{item.id}</Text>
-                <Text>{item.name ? item.name : "undefined"}</Text>
+                <Text>{item.name ? item.name : "undefine"}</Text>
                 <Button
-                  onPress={async () => {
-                    await connectToDevice(item.id);
+                  onPress={() => {
+                    connectToDevice(item.id);
                   }}
                 >
-                  Connect
+                  connect
                 </Button>
               </View>
             </Card>
@@ -84,10 +89,16 @@ export default function BLE() {
 
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
-      <Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Layout
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      >
         <Text category="h4">BLE Devices:</Text>
         <HomeScreen devices={deviceList} />
-        <Button onPress={startScan}>
+        <Button
+          onPress={() => {
+            startScan();
+          }}
+        >
           {scanning ? "Scanning..." : "Start Scan"}
         </Button>
       </Layout>

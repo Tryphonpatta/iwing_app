@@ -30,7 +30,7 @@ export default function TabLayout() {
         options={{
           tabBarLabel: 'Running',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="run" color={color} size={size} />
+            <Ionicons name="menu" color={color} size={size} />
           ),
         }}
       />

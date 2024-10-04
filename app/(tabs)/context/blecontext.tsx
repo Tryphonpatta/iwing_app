@@ -1,6 +1,6 @@
-import { CHARACTERISTIC } from "@/enum/characteristic";
-import { Module } from "@/util/buttonType";
-import { base64toDec } from "@/util/encode";
+import { CHARACTERISTIC } from "../../../enum/characteristic";
+import { Module } from "../../../util/buttonType";
+import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { BleManager } from "react-native-ble-plx";
 
