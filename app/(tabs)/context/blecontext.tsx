@@ -49,7 +49,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateAllConnectedDevices = async (deviceId: string) => {
-    await bleManager.connectToDevice(deviceId);
+    const device = await bleManager.connectToDevice(deviceId);
     const connected = await bleManager.connectedDevices([
       CHARACTERISTIC.IWING_TRAINERPAD,
     ]);
@@ -62,13 +62,14 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           (device) => device.deviceId === deviceId
         );
         const updatedModule = connectedDevices[index];
-        await connected[0].discoverAllServicesAndCharacteristics();
-        const services = await connected[0].services();
+        await device.discoverAllServicesAndCharacteristics();
+        const services = await device.services();
         for (const service of services) {
           const characteristics = await service.characteristics();
           for (const characteristic of characteristics) {
             const value = await characteristic.read();
-
+            console.log("Characteristic UUID:", characteristic.uuid);
+            console.log("Value:", value.value);
             if (
               characteristic.uuid.toUpperCase() === CHARACTERISTIC.BATT_VOLTAGE
             ) {
@@ -82,6 +83,9 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
         setConnectedDevices((prev) => {
+          console.log(
+            base64toDec(characteristicMap.get(CHARACTERISTIC.IR_RX) as string)
+          );
           prev[index] = {
             deviceId: deviceId,
             batteryVoltage: base64toDec(
