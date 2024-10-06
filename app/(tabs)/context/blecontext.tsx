@@ -2,7 +2,7 @@ import { CHARACTERISTIC } from "../../../enum/characteristic";
 import { Module } from "../../../util/buttonType";
 import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { BleManager } from "react-native-ble-plx";
+import { BleManager, Device } from "react-native-ble-plx";
 
 interface BleManagerContextType {
   bleManager: BleManager;
@@ -35,17 +35,19 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       // Check if the device is currently connected
       const isConnected = await bleManager.isDeviceConnected(deviceId);
       console.log(`Is device ${deviceId} connected: `, isConnected);
-  
+
       if (isConnected) {
         console.log(`Attempting to disconnect from device: ${deviceId}`);
-  
+
         // Cancel the device connection
         const result = await bleManager.cancelDeviceConnection(deviceId);
         console.log("Result from cancelDeviceConnection:", result);
-  
+
         // Remove the device from the connectedDevices array using a new array
-        setConnectedDevices((prev) => prev.filter((device) => device.deviceId !== deviceId));
-  
+        setConnectedDevices((prev) =>
+          prev.filter((device) => device.deviceId !== deviceId)
+        );
+
         console.log(`Successfully disconnected from device: ${deviceId}`);
       } else {
         console.log(`Device ${deviceId} is already disconnected or not found`);
@@ -208,8 +210,10 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return prev;
       });
+      return;
     } catch (error) {
       console.error(`Failed to connect to device: ${deviceId}`, error);
+      return null;
     }
   };
 
