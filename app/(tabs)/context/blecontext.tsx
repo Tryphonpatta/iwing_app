@@ -32,16 +32,23 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const disconnectDevice = async (deviceId: string) => {
     try {
+      // Check if the device is currently connected
       const isConnected = await bleManager.isDeviceConnected(deviceId);
+      console.log(`Is device ${deviceId} connected: `, isConnected);
+  
       if (isConnected) {
-        console.log(`Disconnecting from device: ${deviceId}`);
-        await bleManager.cancelDeviceConnection(deviceId);
-        setConnectedDevices((prev) =>
-          prev.filter((device) => device.deviceId !== deviceId)
-        );
-        console.log(`Disconnected from device: ${deviceId}`);
+        console.log(`Attempting to disconnect from device: ${deviceId}`);
+  
+        // Cancel the device connection
+        const result = await bleManager.cancelDeviceConnection(deviceId);
+        console.log("Result from cancelDeviceConnection:", result);
+  
+        // Remove the device from the connectedDevices array using a new array
+        setConnectedDevices((prev) => prev.filter((device) => device.deviceId !== deviceId));
+  
+        console.log(`Successfully disconnected from device: ${deviceId}`);
       } else {
-        console.log(`Device ${deviceId} is already disconnected`);
+        console.log(`Device ${deviceId} is already disconnected or not found`);
       }
     } catch (error) {
       console.error(`Failed to disconnect from device: ${deviceId}`, error);
