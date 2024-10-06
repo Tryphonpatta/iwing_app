@@ -44,12 +44,7 @@ const BLE = () => {
               const deviceExists = prev.some((d) => d.id === device.id);
 
               // Add the device to a new array if not already present and if it matches criteria
-              if (
-                !deviceExists &&
-                device.name == "Trainning_PAD" &&
-                device.serviceUUIDs &&
-                device.serviceUUIDs[0].startsWith(prefix)
-              ) {
+              if (device.name == "Trainning_PAD" && !deviceExists) {
                 console.log(device.name, device.id);
 
                 // Return a new array to trigger a re-render
