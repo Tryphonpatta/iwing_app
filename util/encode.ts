@@ -36,3 +36,18 @@ export const base64toDec = (base64: string): number => {
   const hexString = hexArray.join("");
   return hexstringtoDecimal(hexString);
 };
+
+export const base64toDecManu = (base64: string): number => {
+  console.log("base64: ", base64);
+  let i = 0;
+  const hexArray = [];
+  const hexstring = base64ToHex(base64);
+  while (i < hexstring.length) {
+    const hex = hexstring.slice(i, i + 2);
+    hexArray.push(hex);
+    i += 2;
+  }
+  hexArray.reverse();
+  const hexString = hexArray.join("");
+  return hexstringtoDecimal(hexString.slice(0, 4));
+};
