@@ -64,7 +64,9 @@ const BLE = () => {
   const DeviceItem: React.FC<{
     device: Device;
   }> = ({ device }) => {
-    const isConnect = connectedDevices.some((d) => d.deviceId === device.id);
+    const isConnect = connectedDevices
+      ? connectedDevices.some((d) => d.deviceId === device.id)
+      : false;
     console.log(device.manufacturerData);
     return (
       <View

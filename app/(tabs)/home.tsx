@@ -1,228 +1,204 @@
-// Home.tsx
-import * as React from 'react';
-import { StyleSheet, Text, View, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DraxProvider, DraxView } from 'react-native-drax';
-import { mockDevices } from './DeviceMockup'; // Import mockDevices
+import * as React from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  TouchableOpacity,
+  Module,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useBleManager } from "./context/blecontext";
 
-const gestureRootViewStyle = { flex: 1 };
-
+type ModuleHome = Module | null;
 export default function Home() {
-  // Transform mockDevices to match the structure expected for draggableItemList
-  const transformedDeviceList = mockDevices.map((device) => ({
-    id: device.id,
-    name: device.name,
-    isConnected: device.isConnected, // Track the connection status
-    background_color: device.isConnected ? 'green' : 'red', // Set initial color based on connection status
-  }));
+  const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const [modalContent, setModalContent] = React.useState("");
+  const { bleManager, connectedDevices, setConnectedDevices } = useBleManager();
+  const [module, setModule] = React.useState<ModuleHome[]>([]);
 
-  const FirstReceivingItemList = [
-    {
-      id: '13',
-      name: '',
-      isConnected: false,
-      background_color: '#808080',
-    },
-    {
-      id: '14',
-      name: '',
-      isConnected: false,
-      background_color: '#808080',
-    },
-    {
-      id: '15',
-      name: '',
-      isConnected: false,
-      background_color: '#808080',
-    },
-    {
-      id: '16',
-      name: '',
-      isConnected: false,
-      background_color: '#808080',
+  React.useEffect(() => {
+    const moduleTemp: ModuleHome[] = connectedDevices;
+    for (let i = 0; i < 4; i++) {
+      moduleTemp.push(null);
     }
-  ];
-
-  // Use the transformed device list as the initial draggable items
-  const [receivingItemList, setReceivedItemList] = React.useState(FirstReceivingItemList);
-  const [dragItemMiddleList, setDragItemListMiddle] = React.useState(transformedDeviceList);
-
-  // Toggle the connection status and update the background color
-  const toggleConnectionStatus = (index, listType) => {
-    if (listType === 'draggable') {
-      const updatedList = dragItemMiddleList.map((item, i) => {
-        if (i === index) {
-          const newConnectionStatus = !item.isConnected; // Toggle the connection status
-          return {
-            ...item,
-            isConnected: newConnectionStatus,
-            background_color: newConnectionStatus ? 'green' : 'red', // Update color based on connection status
-          };
-        }
-        return item;
-      });
-      setDragItemListMiddle(updatedList);
-    } else if (listType === 'receiving') {
-      const updatedList = receivingItemList.map((item, i) => {
-        if (i === index) {
-          const newConnectionStatus = !item.isConnected; // Toggle the connection status
-          return {
-            ...item,
-            isConnected: newConnectionStatus,
-            background_color: newConnectionStatus ? 'green' : 'red', // Update color based on connection status
-          };
-        }
-        return item;
-      });
-      setReceivedItemList(updatedList);
-    }
-  };
-
-  const DragUIComponent = ({ item, index }) => {
-    return (
-      <TouchableOpacity onPress={() => toggleConnectionStatus(index, 'draggable')}>
-        <DraxView
-          style={[styles.centeredContent, styles.draggableBox, { backgroundColor: item.background_color }]}
-          draggingStyle={styles.dragging}
-          dragReleasedStyle={styles.dragging}
-          hoverDraggingStyle={styles.hoverDragging}
-          dragPayload={index}
-          longPressDelay={150}
-          key={index}
-        >
-          <Text style={styles.textStyle}>{item.name}</Text>
-        </DraxView>
-      </TouchableOpacity>
-    );
-  };
-
-  const ReceivingZoneUIComponent = ({ item, index }) => {
-    return (
-      <TouchableOpacity onPress={() => toggleConnectionStatus(index, 'receiving')}>
-        <DraxView
-          style={[styles.centeredContent, styles.receivingZone, { backgroundColor: item.background_color }]}
-          receivingStyle={styles.receiving}
-          renderContent={({ viewState }) => {
-            const receivingDrag = viewState && viewState.receivingDrag;
-            const payload = receivingDrag && receivingDrag.payload;
-            return (
-              <View>
-                <Text style={styles.textStyle}>{item.name}</Text>
-              </View>
-            );
-          }}
-          key={index}
-          onReceiveDragDrop={(event) => {
-            let selected_item = dragItemMiddleList[event.dragged.payload];
-            let newReceivingItemList = [...receivingItemList];
-            newReceivingItemList[index] = selected_item;
-            setReceivedItemList(newReceivingItemList);
-
-            let newDragItemMiddleList = [...dragItemMiddleList];
-            newDragItemMiddleList[event.dragged.payload] = receivingItemList[index];
-            setDragItemListMiddle(newDragItemMiddleList);
-          }}
-        />
-      </TouchableOpacity>
-    );
-  };
-
-  const renderDraggableItems = () => {
-    return dragItemMiddleList.map((item, index) => (
-      <View style={styles.draggableItemWrapper} key={index}>
-        {DragUIComponent({ item, index })}
-      </View>
-    ));
-  };
-
-  const renderReceivingItems = () => {
-    return receivingItemList.map((item, index) => (
-      <View style={styles.draggableItemWrapper} key={index}>
-        {ReceivingZoneUIComponent({ item, index })}
-      </View>
-    ));
+    setModule(moduleTemp);
+  }, []);
+  const toggleModal = (content: string) => {
+    setModalContent(content);
+    setIsModalVisible(!isModalVisible);
   };
 
   return (
-    <GestureHandlerRootView style={gestureRootViewStyle}>
-      <View>
-        <Text style={styles.headerStyle}>{'Drag drop and swap between lists'}</Text>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>App Header</Text>
       </View>
-      <DraxProvider>
-        <View style={styles.container}>
-          <View style={styles.receivingContainer}>
-            {renderReceivingItems()}
+
+      {/* Content */}
+      <View style={styles.content}>
+        <Text style={styles.contentText}>This is the main content area</Text>
+        <View style={{ gap: 30 }}>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: module[0] ? "green" : "red",
+                minWidth: "40%",
+              }}
+              onPress={() => toggleModal("Button 1 Content")}
+            >
+              <Text style={styles.buttonText}>Button 1</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: module[1] ? "green" : "red",
+                minWidth: "40%",
+              }}
+              onPress={() => toggleModal("Button 2 Content")}
+            >
+              <Text style={styles.buttonText}>Button 2</Text>
+            </TouchableOpacity>
           </View>
-          <ScrollView>
-            <View style={styles.draxListContainer}>
-              {renderDraggableItems()}
-            </View>
-          </ScrollView>
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: module[2] ? "green" : "red",
+                minWidth: "40%",
+              }}
+              onPress={() => toggleModal("Button 3 Content")}
+            >
+              <Text style={styles.buttonText}>Button 3</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: module[3] ? "green" : "red",
+                minWidth: "40%",
+              }}
+              onPress={() => toggleModal("Button 4 Content")}
+            >
+              <Text style={styles.buttonText}>Button 4</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </DraxProvider>
-    </GestureHandlerRootView>
+      </View>
+
+      {/* Modal */}
+      <Modal
+        transparent={true}
+        visible={isModalVisible}
+        animationType="slide"
+        onRequestClose={() => toggleModal("")}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>{modalContent}</Text>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => toggleModal("")}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Footer */}
+      <View style={styles.footer}></View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 12,
-    paddingTop: 40,
-    justifyContent: 'space-evenly',
+    backgroundColor: "#f8f9fa",
   },
-  centeredContent: {
+  header: {
+    padding: 20,
+    backgroundColor: "#007bff",
+    alignItems: "center",
+  },
+  headerText: {
+    fontSize: 20,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  content: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  buttonRow: {
+    height: 100,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 40,
+    width: "100%",
+  },
+  button: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 5,
+    minWidth: "40%",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: 300,
+    backgroundColor: "#fff",
+    padding: 20,
     borderRadius: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  receivingZone: {
-    height: (Dimensions.get('window').width / 2) - 24, // Adjust height for 2 columns
-    borderRadius: 10,
-    width: (Dimensions.get('window').width / 2) - 24, // Adjust width for 2 columns
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 5,
-  },
-  receiving: {
-    borderColor: 'red',
-    borderWidth: 2,
-  },
-  draggableBox: {
-    width: (Dimensions.get('window').width / 4) - 24, // Adjust width for 4 columns layout
-    height: (Dimensions.get('window').width / 4) - 24, // Adjust height for 4 columns layout
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 5,
-  },
-  dragging: {
-    opacity: 0.2,
-  },
-  hoverDragging: {
-    borderColor: 'magenta',
-    borderWidth: 2,
-  },
-  receivingContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap', // Enable wrapping to create multiple rows
-    justifyContent: 'space-evenly',
-    marginBottom: 20, // Add space between lists
-  },
-  draxListContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap', // Enable wrapping to create multiple rows
-    justifyContent: 'space-evenly',
-  },
-  draggableItemWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  textStyle: {
+  modalText: {
     fontSize: 18,
+    marginBottom: 20,
+    textAlign: "center",
   },
-  headerStyle: {
-    marginTop: 20,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 20,
+  closeButton: {
+    backgroundColor: "#ff6347",
+    padding: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  footer: {
+    padding: 10,
+    backgroundColor: "#e9ecef",
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
 });
