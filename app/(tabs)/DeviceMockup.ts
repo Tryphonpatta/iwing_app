@@ -1,3 +1,4 @@
+//DeviceMockup.ts
 export interface Device {
     id: string;
     name: string;
