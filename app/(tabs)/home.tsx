@@ -5,13 +5,16 @@ import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
-import { hexToBase64 } from "@/util/encode";
+import { base64toDec, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 
 type ModuleHome = Module | null;
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
+  const [isCalibrate, setIsCalibrate] = React.useState(false);
+  const isCalibrateRef = React.useRef(isCalibrate); // This ref tracks the latest state of isCalibrate
+
   const {
     bleManager,
     connectedDevices,
@@ -26,6 +29,7 @@ export default function Home() {
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
+    const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
     for (let i = 0; i < 10; i++) {
@@ -47,21 +51,51 @@ export default function Home() {
   };
 
   const calibrate = async (sender: number, receiver: number) => {
+    console.log(sender, receiver);
     writeCharacteristic(
       module[sender]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
-    let isOk = false;
-    while (!isOk) {
-      isOk = true;
-      const data = readCharacteristic(
-        module[receiver]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.IR_RX
-      );
-      console.log(data);
+    console.log("calibrate : ", isCalibrate);
+    console.log("turn on irtx");
+    const maxRetry = 10;
+    let retry = 0;
+    while (isCalibrateRef.current) {
+      if (retry > maxRetry) {
+        console.log("Failed to calibrate (Timeout)");
+        break;
+      }
+      for (let i = 0; i < 100; i++) {
+        if (!isCalibrateRef.current) break;
+        const data = await readCharacteristic(
+          module[receiver]?.deviceId as string,
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          CHARACTERISTIC.IR_RX
+        );
+        console.log("data : ", data);
+        const val = base64toDec(data ? data : "00") == 1 ? 1 : 0;
+        console.log("value : ", val);
+        if (val != 1) {
+          writeCharacteristic(
+            module[receiver]?.deviceId as string,
+            CHARACTERISTIC.IWING_TRAINERPAD,
+            CHARACTERISTIC.LED,
+            hexToBase64("ff0000")
+          );
+        } else {
+          writeCharacteristic(
+            module[receiver]?.deviceId as string,
+            CHARACTERISTIC.IWING_TRAINERPAD,
+            CHARACTERISTIC.LED,
+            hexToBase64("00ff00")
+          );
+        }
+        console.log(data);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      retry++;
     }
     writeCharacteristic(
       module[sender]?.deviceId as string,
@@ -69,10 +103,20 @@ export default function Home() {
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
+    writeCharacteristic(
+      module[receiver]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.LED,
+      hexToBase64("000000")
+    );
+    console.log("turn off irtx");
   };
 
   React.useEffect(() => {
-    console.log("Connected devices: ", connectedDevices);
+    isCalibrateRef.current = isCalibrate;
+  }, [isCalibrate]);
+
+  React.useEffect(() => {
     const moduleTemp: ModuleHome[] = [];
     for (let i = 0; i < connectedDevices.length; i++) {
       moduleTemp.push(connectedDevices[i]);
@@ -80,7 +124,6 @@ export default function Home() {
     for (let i = moduleTemp.length; i < 4; i++) {
       moduleTemp.push(null);
     }
-    console.log("Module: ", moduleTemp);
     setModule(moduleTemp);
   }, [connectedDevices]);
   const toggleModal = (content: string) => {
@@ -100,7 +143,14 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       {/* <View style={styles.header}> */}
-      <Text style={[tw`text-center font-bold text-white my-4 mt-2 shadow-lg`, { backgroundColor: "#419E68", fontSize: 36 }]}>Home</Text>
+      <Text
+        style={[
+          tw`text-center font-bold text-white my-4 mt-2 shadow-lg`,
+          { backgroundColor: "#419E68", fontSize: 36 },
+        ]}
+      >
+        Home
+      </Text>
       {/* </View> */}
 
       {/* Content */}
@@ -143,8 +193,17 @@ export default function Home() {
               <Text style={styles.buttonText}>Device 2</Text>
             </TouchableOpacity>
           </View>
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0'}}>
-            <View style={{backgroundColor: "green", width: 300, height: 350}}></View>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#f0f0f0",
+            }}
+          >
+            <View
+              style={{ backgroundColor: "green", width: 300, height: 350 }}
+            ></View>
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -207,6 +266,27 @@ export default function Home() {
             >
               <Text style={styles.buttonText}>Blink</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={async () => {
+                if (
+                  !isCalibrate &&
+                  selectedModule &&
+                  module[4 - selectedModule] != null
+                ) {
+                  setIsCalibrate(true);
+                  isCalibrateRef.current = true;
+                  await calibrate(selectedModule - 1, 4 - selectedModule);
+                } else if (isCalibrate) {
+                  console.log("cancel calibrate : ", isCalibrate);
+                  setIsCalibrate(false);
+                } else {
+                  console.log("Module not found");
+                }
+              }}
+            >
+              <Text style={styles.buttonText}>SetUP</Text>
+            </TouchableOpacity>
             <SelectList
               setSelected={(val: number) => {
                 swapModule((selectedModule as number) - 1, val - 1);
@@ -232,6 +312,7 @@ export default function Home() {
           </View>
         </View>
       </Modal>
+      {/* Calibration Modal */}
 
       {/* Footer */}
       <View style={styles.footer}></View>
