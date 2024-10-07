@@ -128,29 +128,27 @@ const BLE = () => {
   };
 
   return (
-    <View style={tw`flex-1 bg-white`}>
-      <Text style={tw`text-2xl font-bold text-black my-4 text-center mt-12`}>
+    <View style={[tw`flex-1`, { backgroundColor: "#E8F5E9" }]}>
+      <Text style={[tw`text-2xl font-bold text-white my-4 text-center mt-12 shadow-lg`, {backgroundColor: "#419E68"}]}>
         Settings
       </Text>
 
       {/* Render connected devices */}
-      <Text style={tw`text-lg font-bold text-black mx-4`}>Connected Devices</Text>
+      <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>  Connected Devices</Text>
       <FlatList
         data={connectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4`}>No connected devices</Text>}
+        ListEmptyComponent={<Text style={tw`mx-4`}>  No connected devices</Text>}
       />
 
       {/* Render disconnected devices */}
-      <Text style={tw`text-lg font-bold text-black mx-4 mt-4`}>
-        Disconnected Devices
-      </Text>
+      <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>  Disconnected Devices</Text>
       <FlatList
         data={disconnectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4`}>No disconnected devices</Text>}
+        ListEmptyComponent={<Text style={tw`mx-4`}>  No disconnected devices</Text>}
       />
 
       <Button
