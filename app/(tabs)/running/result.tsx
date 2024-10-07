@@ -1,92 +1,87 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native"; // นำเข้า useNavigation
-// import { getFirestore, collection, getDocs } from 'firebase/firestore';
-// import firebase from 'firebase/app';
-// import 'firebase/firestore';
-import CryptoJS from "crypto-js";
+import RunScreen from "../run"; // นำเข้า RunScreen โดยตรง
 
-const { width } = Dimensions.get("window");
+const PatternScreen = () => {
+  const [R1, setR1] = useState("");
+  const [R2, setR2] = useState("");
+  const [L1, setL1] = useState("");
+  const [L2, setL2] = useState("");
+  const [isStarted, setIsStarted] = useState(false);
+  const [showRunScreen, setShowRunScreen] = useState(false); // state สำหรับการแสดงหน้า RunScreen
 
-const ResultScreen = () => {
-  const navigation = useNavigation(); // ใช้ useNavigation เพื่อควบคุมการนำทาง
-
-  const [resultData, setResultData] = useState({
-    time: "Loading...",
-    averagePace: "Loading...",
-    averageSpeed: "Loading...",
-    bestPace: "Loading...",
-    movingTime: "Loading...",
-    idleTime: "Loading...",
-  });
-
-  useEffect(() => {
-    // const fetchData = async () => {
-    //   const querySnapshot = await getDocs(collection(db, "results"));
-    //   const data = querySnapshot.docs.map(doc => doc.data());
-    //   if (data.length > 0) {
-    //     const result = data[0];  // Assuming we take the first result for now
-    //     setResultData({
-    //       time: result.time,
-    //       averagePace: result.averagePace,
-    //       averageSpeed: result.averageSpeed,
-    //       bestPace: result.bestPace,
-    //       movingTime: result.movingTime,
-    //       idleTime: result.idleTime,
-    //     });
-    //     // สุ่มตัวเลขแล้วทำการ Hash ด้วย SHA-256
-    //     const randomValue = `${result.time}${result.averagePace}${result.averageSpeed}${result.bestPace}${result.movingTime}${result.idleTime}`;
-    //     const hash = CryptoJS.SHA256(randomValue).toString(CryptoJS.enc.Hex);
-    //     // ส่งค่า hash ไปที่ Log
-    //     console.log(`Hash value: ${hash}`);
-    //   }
-    // };
-    // fetchData();
-  }, []);
-
-  const handleDonePress = () => {
-    navigation.navigate("run"); // นำทางไปหน้า run.tsx
+  const handleStartStop = () => {
+    setIsStarted(!isStarted);
   };
+
+  // ถ้า showRunScreen เป็น true ให้แสดงหน้า RunScreen
+  if (showRunScreen) {
+    return <RunScreen />;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Result</Text>
+      {!isStarted && (
+        <TouchableOpacity
+          style={styles.exitButton}
+          onPress={() => setShowRunScreen(true)} // เปลี่ยน state เป็น true เพื่อแสดง RunScreen
+        >
+          <Text style={styles.exitButtonText}>Exit</Text>
+        </TouchableOpacity>
+      )}
 
-      <View style={styles.resultContainer}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Time:</Text>
-          <Text style={styles.value}>{resultData.time}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Average pace:</Text>
-          <Text style={styles.value}>{resultData.averagePace}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Average speed:</Text>
-          <Text style={styles.value}>{resultData.averageSpeed}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Best pace:</Text>
-          <Text style={styles.value}>{resultData.bestPace}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Moving time:</Text>
-          <Text style={styles.value}>{resultData.movingTime}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Idle time:</Text>
-          <Text style={styles.value}>{resultData.idleTime}</Text>
-        </View>
-      </View>
+      <Text style={styles.title}>Pattern Mode</Text>
 
-      <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
-        <Text style={styles.doneButtonText}>Finish</Text>
+      {/* Input R1 */}
+      <TextInput
+        style={styles.input}
+        value={R1}
+        onChangeText={(text) => setR1(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
+        keyboardType="numeric"
+        placeholder="R1"
+      />
+
+      {/* Input R2 */}
+      <TextInput
+        style={styles.input}
+        value={R2}
+        onChangeText={(text) => setR2(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
+        keyboardType="numeric"
+        placeholder="R2"
+      />
+
+      {/* Input L1 */}
+      <TextInput
+        style={styles.input}
+        value={L1}
+        onChangeText={(text) => setL1(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
+        keyboardType="numeric"
+        placeholder="L1"
+      />
+
+      {/* Input L2 */}
+      <TextInput
+        style={styles.input}
+        value={L2}
+        onChangeText={(text) => setL2(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
+        keyboardType="numeric"
+        placeholder="L2"
+      />
+
+      {/* ปุ่ม Start/Stop */}
+      <TouchableOpacity
+        style={[styles.startButton, isStarted ? styles.stopButton : null]}
+        onPress={handleStartStop}
+      >
+        <Text style={styles.startButtonText}>
+          {isStarted ? "Stop" : "Start"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -95,53 +90,52 @@ const ResultScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f5f0",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f0f5f0",
     padding: 20,
   },
   title: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 30,
-    color: "#000",
+    marginBottom: 20,
   },
-  resultContainer: {
-    alignItems: "flex-start",
-    width: "100%",
-    paddingHorizontal: 20,
-    marginBottom: 40,
+  input: {
+    width: "80%",
+    height: 50,
+    backgroundColor: "#e0e0e0",
+    marginBottom: 20,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    fontSize: 18,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginVertical: 8,
+  startButton: {
+    backgroundColor: "#2f855a", // สีเขียวเมื่อยังไม่ได้เริ่ม
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 25,
   },
-  label: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#333",
-    flex: 1, // เพิ่ม flex เพื่อให้ label มีขนาดเท่ากัน
+  stopButton: {
+    backgroundColor: "#e53e3e", // สีแดงเมื่อกด Start แล้ว
   },
-  value: {
-    fontSize: 20,
-    color: "#333",
-    textAlign: "right",
-    flex: 1, // เพิ่ม flex เพื่อให้ value มีขนาดเท่ากัน
-  },
-  doneButton: {
-    backgroundColor: "#2f855a",
-    paddingVertical: 15,
-    width: width * 0.6, // กำหนดความกว้างของปุ่มให้สัมพันธ์กับหน้าจอ
-    borderRadius: 30, // ปรับให้ปุ่มมีขอบมนมากขึ้น
-    alignItems: "center",
-  },
-  doneButtonText: {
-    fontSize: 20,
+  startButtonText: {
+    fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
   },
+  exitButton: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    backgroundColor: "#333",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  exitButtonText: {
+    fontSize: 16,
+    color: "#fff",
+  },
 });
 
-export default ResultScreen;
+export default PatternScreen;
