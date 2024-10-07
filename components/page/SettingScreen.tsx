@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import Footer from "../navigation/Footer";
-import Header1 from "../navigation/Header";
+import { Ionicons } from "@expo/vector-icons";
+import SettingCardComponent from "../card/SettingCard"; // Make sure this path is correct
+import Header1 from "../navigation/Header"; // Ensure this is also correctly imported
 
 const SettingScreen = () => {
   // Mockup data for devices
@@ -27,67 +25,13 @@ const SettingScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Device List */}
         {devices.map((device) => (
-          <TouchableOpacity key={device.id}>
-            <View style={styles.cardContainer}>
-              <View style={styles.batteryIconContainer}>
-                <TouchableOpacity>
-                  <MaterialIcons name="wb-twilight" size={48} color="black" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.textContent}>
-                <Text style={styles.nameText}>Name: {device.name}</Text>
-                <Text
-                  style={[
-                    styles.disconnectText,
-                    { color: device.connected ? "green" : "red" },
-                  ]}
-                >
-                  {device.connected ? "Connected" : "Disconnected"}
-                </Text>
-                <View style={styles.batteryInfoContainer}>
-                  <Text style={styles.batteryText}>
-                    Battery: {device.battery}%
-                  </Text>
-                  {device.battery === 100 ? (
-                    <FontAwesome5 name="battery-full" size={24} color="green" />
-                  ) : device.battery > 30 ? (
-                    <FontAwesome5
-                      name="battery-half"
-                      size={24}
-                      color="orange"
-                    />
-                  ) : (
-                    <FontAwesome5
-                      name="battery-quarter"
-                      size={24}
-                      color="red"
-                    />
-                  )}
-                </View>
-                <View style={styles.charginginfocontainer}>
-                  <Text style={styles.chargingText}>
-                    {device.charging ? "Charging" : "Not Charging"}
-                  </Text>
-
-                  {device.charging ? (
-                    <MaterialCommunityIcons
-                      name="power-plug"
-                      size={24}
-                      color="black"
-                      style={styles.plugIcon}
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="power-plug-off"
-                      size={24}
-                      color="black"
-                      style={styles.plugIcon}
-                    />
-                  )}
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
+          <SettingCardComponent
+            key={device.id} // Add key for list rendering
+            name={device.name}
+            isConnected={device.connected}
+            batteryAmount={device.battery}
+            isCharging={device.charging}
+          />
         ))}
 
         {/* Add More Device Button */}
@@ -113,51 +57,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#E3F2FD",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#81C784",
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
   content: {
+    flexGrow: 1, // Allows ScrollView to fill available space
+    justifyContent: "center", // Center contents vertically
+    alignItems: "center", // Center contents horizontally
     padding: 16,
-  },
-  deviceCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  deviceIcon: {
-    marginRight: 16,
-  },
-  deviceInfo: {
-    flex: 1,
-  },
-  deviceName: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  deviceStatus: {
-    fontSize: 16,
-  },
-  deviceBattery: {
-    fontSize: 16,
-  },
-  deviceCharging: {
-    fontSize: 16,
   },
   addButton: {
     flexDirection: "row",
@@ -167,8 +71,8 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: "center",
     marginBottom: 16,
-    height: 110, // Fixed height for the card
-    width: 360, // Fixed width for the card
+    height: 110, // Height for the button
+    width: 360,
   },
   addButtonText: {
     fontSize: 18,
@@ -194,62 +98,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 16,
-    backgroundColor: "#81C784",
-  },
-  cardContainer: {
-    backgroundColor: "#F2F2F2",
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    flexDirection: "row", // Align children in a row
-    height: 110, // Fixed height for the card
-    width: 360, // Fixed width for the card
-    alignItems: "center", // Center items vertically
-  },
-  batteryIconContainer: {
-    marginRight: 15, // Space between icon and text
-  },
-  textContent: {
-    flex: 1, // Take up remaining space
-    alignItems: "flex-start", // Align text to the start
-    marginLeft: 20,
-    rowGap: 3,
-  },
-  nameText: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  disconnectText: {
-    fontSize: 14,
-  },
-  batteryInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2, // Reduced space above battery info
-  },
-  batteryText: {
-    fontSize: 14,
-    marginRight: 5, // Space between text and charging icon
-  },
-  chargingIcon: {
-    marginLeft: 5, // Space between battery text and icon
-  },
-  charginginfocontainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2, // Reduced space above battery info
-  },
-  chargingText: {
-    fontSize: 14,
-    marginRight: 5, // Space between text and charging icon
-  },
-  plugIcon: {
-    marginLeft: 5, // Space between battery text and icon
-  },
 });
-
 export default SettingScreen;
