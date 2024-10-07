@@ -1,17 +1,17 @@
 {
   "expo": {
-<<<<<<< HEAD
-<<<<<<< HEAD
+  
+  
     "name": "wingwing",
     "slug": "wingwing",
-=======
+ 
     "name": "iwing",
     "slug": "iwing",
->>>>>>> origin/main
-=======
+ 
+ 
     "name": "iwing",
     "slug": "iwing",
->>>>>>> origin/main
+ 
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -23,33 +23,33 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-<<<<<<< HEAD
-<<<<<<< HEAD
+  
+  
       "supportsTablet": true
-=======
-=======
->>>>>>> origin/main
+ 
+ 
+ 
       "supportsTablet": true,
       "bundleIdentifier": "com.golfpattadon.test",
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app needs access to Bluetooth.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to devices."
       }
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+  
+ 
+ 
+ 
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-<<<<<<< HEAD
-<<<<<<< HEAD
+  
+  
       }
-=======
-=======
->>>>>>> origin/main
+ 
+ 
+ 
       },
       "permissions": [
         "android.permission.BLUETOOTH",
@@ -57,10 +57,10 @@
         "android.permission.BLUETOOTH_CONNECT"
       ],
       "package": "com.golfpattadon.test"
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+  
+ 
+ 
+ 
     },
     "web": {
       "bundler": "metro",
@@ -68,17 +68,17 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-<<<<<<< HEAD
-<<<<<<< HEAD
+  
+  
       "expo-router"
-=======
+ 
       "expo-router",
       "react-native-ble-plx"
->>>>>>> origin/main
-=======
+ 
+ 
       "expo-router",
       "react-native-ble-plx"
->>>>>>> origin/main
+ 
     ],
     "experiments": {
       "typedRoutes": true
