@@ -1,17 +1,20 @@
-import { View, Text, Image, Pressable } from 'react-native'
-import React from 'react'
-import className from 'twrnc'
-import { useRouter } from 'expo-router'
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import TrainingScreen from "@/components/page/TrainningScreen";
+import SettingScreen from "@/components/page/SettingScreen";
+import Footer from "@/components/navigation/Footer";
 
-const index = () => {
-  const router = useRouter()
+const Stack = createStackNavigator();
+
+export default function App() {
   return (
-    <Pressable onPress={() => router.push('home')} style={className`bg-green-500 flex-1 justify-center items-center`}>
-      <Image source={require('../assets/images/badlogo.png')} style={className`w-70 h-70`} />
-      <Text style={className`text-6xl font-bold text-white`}>KU</Text>
-      <Text style={className`text-lg text-white font-semibold mt-2`}>Exercise is always right!</Text>
-    </Pressable>
-  )
+    <NavigationContainer independent={true}>
+      <Stack.Navigator initialRouteName="Training">
+        <Stack.Screen name="Training" component={TrainingScreen} />
+        <Stack.Screen name="Setting" component={SettingScreen} />
+      </Stack.Navigator>
+      <Footer />
+    </NavigationContainer>
+  );
 }
-
-export default index
