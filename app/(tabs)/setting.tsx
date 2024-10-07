@@ -28,6 +28,7 @@ const BLE = () => {
       await bleManager.cancelDeviceConnection(device.id);
       updateDeviceStatus(device.id, false);
     } else {
+      console.log("Connecting to devicesss:", device.id);
       await connectToDevice(device.id);
       updateDeviceStatus(device.id, true);
     }
@@ -88,7 +89,9 @@ const BLE = () => {
 
   const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
     return (
-      <View style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}>
+      <View
+        style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+      >
         <Image
           source={require("../../assets/images/device.png")}
           style={tw`w-20 h-20`}
