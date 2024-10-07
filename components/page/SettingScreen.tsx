@@ -20,7 +20,7 @@ const SettingScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Header1 title="Setting" />
+      {/* <Header1 title="Setting" /> */}
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Device List */}

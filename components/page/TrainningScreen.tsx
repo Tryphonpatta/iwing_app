@@ -1,20 +1,18 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, Text } from "react-native";
-import Header1 from "../navigation/Header";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import SelectBar from "../navigation/selectbar";
 import Footer from "../navigation/Footer";
-import { MaterialIcons } from "@expo/vector-icons";
-import Entypo from "@expo/vector-icons/Entypo";
-import RangeSlider from "../rage_slider";
-import TimePicker from "../timer";
+import RangeSlider from "../rage_slider"; // Ensure this import is correct
+import Timer from "../timer"; // Ensure this import is correct
 import { TouchableOpacity } from "react-native-gesture-handler";
-import Timer from "../timer";
+import Header1 from "../navigation/Header";
 
 const TrainingScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Header1 title="Training" />
+      {/* <Header1 title="Training" /> */}
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Light Out Section */}
@@ -23,7 +21,7 @@ const TrainingScreen = () => {
             <MaterialIcons name="wb-twilight" size={48} color="black" />
             <Text style={styles.headerText}>Light Out</Text>
           </View>
-          <SelectBar option1="Hit" option2="Timeout" option3="Hit or Timeout" />
+          {/* <SelectBar option1="Hit" option2="Timeout" option3="Hit or Timeout" /> */}
         </View>
 
         {/* Light Delay Time Section */}
@@ -32,33 +30,37 @@ const TrainingScreen = () => {
             <MaterialIcons name="wb-twilight" size={48} color="black" />
             <Text style={styles.headerText}>Light Delay Time</Text>
           </View>
-          <SelectBar option1="None" option2="Fixed" option3="Random" />
+          {/* <SelectBar option1="None" option2="Fixed" option3="Random" /> */}
         </View>
 
+        {/* Time Out Section */}
         <View style={styles.section}>
           <Text style={styles.headerText}>Time Out</Text>
-          <RangeSlider is_round={false}></RangeSlider>
+          <RangeSlider is_round={false} />
         </View>
 
         {/* Duration Section */}
         <View style={styles.section}>
           <View style={styles.topic}>
-            <Entypo name="back-in-time" size={24} color="black" />
+            <Ionicons name="timer-outline" size={24} color="black" />
             <Text style={styles.headerText}>Duration</Text>
           </View>
-          <SelectBar option1="Hit" option2="Timeout" option3="Hit or Timeout" />
+          {/* <SelectBar option1="Hit" option2="Timeout" option3="Hit or Timeout" /> */}
         </View>
 
+        {/* Hit Count Section */}
         <View style={styles.section}>
           <Text style={styles.headerText}>Hit Count</Text>
-          <RangeSlider is_round={true}></RangeSlider>
+          <RangeSlider is_round={true} />
         </View>
 
+        {/* Time Section */}
         <View style={styles.section}>
           <Text style={styles.headerText}>Time</Text>
-          <Timer></Timer>
+          <Timer />
         </View>
 
+        {/* Start Button */}
         <View style={styles.startButton}>
           <TouchableOpacity style={styles.toggleButton}>
             <Text style={styles.toggleButtonText}>Start</Text>
@@ -78,17 +80,17 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   section: {
-    marginBottom: 24, // Space between each section (icon, text, and select bar)
+    marginBottom: 24,
   },
   topic: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12, // Space between the icon-text row and the SelectBar
+    marginBottom: 12,
   },
   headerText: {
     fontSize: 18,
-    fontWeight: "bold", // Bold style for the text
-    marginLeft: 10, // Space between the icon and the text
+    fontWeight: "bold",
+    marginLeft: 10,
   },
   toggleButton: {
     backgroundColor: "yellow",
@@ -105,10 +107,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,
-  },
-  startButtonText: {
-    fontSize: 18,
-    marginRight: 16,
   },
 });
 

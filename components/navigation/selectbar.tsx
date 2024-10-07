@@ -12,58 +12,31 @@ const SelectBar: React.FC<SelectBarProps> = ({ option1, option2, option3 }) => {
   // State to keep track of the selected option
   const [selectedOption, setSelectedOption] = useState<string>(option1); // Default to option1
 
+  // Render a button for each option
+  const renderButton = (option: string) => (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        selectedOption === option ? styles.selectedButton : null, // Apply selected style if selected
+      ]}
+      onPress={() => setSelectedOption(option)}
+    >
+      <Text
+        style={[
+          styles.text,
+          selectedOption === option ? styles.selectedText : null, // Apply selected text color
+        ]}
+      >
+        {option}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedOption === option1 && styles.selectedButton, // Apply selected style if selected
-        ]}
-        onPress={() => setSelectedOption(option1)}
-      >
-        <Text
-          style={[
-            styles.text,
-            selectedOption === option1 && styles.selectedText, // Apply selected text color
-          ]}
-        >
-          {option1}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedOption === option2 && styles.selectedButton, // Apply selected style if selected
-        ]}
-        onPress={() => setSelectedOption(option2)}
-      >
-        <Text
-          style={[
-            styles.text,
-            selectedOption === option2 && styles.selectedText, // Apply selected text color
-          ]}
-        >
-          {option2}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          selectedOption === option3 && styles.selectedButton, // Apply selected style if selected
-        ]}
-        onPress={() => setSelectedOption(option3)}
-      >
-        <Text
-          style={[
-            styles.text,
-            selectedOption === option3 && styles.selectedText, // Apply selected text color
-          ]}
-        >
-          {option3}
-        </Text>
-      </TouchableOpacity>
+      {renderButton(option1)}
+      {renderButton(option2)}
+      {renderButton(option3)}
     </View>
   );
 };
@@ -73,7 +46,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 10,
-    backgroundColor: "#f3e393", // Background color similar to the image
+    backgroundColor: "#f3e393", // Background color
     borderRadius: 10, // Rounded corners for the container
   },
   button: {

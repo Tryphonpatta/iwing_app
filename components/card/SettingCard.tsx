@@ -1,69 +1,74 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { TouchableOpacity } from "react-native";
 
-const SettingCardComponent = (props: {
+const SettingCardComponent = ({
+  name,
+  isConnected,
+  batteryAmount,
+  isCharging,
+}: {
   name: string;
   isConnected: boolean;
   batteryAmount: number;
   isCharging: boolean;
 }) => {
-  // Destructure props inside the component
-  const { name, isConnected, batteryAmount, isCharging } = props;
-
   return (
-    <TouchableOpacity>
-      <View style={styles.cardContainer}>
-        <View style={styles.batteryIconContainer}>
-          <TouchableOpacity>
-            <MaterialIcons name="wb-twilight" size={48} color="black" />
-          </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.cardContainer}
+      onPress={() => console.log(`${name} pressed`)} // Example action on press
+      accessible={true} // Enable accessibility
+      accessibilityLabel={`${name} - ${
+        isConnected ? "Connected" : "Disconnected"
+      } - Battery ${batteryAmount}% - ${
+        isCharging ? "Charging" : "Not Charging"
+      }`} // Accessibility label
+    >
+      <View style={styles.batteryIconContainer}>
+        <MaterialIcons name="wb-twilight" size={48} color="black" />
+      </View>
+      <View style={styles.textContent}>
+        <Text style={styles.nameText}>Name: {name}</Text>
+        <Text
+          style={[
+            styles.disconnectText,
+            { color: isConnected ? "green" : "red" },
+          ]}
+        >
+          {isConnected ? "Connected" : "Disconnected"}
+        </Text>
+        <View style={styles.batteryInfoContainer}>
+          <Text style={styles.batteryText}>Battery: {batteryAmount}%</Text>
+          {batteryAmount === 100 ? (
+            <FontAwesome5 name="battery-full" size={24} color="green" />
+          ) : batteryAmount > 30 ? (
+            <FontAwesome5 name="battery-half" size={24} color="orange" />
+          ) : (
+            <FontAwesome5 name="battery-quarter" size={24} color="red" />
+          )}
         </View>
-        <View style={styles.textContent}>
-          <Text style={styles.nameText}>Name: {name}</Text>
-          <Text
-            style={[
-              styles.disconnectText,
-              { color: isConnected ? "green" : "red" },
-            ]}
-          >
-            {isConnected ? "Connected" : "Disconnected"}
+        <View style={styles.charginginfocontainer}>
+          <Text style={styles.chargingText}>
+            {isCharging ? "Charging" : "Not Charging"}
           </Text>
-          <View style={styles.batteryInfoContainer}>
-            <Text style={styles.batteryText}>Battery: {batteryAmount}%</Text>
-            {batteryAmount === 100 ? (
-              <FontAwesome5 name="battery-full" size={24} color="green" />
-            ) : batteryAmount > 30 ? (
-              <FontAwesome5 name="battery-half" size={24} color="orange" />
-            ) : (
-              <FontAwesome5 name="battery-quarter" size={24} color="red" />
-            )}
-          </View>
-          <View style={styles.charginginfocontainer}>
-            <Text style={styles.chargingText}>
-              {isCharging ? "Charging" : "Not Charging"}
-            </Text>
-
-            {isCharging ? (
-              <MaterialCommunityIcons
-                name="power-plug"
-                size={24}
-                color="black"
-                style={styles.plugIcon}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="power-plug-off"
-                size={24}
-                color="black"
-                style={styles.plugIcon}
-              />
-            )}
-          </View>
+          {isCharging ? (
+            <MaterialCommunityIcons
+              name="power-plug"
+              size={24}
+              color="black"
+              style={styles.plugIcon}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="power-plug-off"
+              size={24}
+              color="black"
+              style={styles.plugIcon}
+            />
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -106,9 +111,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginRight: 5, // Space between text and charging icon
   },
-  chargingIcon: {
-    marginLeft: 5, // Space between battery text and icon
-  },
   charginginfocontainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -122,4 +124,5 @@ const styles = StyleSheet.create({
     marginLeft: 5, // Space between battery text and icon
   },
 });
+
 export default SettingCardComponent;
