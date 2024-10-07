@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { PropsWithChildren, useState } from "react";
 import { StyleSheet, TouchableOpacity, useColorScheme } from "react-native";
@@ -14,6 +15,8 @@ export function Collapsible({
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? "light";
 =======
+=======
+>>>>>>> origin/main
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
@@ -25,6 +28,9 @@ import { Colors } from '@/constants/Colors';
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? 'light';
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
 >>>>>>> origin/main
 
   return (
@@ -32,6 +38,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
       <TouchableOpacity
         style={styles.heading}
         onPress={() => setIsOpen((value) => !value)}
+<<<<<<< HEAD
 <<<<<<< HEAD
         activeOpacity={0.8}
       >
@@ -46,6 +53,8 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
         <ThemedView style={styles.content}>{children}</ThemedView>
       ) : null}
 =======
+=======
+>>>>>>> origin/main
         activeOpacity={0.8}>
         <Ionicons
           name={isOpen ? 'chevron-down' : 'chevron-forward-outline'}
@@ -55,6 +64,9 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
       </TouchableOpacity>
       {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
 >>>>>>> origin/main
     </ThemedView>
   );
@@ -63,8 +75,13 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
 const styles = StyleSheet.create({
   heading: {
 <<<<<<< HEAD
+<<<<<<< HEAD
     flexDirection: "row",
     alignItems: "center",
+=======
+    flexDirection: 'row',
+    alignItems: 'center',
+>>>>>>> origin/main
 =======
     flexDirection: 'row',
     alignItems: 'center',
