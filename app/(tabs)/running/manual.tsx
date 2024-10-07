@@ -1,20 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import RunScreen from '../run'; // นำเข้า RunScreen
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from "react-native";
+import ResultScreen from "./result"; // นำเข้า ResultScreen โดยตรง
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const ManualScreen = () => {
-  const [isStopped, setIsStopped] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('red');
-
-  if (isStopped) {
-    return <RunScreen />; // เมื่อกด STOP กลับไปที่ RunScreen
-  }
+  const [showResult, setShowResult] = useState(false); // กำหนด state สำหรับการสลับหน้าจอ
+  const [selectedColor, setSelectedColor] = useState("red");
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
   };
+
+  if (showResult) {
+    return <ResultScreen />; // แสดง ResultScreen เมื่อกด STOP
+  }
 
   return (
     <View style={styles.container}>
@@ -41,20 +47,29 @@ const ManualScreen = () => {
       <Text style={styles.sectionTitle}>Color</Text>
       <View style={styles.colorRow}>
         <TouchableOpacity
-          style={[styles.colorButton, selectedColor === 'red' && styles.selectedColor]}
-          onPress={() => handleColorChange('red')}
+          style={[
+            styles.colorButton,
+            selectedColor === "red" && styles.selectedColor,
+          ]}
+          onPress={() => handleColorChange("red")}
         >
           <Text style={styles.colorText}>red</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.colorButton, selectedColor === 'green' && styles.selectedColor]}
-          onPress={() => handleColorChange('green')}
+          style={[
+            styles.colorButton,
+            selectedColor === "green" && styles.selectedColor,
+          ]}
+          onPress={() => handleColorChange("green")}
         >
           <Text style={styles.colorText}>green</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.colorButton, selectedColor === 'blue' && styles.selectedColor]}
-          onPress={() => handleColorChange('blue')}
+          style={[
+            styles.colorButton,
+            selectedColor === "blue" && styles.selectedColor,
+          ]}
+          onPress={() => handleColorChange("blue")}
         >
           <Text style={styles.colorText}>blue</Text>
         </TouchableOpacity>
@@ -63,9 +78,7 @@ const ManualScreen = () => {
       {/* ปุ่ม Stop */}
       <TouchableOpacity
         style={styles.stopButton}
-        onPress={() => {
-          setIsStopped(true); // เมื่อกด STOP ให้เปลี่ยนเป็น true เพื่อกลับไปที่ RunScreen
-        }}
+        onPress={() => setShowResult(true)} // เมื่อกดปุ่ม STOP จะเปลี่ยน state ไปแสดง ResultScreen
       >
         <Text style={styles.stopButtonText}>STOP</Text>
       </TouchableOpacity>
@@ -76,68 +89,68 @@ const ManualScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f5f0',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f5f0",
     padding: 20,
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
-    width: '60%',
+    width: "60%",
   },
   controlButton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     width: width * 0.2,
     height: width * 0.2,
     borderRadius: width * 0.1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 20,
     marginBottom: 10,
-    color: '#333',
+    color: "#333",
   },
   colorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '80%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "80%",
     marginBottom: 20,
   },
   colorButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: "#333",
   },
   selectedColor: {
-    backgroundColor: '#5d9b8c',
+    backgroundColor: "#5d9b8c",
   },
   colorText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   stopButton: {
-    backgroundColor: '#e63946',
+    backgroundColor: "#e63946",
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 25,
   },
   stopButtonText: {
     fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 
