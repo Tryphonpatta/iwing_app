@@ -51,3 +51,15 @@ export const base64toDecManu = (base64: string): number => {
   const hexString = hexArray.join("");
   return hexstringtoDecimal(hexString.slice(0, 4));
 };
+
+export function hexToBase64(hex: string): string {
+  // Convert hex to bytes
+  const bytes = new Uint8Array(
+    hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+  );
+
+  // Convert bytes to Base64
+  const base64String = btoa(String.fromCharCode(...bytes));
+
+  return base64String;
+}

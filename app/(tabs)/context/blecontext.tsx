@@ -17,6 +17,11 @@ interface BleManagerContextType {
     characteristicUUID: string,
     value: string
   ) => void;
+  readCharacteristic: (
+    deviceId: string,
+    serviceUUID: string,
+    characteristicUUID: string
+  ) => void;
   // Add other functions as needed
 }
 
@@ -45,7 +50,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Remove the device from the connectedDevices array using a new array
         setConnectedDevices((prev) =>
-          prev.filter((device) => device.deviceId !== deviceId)
+          prev.filter((device) => device.deviceId !== deviceId).filter(Boolean)
         );
 
         console.log(`Successfully disconnected from device: ${deviceId}`);
@@ -136,7 +141,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           IR_TX_status: false,
           music: "",
         });
-        return prev;
+        return prev.filter(Boolean);
       });
     }
 
@@ -146,6 +151,8 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   const connectToDevice = async (deviceId: string) => {
     try {
       console.log(`Connecting to device: ${deviceId}`);
+      const isConnected = await bleManager.isDeviceConnected(deviceId);
+      if (isConnected) return;
       const device = await bleManager.connectToDevice(deviceId);
       console.log(`Connected to device: ${deviceId}`);
 
@@ -169,7 +176,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           console.log("Characteristic UUID:", characteristic.uuid);
           const value = await characteristic.read();
-          console.log("Value:", base64toDec(value.value as string));
+          console.log("Valuess:", base64toDec(value.value as string));
 
           // Store the value in the characteristicMap
           characteristicMap.set(
@@ -178,7 +185,12 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         }
       }
-      if (connectedDevices.find((e) => e.deviceId === device.id)) {
+      console.log("connected", connectedDevices);
+      const existingDevice = connectedDevices.find(
+        (e) => e.deviceId === device.id
+      );
+      console.log("existingDevice: ", existingDevice);
+      if (existingDevice) {
         console.log("found");
         const index = connectedDevices.findIndex(
           (e) => e.deviceId === device.id
@@ -188,7 +200,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) || 0;
         setConnectedDevices((prev) => {
           prev[index] = updatedModule;
-          return prev;
+          return prev.filter(Boolean);
         });
         return;
       }
@@ -208,7 +220,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           IR_TX_status: false,
           music: "",
         });
-        return prev;
+        return prev.filter(Boolean);
       });
       return;
     } catch (error) {
@@ -247,6 +259,49 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const readCharacteristic = async (
+    deviceId: string,
+    serviceUUID: string,
+    characteristicUUID: string
+  ) => {
+    try {
+      console.log(
+        "Reading from characteristic: ",
+        characteristicUUID.toLowerCase()
+      );
+      const device = await bleManager.connectToDevice(deviceId);
+      await device.discoverAllServicesAndCharacteristics();
+
+      console.log("Connected to device: ", deviceId);
+
+      const service = await device
+        .services()
+        .then((services) => services.find((s) => s.uuid === serviceUUID));
+      if (!service) {
+        console.error(`Service ${serviceUUID} not found`);
+        return;
+      }
+
+      const characteristic = await service
+        .characteristics()
+        .then((characteristics) =>
+          characteristics.find((c) => c.uuid === characteristicUUID)
+        );
+      if (!characteristic) {
+        console.error(`Characteristic ${characteristicUUID} not found`);
+        return;
+      }
+      const value = await characteristic.read();
+      console.log("Value: ", value);
+      return value;
+    } catch (error) {
+      console.error(
+        `Failed to read from characteristic: ${characteristicUUID}`,
+        error
+      );
+    }
+  };
+
   useEffect(() => {
     // Cleanup on unmount
     return () => {
@@ -264,6 +319,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         disconnectDevice,
         connectToDevice,
         writeCharacteristic,
+        readCharacteristic,
       }}
     >
       {children}

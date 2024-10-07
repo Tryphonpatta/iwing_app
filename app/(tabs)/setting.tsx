@@ -18,13 +18,31 @@ import { base64toDec, base64toDecManu } from "@/util/encode";
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
   const { bleManager, connectToDevice, connectedDevices } = useBleManager(); // BLE context values
-  const [deviceList, setDeviceList] = useState<Device[]>([]); // List of BLE devices
+  const [deviceList, setDeviceList] = useState<DeviceCustom[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
-  // DeviceItem component for rendering individual BLE devices
 
-  const connectDevice = async (deviceId: string) => {
-    connectToDevice(deviceId);
+  // Connect or disconnect the device and update its status immediately
+  const toggleConnection = async (device: DeviceCustom) => {
+    if (device.isConnect) {
+      // Assuming disconnect function is available in your BLE context
+      await bleManager.cancelDeviceConnection(device.id);
+      updateDeviceStatus(device.id, false);
+    } else {
+      console.log("Connecting to devicesss:", device.id);
+      await connectToDevice(device.id);
+      updateDeviceStatus(device.id, true);
+    }
   };
+
+  // Update device status in the list based on its connection status
+  const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
+    setDeviceList((prevList: any) =>
+      prevList.map((d: any) =>
+        d.id === deviceId ? { ...d, isConnect: isConnect } : d
+      )
+    );
+  };
+
   const startScan = async () => {
     setDeviceList([]); // Clear the list before starting a new scan
     console.log("Scanning...");
@@ -39,19 +57,12 @@ const BLE = () => {
           }
 
           if (device) {
-            setDeviceList((prev) => {
-              // Check if device is already in the list
-              const deviceExists = prev.some((d) => d.id === device.id);
+            setDeviceList((prev: any) => {
+              const deviceExists = prev.some((d: any) => d.id === device.id);
 
-              // Add the device to a new array if not already present and if it matches criteria
-              if (device.name == "Trainning_PAD" && !deviceExists) {
-                console.log(device.name, device.id);
-
-                // Return a new array to trigger a re-render
-                return [...prev, device];
+              if (device.name === "Trainning_PAD" && !deviceExists) {
+                return [...prev, { ...device, isConnect: false }];
               }
-
-              // Return the previous array if no changes
               return prev;
             });
           }
@@ -60,14 +71,23 @@ const BLE = () => {
     }, true);
   };
 
-  useEffect(() => {}, []);
-  const DeviceItem: React.FC<{
-    device: Device;
-  }> = ({ device }) => {
-    const isConnect = connectedDevices
-      ? connectedDevices.some((d) => d.deviceId === device.id)
-      : false;
-    console.log(device.manufacturerData);
+  useEffect(() => {
+    // Update device connection statuses when connectedDevices change
+    setDeviceList((prev: any) =>
+      prev.map((device: any) => ({
+        ...device,
+        isConnect: connectedDevices.some((d) => d.deviceId === device.id),
+      }))
+    );
+  }, [connectedDevices]);
+
+  // Separate the devices into connected and disconnected groups
+  const connectedDevicesList = deviceList.filter((device) => device.isConnect);
+  const disconnectedDevicesList = deviceList.filter(
+    (device) => !device.isConnect
+  );
+
+  const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
     return (
       <View
         style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
@@ -84,10 +104,10 @@ const BLE = () => {
           <Text
             style={[
               tw`text-sm`,
-              isConnect ? styles.connectedText : styles.disconnectedText,
+              device.isConnect ? styles.connectedText : styles.disconnectedText,
             ]}
           >
-            Status: {isConnect ? "Connected" : "Disconnected"}
+            Status: {device.isConnect ? "Connected" : "Disconnected"}
           </Text>
 
           <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
@@ -100,30 +120,46 @@ const BLE = () => {
 
         <TouchableOpacity
           style={styles.blinkButton}
-          onPress={() => connectToDevice(device.id)}
+          onPress={() => toggleConnection(device)}
         >
           <Text style={tw`text-gray-700`}>
-            {isConnect ? "Disconnect" : "Connect"}
+            {device.isConnect ? "Disconnect" : "Connect"}
           </Text>
         </TouchableOpacity>
       </View>
     );
   };
 
-  // Function to start scanning for BLE devices
-
-  // Separate devices into connected and disconnected groups
-
   return (
     <View style={tw`flex-1 bg-white`}>
-      <Text style={tw`text-2xl font-bold text-black my-4 text-center`}>
-        BLE Devices
+      <Text style={tw`text-2xl font-bold text-black my-4 text-center mt-12`}>
+        Settings
+      </Text>
+
+      {/* Render connected devices */}
+      <Text style={tw`text-lg font-bold text-black mx-4`}>
+        Connected Devices
       </Text>
       <FlatList
-        data={deviceList}
+        data={connectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
+        ListEmptyComponent={<Text style={tw`mx-4`}>No connected devices</Text>}
       />
+
+      {/* Render disconnected devices */}
+      <Text style={tw`text-lg font-bold text-black mx-4 mt-4`}>
+        Disconnected Devices
+      </Text>
+      <FlatList
+        data={disconnectedDevicesList}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <DeviceItem device={item} />}
+        ListEmptyComponent={
+          <Text style={tw`mx-4`}>No disconnected devices</Text>
+        }
+      />
+
       <Button
         onPress={startScan}
         title={scanning ? "Scanning..." : "Start Scan"}
@@ -148,7 +184,7 @@ const styles = StyleSheet.create({
     color: "#D32F2F",
   },
   defaultBatteryText: {
-    color: "#4CAF50", // Default green color for non-charging status
+    color: "#4CAF50",
   },
   blinkButton: {
     backgroundColor: "#e0e0e0",
