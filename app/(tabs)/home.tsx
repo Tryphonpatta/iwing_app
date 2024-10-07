@@ -7,6 +7,7 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
+import { Ionicons } from "@expo/vector-icons";
 
 type ModuleHome = Module | null;
 export default function Home() {
@@ -109,34 +110,34 @@ export default function Home() {
         <View style={{ gap: 30 }}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: module[0] ? "green" : "#BFBFBF",
-                minWidth: "40%",
-                borderRadius: 10,
-              }}
+              style={[
+                styles.outlineContainer,
+                {
+                  borderColor: module[0] ? "green" : "#808080",
+                  backgroundColor: module[0] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                },
+              ]}
               onPress={() => {
                 if (module[0] != null) {
                   setSelectedModule(1);
-                  toggleModal("Button 1 Content");
+                  toggleModal("Device 1 Content");
                 }
               }}
             >
               <Text style={styles.buttonText}>Device 1</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: module[1] ? "green" : "#BFBFBF",
-                minWidth: "40%",
-                borderRadius: 10,
-              }}
+              style={[
+                styles.outlineContainer,
+                {
+                  borderColor: module[1] ? "green" : "#808080",
+                  backgroundColor: module[1] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                },
+              ]}
               onPress={() => {
                 if (module[1] != null) {
                   setSelectedModule(2);
-                  toggleModal("Button 2 Content");
+                  toggleModal("Device 2 Content");
                 }
               }}
             >
@@ -148,34 +149,34 @@ export default function Home() {
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: module[2] ? "green" : "#BFBFBF",
-                minWidth: "40%",
-                borderRadius: 10,
-              }}
+              style={[
+                styles.outlineContainer,
+                {
+                  borderColor: module[2] ? "green" : "#808080",
+                  backgroundColor: module[2] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                },
+              ]}
               onPress={() => {
                 if (module[2] != null) {
                   setSelectedModule(3);
-                  toggleModal("Button 3 Content");
+                  toggleModal("Device 3 Content");
                 }
               }}
             >
               <Text style={styles.buttonText}>Device 3</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: module[3] ? "green" : "#BFBFBF",
-                minWidth: "40%",
-                borderRadius: 10,
-              }}
+              style={[
+                styles.outlineContainer,
+                {
+                  borderColor: module[3] ? "green" : "#808080",
+                  backgroundColor: module[3] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                },
+              ]}
               onPress={() => {
                 if (module[3] != null) {
                   setSelectedModule(4);
-                  toggleModal("Button 4 Content");
+                  toggleModal("Device 4 Content");
                 }
               }}
             >
@@ -194,19 +195,8 @@ export default function Home() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                console.log(module);
-                console.log(selectedModule);
-                if (selectedModule && module[selectedModule - 1] != null) {
-                  blink(module[selectedModule - 1] as Module);
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Blink</Text>
-            </TouchableOpacity>
             <SelectList
               setSelected={(val: number) => {
                 swapModule((selectedModule as number) - 1, val - 1);
@@ -220,15 +210,29 @@ export default function Home() {
               boxStyles={{ height: 40, minWidth: 150, width: 150 }}
               dropdownStyles={{ maxHeight: 120 }}
             />
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                setSelectedModule(null);
-                toggleModal("");
-              }}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16 }}>
+              <TouchableOpacity
+                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                onPress={() => {
+                  console.log(module);
+                  console.log(selectedModule);
+                  if (selectedModule && module[selectedModule - 1] != null) {
+                    blink(module[selectedModule - 1] as Module);
+                  }
+                }}
+              >
+                <Text style={[styles.buttonText, { color: "#fff", fontWeight: "bold" }]}>Blink</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.closeButton, { marginLeft: 8 }]}
+                onPress={() => {
+                  setSelectedModule(null);
+                  toggleModal("");
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -240,6 +244,14 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  outlineContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 255, 0, 0.2)", // Light transparent green
+    minWidth: "25%",
+    borderRadius: 10,
+    borderWidth: 2,
+  },
   container: {
     flex: 1,
     backgroundColor: "#E8F5E9",
@@ -280,7 +292,7 @@ const styles = StyleSheet.create({
     minWidth: "40%",
   },
   buttonText: {
-    color: "#fff",
+    color: "#00000",
     fontSize: 16,
   },
   modalOverlay: {
@@ -290,20 +302,27 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: 300,
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
+    width: 320,
+    backgroundColor: "#ffffff",
+    padding: 25,
+    borderRadius: 15,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    elevation: 8,
+    gap: 10,
+
+    shadowColor: "rgba(0, 0, 0, 0.24)", 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+
+    borderColor: "#f0f0f0",
+    borderWidth: 1,
+    margin: 20,
   },
   modalText: {
-    fontSize: 18,
-    marginBottom: 20,
+    fontSize: 24,
+    fontWeight: "bold",
+    // marginBottom: 20,
     textAlign: "center",
   },
   closeButton: {

@@ -43,7 +43,7 @@ const BLE = () => {
         // Optionally, inform the user that the connection failed
       }
     }
-  };
+  }; 
 
   // Update device status in the list based on its connection status
   const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
