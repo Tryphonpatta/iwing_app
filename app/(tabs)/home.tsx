@@ -6,6 +6,7 @@ import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { hexToBase64 } from "@/util/encode";
+import tw from "twrnc";
 
 type ModuleHome = Module | null;
 export default function Home() {
@@ -98,21 +99,22 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>App Header</Text>
-      </View>
+      {/* <View style={styles.header}> */}
+      <Text style={[tw`text-center font-bold text-white my-4 mt-2 shadow-lg`, { backgroundColor: "#419E68", fontSize: 36 }]}>Home</Text>
+      {/* </View> */}
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.contentText}>This is the main content area</Text>
+        {/* <Text style={styles.contentText}>This is the main content area</Text> */}
         <View style={{ gap: 30 }}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={{
                 justifyContent: "center",
                 alignItems: "center",
-                backgroundColor: module[0] ? "green" : "red",
+                backgroundColor: module[0] ? "green" : "#BFBFBF",
                 minWidth: "40%",
+                borderRadius: 10,
               }}
               onPress={() => {
                 if (module[0] != null) {
@@ -121,14 +123,15 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Button 1</Text>
+              <Text style={styles.buttonText}>Device 1</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
                 justifyContent: "center",
                 alignItems: "center",
-                backgroundColor: module[1] ? "green" : "red",
+                backgroundColor: module[1] ? "green" : "#BFBFBF",
                 minWidth: "40%",
+                borderRadius: 10,
               }}
               onPress={() => {
                 if (module[1] != null) {
@@ -137,17 +140,20 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Button 2</Text>
+              <Text style={styles.buttonText}>Device 2</Text>
             </TouchableOpacity>
           </View>
-
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0'}}>
+            <View style={{backgroundColor: "green", width: 300, height: 350}}></View>
+          </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={{
                 justifyContent: "center",
                 alignItems: "center",
-                backgroundColor: module[2] ? "green" : "red",
+                backgroundColor: module[2] ? "green" : "#BFBFBF",
                 minWidth: "40%",
+                borderRadius: 10,
               }}
               onPress={() => {
                 if (module[2] != null) {
@@ -156,14 +162,15 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Button 3</Text>
+              <Text style={styles.buttonText}>Device 3</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
                 justifyContent: "center",
                 alignItems: "center",
-                backgroundColor: module[3] ? "green" : "red",
+                backgroundColor: module[3] ? "green" : "#BFBFBF",
                 minWidth: "40%",
+                borderRadius: 10,
               }}
               onPress={() => {
                 if (module[3] != null) {
@@ -172,7 +179,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Button 4</Text>
+              <Text style={styles.buttonText}>Device 4</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -235,15 +242,15 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#E8F5E9",
   },
   header: {
     padding: 20,
-    backgroundColor: "#007bff",
+    backgroundColor: "#419E68",
     alignItems: "center",
   },
   headerText: {
-    fontSize: 20,
+    fontSize: 36,
     color: "#fff",
     fontWeight: "bold",
   },
@@ -262,6 +269,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 40,
     width: "100%",
+    gap: 20,
   },
   button: {
     justifyContent: "center",
@@ -310,7 +318,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 10,
-    backgroundColor: "#e9ecef",
+    backgroundColor: "#E8F5E9",
     flexDirection: "row",
     justifyContent: "space-around",
   },

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { BleManager, Device, State } from "react-native-ble-plx";
 import tw from "twrnc";
-import { useBleManager } from "./context/blecontext"; // BLE context provider
+import { useBleManager } from "./context/blecontext";
 import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 
@@ -24,13 +24,24 @@ const BLE = () => {
   // Connect or disconnect the device and update its status immediately
   const toggleConnection = async (device: DeviceCustom) => {
     if (device.isConnect) {
-      // Assuming disconnect function is available in your BLE context
-      await bleManager.cancelDeviceConnection(device.id);
-      updateDeviceStatus(device.id, false);
+      try {
+        // Disconnect from the device
+        await bleManager.cancelDeviceConnection(device.id);
+        updateDeviceStatus(device.id, false);
+      } catch (error) {
+        console.log("Failed to disconnect from device:", device.id, error);
+      }
     } else {
-      console.log("Connecting to devicesss:", device.id);
-      await connectToDevice(device.id);
-      updateDeviceStatus(device.id, true);
+      try {
+        console.log("Connecting to device:", device.id);
+        // Attempt to connect to the device
+        await connectToDevice(device.id);
+        // Update the status only if the connection was successful
+        updateDeviceStatus(device.id, true);
+      } catch (error) {
+        console.log("Failed to connect to device:", device.id, error);
+        // Optionally, inform the user that the connection failed
+      }
     }
   };
 
@@ -69,6 +80,12 @@ const BLE = () => {
         });
       }
     }, true);
+
+    setTimeout(() => {
+      bleManager.stopDeviceScan();
+      setScanning(false);
+      console.log("Scan stopped after 10 seconds.");
+    }, 10000);
   };
 
   useEffect(() => {
@@ -132,26 +149,30 @@ const BLE = () => {
 
   return (
     <View style={[tw`flex-1`, { backgroundColor: "#E8F5E9" }]}>
-      <Text style={[tw`text-2xl font-bold text-white my-4 text-center mt-12 shadow-lg`, {backgroundColor: "#419E68"}]}>
+      <Text style={[tw`text-center font-bold text-white my-4 mt-8 shadow-lg`, { backgroundColor: "#419E68", fontSize: 36 }]}>
         Settings
       </Text>
 
       {/* Render connected devices */}
-      <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>  Connected Devices</Text>
+      <View style={tw`bg-white shadow-lg`}>
+      <Text style={tw`text-lg font-bold text-black rounded-lg p-2 `}>  Connected Devices</Text>
+      </View>
       <FlatList
         data={connectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4`}>  No connected devices</Text>}
+        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>  No connected devices</Text>}
       />
 
       {/* Render disconnected devices */}
+      <View style={tw`bg-white shadow-lg`}>
       <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>  Disconnected Devices</Text>
+      </View>
       <FlatList
         data={disconnectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4`}>  No disconnected devices</Text>}
+        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>  No disconnected devices</Text>}
       />
 
       <Button
