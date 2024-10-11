@@ -1,141 +1,142 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	Dimensions,
 } from "react-native";
-import RunScreen from "../run"; // นำเข้า RunScreen โดยตรง
+import RunScreen from "../run";
 
-const PatternScreen = () => {
-  const [R1, setR1] = useState("");
-  const [R2, setR2] = useState("");
-  const [L1, setL1] = useState("");
-  const [L2, setL2] = useState("");
-  const [isStarted, setIsStarted] = useState(false);
-  const [showRunScreen, setShowRunScreen] = useState(false); // state สำหรับการแสดงหน้า RunScreen
+const { width } = Dimensions.get("window");
 
-  const handleStartStop = () => {
-    setIsStarted(!isStarted);
-  };
+const ResultScreen = () => {
+	const [showRunScreen, setShowRunScreen] = useState(false);
 
-  // ถ้า showRunScreen เป็น true ให้แสดงหน้า RunScreen
-  if (showRunScreen) {
-    return <RunScreen />;
-  }
+	const [resultData, setResultData] = useState({
+		time: "Loading...",
+		averagePace: "Loading...",
+		averageSpeed: "Loading...",
+		bestPace: "Loading...",
+		movingTime: "Loading...",
+		idleTime: "Loading...",
+	});
 
-  return (
-    <View style={styles.container}>
-      {!isStarted && (
-        <TouchableOpacity
-          style={styles.exitButton}
-          onPress={() => setShowRunScreen(true)} // เปลี่ยน state เป็น true เพื่อแสดง RunScreen
-        >
-          <Text style={styles.exitButtonText}>Exit</Text>
-        </TouchableOpacity>
-      )}
+	useEffect(() => {
+		// const fetchData = async () => {
+		//   const querySnapshot = await getDocs(collection(db, "results"));
+		//   const data = querySnapshot.docs.map(doc => doc.data());
+		//   if (data.length > 0) {
+		//     const result = data[0];
+		//     setResultData({
+		//       time: result.time,
+		//       averagePace: result.averagePace,
+		//       averageSpeed: result.averageSpeed,
+		//       bestPace: result.bestPace,
+		//       movingTime: result.movingTime,
+		//       idleTime: result.idleTime,
+		//     });
+		//   }
+		// };
+		// fetchData();
+	}, []);
 
-      <Text style={styles.title}>Pattern Mode</Text>
+	if (showRunScreen) {
+		return <RunScreen />;
+	}
 
-      {/* Input R1 */}
-      <TextInput
-        style={styles.input}
-        value={R1}
-        onChangeText={(text) => setR1(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
-        keyboardType="numeric"
-        placeholder="R1"
-      />
+	const handleDonePress = () => {
+		setShowRunScreen(true);
+	};
 
-      {/* Input R2 */}
-      <TextInput
-        style={styles.input}
-        value={R2}
-        onChangeText={(text) => setR2(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
-        keyboardType="numeric"
-        placeholder="R2"
-      />
+	return (
+		<View style={styles.container}>
+			<Text style={styles.title}>Result</Text>
 
-      {/* Input L1 */}
-      <TextInput
-        style={styles.input}
-        value={L1}
-        onChangeText={(text) => setL1(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
-        keyboardType="numeric"
-        placeholder="L1"
-      />
+			<View style={styles.resultContainer}>
+				<View style={styles.row}>
+					<Text style={styles.label}>Time:</Text>
+					<Text style={styles.value}>{resultData.time}</Text>
+				</View>
+				<View style={styles.row}>
+					<Text style={styles.label}>Average pace:</Text>
+					<Text style={styles.value}>{resultData.averagePace}</Text>
+				</View>
+				<View style={styles.row}>
+					<Text style={styles.label}>Average speed:</Text>
+					<Text style={styles.value}>{resultData.averageSpeed}</Text>
+				</View>
+				<View style={styles.row}>
+					<Text style={styles.label}>Best pace:</Text>
+					<Text style={styles.value}>{resultData.bestPace}</Text>
+				</View>
+				<View style={styles.row}>
+					<Text style={styles.label}>Moving time:</Text>
+					<Text style={styles.value}>{resultData.movingTime}</Text>
+				</View>
+				<View style={styles.row}>
+					<Text style={styles.label}>Idle time:</Text>
+					<Text style={styles.value}>{resultData.idleTime}</Text>
+				</View>
+			</View>
 
-      {/* Input L2 */}
-      <TextInput
-        style={styles.input}
-        value={L2}
-        onChangeText={(text) => setL2(text.replace(/[^0-9]/g, ""))} // กรอกได้เฉพาะตัวเลข
-        keyboardType="numeric"
-        placeholder="L2"
-      />
-
-      {/* ปุ่ม Start/Stop */}
-      <TouchableOpacity
-        style={[styles.startButton, isStarted ? styles.stopButton : null]}
-        onPress={handleStartStop}
-      >
-        <Text style={styles.startButtonText}>
-          {isStarted ? "Stop" : "Start"}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+			<TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
+				<Text style={styles.doneButtonText}>Finish</Text>
+			</TouchableOpacity>
+		</View>
+	);
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f0f5f0",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  input: {
-    width: "80%",
-    height: 50,
-    backgroundColor: "#e0e0e0",
-    marginBottom: 20,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    fontSize: 18,
-  },
-  startButton: {
-    backgroundColor: "#2f855a", // สีเขียวเมื่อยังไม่ได้เริ่ม
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
-  },
-  stopButton: {
-    backgroundColor: "#e53e3e", // สีแดงเมื่อกด Start แล้ว
-  },
-  startButtonText: {
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  exitButton: {
-    position: "absolute",
-    top: 40,
-    left: 20,
-    backgroundColor: "#333",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  exitButtonText: {
-    fontSize: 16,
-    color: "#fff",
-  },
+	container: {
+		flex: 1,
+		backgroundColor: "#f0f5f0",
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 20,
+	},
+	title: {
+		fontSize: 36,
+		fontWeight: "bold",
+		marginBottom: 30,
+		color: "#000",
+	},
+	resultContainer: {
+		alignItems: "flex-start",
+		width: "100%",
+		paddingHorizontal: 20,
+		marginBottom: 40,
+	},
+	row: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		width: "100%",
+		marginVertical: 8,
+	},
+	label: {
+		fontSize: 20,
+		fontWeight: "600",
+		color: "#333",
+		flex: 1,
+	},
+	value: {
+		fontSize: 20,
+		color: "#333",
+		textAlign: "right",
+		flex: 1,
+	},
+	doneButton: {
+		backgroundColor: "#2f855a",
+		paddingVertical: 15,
+		width: width * 0.6,
+		borderRadius: 30,
+		alignItems: "center",
+	},
+	doneButtonText: {
+		fontSize: 20,
+		color: "#fff",
+		fontWeight: "bold",
+	},
 });
 
-export default PatternScreen;
+export default ResultScreen;
