@@ -1,114 +1,123 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import tw from 'twrnc';
+// เหลือเรื่องของ icon นะครับ
 
-// Helper function to format time in hh:mm:ss
-const formatTime = (seconds: number) => {
-  if (seconds <= 0) return '00:00:00'; // If countdown is less than or equal to 0
-  const hrs = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+import React, { useState } from "react";
+import {
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	Image,
+	Dimensions,
+} from "react-native";
+import ManualScreen from "./running/manual";
+import PatternScreen from "./running/pettern";
+import { Ionicons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get("window");
+
+const RunScreen = () => {
+	const [selectedMode, setSelectedMode] = useState<string | null>(null);
+
+	if (selectedMode === "manual") {
+		return <ManualScreen />;
+	}
+
+	if (selectedMode === "pattern") {
+		return <PatternScreen />;
+	}
+
+	return (
+		<View style={styles.container}>
+			<Text style={styles.title}>Choose Your Mode</Text>
+
+			<View style={styles.imageContainer}>
+				<Image
+					source={{ uri: "https://yourimageurl.com/modern-image.jpg" }}
+					style={styles.backgroundImage}
+				/>
+			</View>
+
+			<View style={styles.buttonContainer}>
+				<TouchableOpacity
+					style={[
+						styles.modeButton,
+						selectedMode === "pattern" ? styles.selected : styles.unselected,
+					]}
+					onPress={() => setSelectedMode("pattern")}
+				>
+					<Ionicons name="md-grid" size={24} color="#fff" />
+					<Text style={styles.buttonText}>Pattern Mode</Text>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					style={[
+						styles.modeButton,
+						selectedMode === "manual" ? styles.selected : styles.unselected,
+					]}
+					onPress={() => setSelectedMode("manual")}
+				>
+					<Ionicons name="md-hand-left" size={24} color="#fff" />
+					<Text style={styles.buttonText}>Manual Mode</Text>
+				</TouchableOpacity>
+			</View>
+		</View>
+	);
 };
 
-// Helper function to convert hh:mm:ss string to seconds
-const parseTimeInput = (timeString: string) => {
-  const timeParts = timeString.split(':').map((part: string) => parseInt(part, 10));
-  
-  // Ensure the time input has valid numbers for hours, minutes, and seconds
-  if (timeParts.length === 3) {
-    const [hrs, mins, secs] = timeParts;
-    return (hrs * 3600) + (mins * 60) + secs;
-  }
-  return NaN; // Return NaN for invalid input
-};
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "#f5f5f5",
+		padding: 20,
+	},
+	title: {
+		fontSize: 28,
+		fontWeight: "bold",
+		marginBottom: 20,
+		color: "#333",
+		textAlign: "center",
+	},
+	imageContainer: {
+		marginBottom: 30,
+		width: width * 0.8,
+		height: width * 0.5,
+		borderRadius: 20,
+		overflow: "hidden",
+	},
+	backgroundImage: {
+		width: "100%",
+		height: "100%",
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		width: "100%",
+		marginBottom: 40,
+	},
+	modeButton: {
+		flex: 1,
+		marginHorizontal: 10,
+		paddingVertical: 15,
+		borderRadius: 10,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#2a9d8f",
+		flexDirection: "row",
+	},
+	selected: {
+		backgroundColor: "#264653",
+	},
+	unselected: {
+		backgroundColor: "#e76f51",
+	},
+	buttonText: {
+		fontSize: 16,
+		fontWeight: "bold",
+		color: "#fff",
+		marginLeft: 10,
+	},
+});
 
-const Run = () => {
-  const [countdown, setCountdown] = useState(60); // Countdown value to be displayed
-  const [inputTime, setInputTime] = useState(''); // User input for the countdown time
-  const [isRunning, setIsRunning] = useState(false); // State to track if the countdown is running
-  const [initialTime, setInitialTime] = useState(60); // To store initial input time
-
-  // Countdown logic
-  useEffect(() => {
-    let timer: string | number | NodeJS.Timeout | undefined;
-    if (isRunning && countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000); // Decrease countdown every second
-    }
-    return () => clearTimeout(timer); // Cleanup the timer on component unmount
-  }, [isRunning, countdown]);
-
-  // Handler to start the countdown
-  const startCountdown = () => {
-    const timeInSeconds = parseTimeInput(inputTime); // Convert input from hh:mm:ss to seconds
-    if (!isNaN(timeInSeconds) && timeInSeconds > 0) {
-      setCountdown(timeInSeconds); // Set the countdown to the input time
-      setInitialTime(timeInSeconds); // Save the initial time
-      setIsRunning(true); // Start countdown
-      setInputTime(''); // Clear input field
-    } else {
-      alert('Please enter a valid time in hh:mm:ss format');
-    }
-  };
-
-  // Handler to stop the countdown
-  const stopCountdown = () => {
-    setIsRunning(false); // Stop the countdown
-  };
-
-  // Handler to reset the countdown
-  const resetCountdown = () => {
-    setCountdown(initialTime); // Reset to the initial time
-    setIsRunning(false); // Stop the countdown
-  };
-
-  return (
-    <View style={tw`flex-1 items-center justify-center bg-white`}>
-      <Text style={tw`text-3xl font-bold text-green-700`}>Running Screen</Text>
-
-      {/* Countdown Display */}
-      <Text style={tw`text-6xl text-gray-700 mt-10`}>
-        {countdown >= 0 ? formatTime(countdown) : '00:00:00'}
-      </Text>
-
-      {/* Input for Countdown Time */}
-      {!isRunning && (
-        <TextInput
-            style={tw`border border-gray-300 rounded w-40 text-center my-4 text-lg`}
-            placeholder={inputTime === '' ? 'hh:mm:ss' : ''} // Show placeholder only when input is empty
-            keyboardType="numeric"
-            value={inputTime}
-            onChangeText={setInputTime} // Update input value
-        />
-      )}
-
-      {/* Start Button */}
-      {!isRunning && (
-        <TouchableOpacity style={tw`bg-blue-500 p-3 rounded my-2`} onPress={startCountdown}>
-          <Text style={tw`text-white text-center`}>Start Countdown</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Stop Button */}
-      {isRunning && (
-        <TouchableOpacity style={tw`bg-red-500 p-3 rounded my-2`} onPress={stopCountdown}>
-          <Text style={tw`text-white text-center`}>Stop Countdown</Text>
-        </TouchableOpacity>
-      )}
-      
-      {/* Reset Button */}
-      {!isRunning && countdown !== initialTime && (
-        <TouchableOpacity style={tw`bg-gray-500 p-3 rounded my-2`} onPress={resetCountdown}>
-          <Text style={tw`text-white text-center`}>Reset</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Instructions */}
-      <Text style={tw`text-lg text-gray-500 mt-4`}>
-        Enter time and press start to begin countdown.
-      </Text>
-    </View>
-  );
-};
-
-export default Run;
+export default RunScreen;
