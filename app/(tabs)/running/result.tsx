@@ -38,7 +38,7 @@ const ResultScreen = () => {
 				idleTime: "5:30",
 			});
 			setLoading(false);
-		}, 2000);
+		}, 500);
 
 		// Uncomment this block to make an actual API call
 		// const fetchData = async () => {
