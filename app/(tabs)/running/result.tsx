@@ -5,6 +5,7 @@ import {
 	TouchableOpacity,
 	StyleSheet,
 	Dimensions,
+	ActivityIndicator,
 } from "react-native";
 import RunScreen from "../run";
 
@@ -12,6 +13,7 @@ const { width } = Dimensions.get("window");
 
 const ResultScreen = () => {
 	const [showRunScreen, setShowRunScreen] = useState(false);
+	const [loading, setLoading] = useState(true);
 
 	const [resultData, setResultData] = useState({
 		time: "Loading...",
@@ -23,22 +25,40 @@ const ResultScreen = () => {
 	});
 
 	useEffect(() => {
+		// API call for fetching result data (mockup for now)
+		// fetchData();
+		setTimeout(() => {
+			// Fake data for now (replace with API data)
+			setResultData({
+				time: "45:30",
+				averagePace: "5:30 / km",
+				averageSpeed: "10.8 km/h",
+				bestPace: "4:50 / km",
+				movingTime: "40:00",
+				idleTime: "5:30",
+			});
+			setLoading(false);
+		}, 2000);
+
+		// Uncomment this block to make an actual API call
 		// const fetchData = async () => {
-		//   const querySnapshot = await getDocs(collection(db, "results"));
-		//   const data = querySnapshot.docs.map(doc => doc.data());
-		//   if (data.length > 0) {
-		//     const result = data[0];
+		//   try {
+		//     const response = await fetch("https://api.yourdatabase.com/results"); // Replace with your API URL
+		//     const data = await response.json();
 		//     setResultData({
-		//       time: result.time,
-		//       averagePace: result.averagePace,
-		//       averageSpeed: result.averageSpeed,
-		//       bestPace: result.bestPace,
-		//       movingTime: result.movingTime,
-		//       idleTime: result.idleTime,
+		//       time: data.time,
+		//       averagePace: data.averagePace,
+		//       averageSpeed: data.averageSpeed,
+		//       bestPace: data.bestPace,
+		//       movingTime: data.movingTime,
+		//       idleTime: data.idleTime,
 		//     });
+		//     setLoading(false);
+		//   } catch (error) {
+		//     console.error("Error fetching result data:", error);
+		//     setLoading(false);
 		//   }
 		// };
-		// fetchData();
 	}, []);
 
 	if (showRunScreen) {
@@ -46,6 +66,8 @@ const ResultScreen = () => {
 	}
 
 	const handleDonePress = () => {
+		// Code to save result data to the database
+		// saveToDatabase(resultData);
 		setShowRunScreen(true);
 	};
 
@@ -53,32 +75,36 @@ const ResultScreen = () => {
 		<View style={styles.container}>
 			<Text style={styles.title}>Result</Text>
 
-			<View style={styles.resultContainer}>
-				<View style={styles.row}>
-					<Text style={styles.label}>Time:</Text>
-					<Text style={styles.value}>{resultData.time}</Text>
+			{loading ? (
+				<ActivityIndicator size="large" color="#2f855a" />
+			) : (
+				<View style={styles.resultContainer}>
+					<View style={styles.row}>
+						<Text style={styles.label}>Time:</Text>
+						<Text style={styles.value}>{resultData.time}</Text>
+					</View>
+					<View style={styles.row}>
+						<Text style={styles.label}>Average pace:</Text>
+						<Text style={styles.value}>{resultData.averagePace}</Text>
+					</View>
+					<View style={styles.row}>
+						<Text style={styles.label}>Average speed:</Text>
+						<Text style={styles.value}>{resultData.averageSpeed}</Text>
+					</View>
+					<View style={styles.row}>
+						<Text style={styles.label}>Best pace:</Text>
+						<Text style={styles.value}>{resultData.bestPace}</Text>
+					</View>
+					<View style={styles.row}>
+						<Text style={styles.label}>Moving time:</Text>
+						<Text style={styles.value}>{resultData.movingTime}</Text>
+					</View>
+					<View style={styles.row}>
+						<Text style={styles.label}>Idle time:</Text>
+						<Text style={styles.value}>{resultData.idleTime}</Text>
+					</View>
 				</View>
-				<View style={styles.row}>
-					<Text style={styles.label}>Average pace:</Text>
-					<Text style={styles.value}>{resultData.averagePace}</Text>
-				</View>
-				<View style={styles.row}>
-					<Text style={styles.label}>Average speed:</Text>
-					<Text style={styles.value}>{resultData.averageSpeed}</Text>
-				</View>
-				<View style={styles.row}>
-					<Text style={styles.label}>Best pace:</Text>
-					<Text style={styles.value}>{resultData.bestPace}</Text>
-				</View>
-				<View style={styles.row}>
-					<Text style={styles.label}>Moving time:</Text>
-					<Text style={styles.value}>{resultData.movingTime}</Text>
-				</View>
-				<View style={styles.row}>
-					<Text style={styles.label}>Idle time:</Text>
-					<Text style={styles.value}>{resultData.idleTime}</Text>
-				</View>
-			</View>
+			)}
 
 			<TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
 				<Text style={styles.doneButtonText}>Finish</Text>
@@ -90,7 +116,7 @@ const ResultScreen = () => {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#f0f5f0",
+		backgroundColor: "#f5f5f5",
 		justifyContent: "center",
 		alignItems: "center",
 		padding: 20,
@@ -99,19 +125,27 @@ const styles = StyleSheet.create({
 		fontSize: 36,
 		fontWeight: "bold",
 		marginBottom: 30,
-		color: "#000",
+		color: "#2f855a",
 	},
 	resultContainer: {
 		alignItems: "flex-start",
 		width: "100%",
 		paddingHorizontal: 20,
 		marginBottom: 40,
+		backgroundColor: "#ffffff",
+		borderRadius: 20,
+		padding: 20,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.2,
+		shadowRadius: 4,
+		elevation: 5,
 	},
 	row: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		width: "100%",
-		marginVertical: 8,
+		marginVertical: 10,
 	},
 	label: {
 		fontSize: 20,
@@ -131,6 +165,11 @@ const styles = StyleSheet.create({
 		width: width * 0.6,
 		borderRadius: 30,
 		alignItems: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 3,
+		elevation: 5,
 	},
 	doneButtonText: {
 		fontSize: 20,
