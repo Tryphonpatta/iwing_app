@@ -24,6 +24,7 @@ export default function Home() {
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
+  const [isCalibrating, setIsCalibrating] = React.useState(false);
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
@@ -54,15 +55,14 @@ export default function Home() {
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
-    let isOk = false;
-    while (!isOk) {
-      isOk = true;
-      const data = readCharacteristic(
-        module[receiver]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.IR_RX
-      );
-      console.log(data);
+    writeCharacteristic(
+      module[receiver]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MODE,
+      hexToBase64("01")
+    );
+    while (isCalibrating) {
+      continue;
     }
     writeCharacteristic(
       module[sender]?.deviceId as string,
@@ -101,7 +101,14 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       {/* <View style={styles.header}> */}
-      <Text style={[tw`text-center font-bold text-white my-4 mt-2 shadow-lg`, { backgroundColor: "#419E68", fontSize: 36 }]}>Home</Text>
+      <Text
+        style={[
+          tw`text-center font-bold text-white my-4 mt-2 shadow-lg`,
+          { backgroundColor: "#419E68", fontSize: 36 },
+        ]}
+      >
+        Home
+      </Text>
       {/* </View> */}
 
       {/* Content */}
@@ -114,7 +121,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[0] ? "green" : "#808080",
-                  backgroundColor: module[0] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[0]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -131,7 +140,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[1] ? "green" : "#808080",
-                  backgroundColor: module[1] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[1]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -144,8 +155,17 @@ export default function Home() {
               <Text style={styles.buttonText}>Device 2</Text>
             </TouchableOpacity>
           </View>
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0'}}>
-            <View style={{backgroundColor: "green", width: 300, height: 350}}></View>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#f0f0f0",
+            }}
+          >
+            <View
+              style={{ backgroundColor: "green", width: 300, height: 350 }}
+            ></View>
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -153,7 +173,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[2] ? "green" : "#808080",
-                  backgroundColor: module[2] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[2]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -170,7 +192,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[3] ? "green" : "#808080",
-                  backgroundColor: module[3] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[3]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -210,7 +234,14 @@ export default function Home() {
               boxStyles={{ height: 40, minWidth: 150, width: 150 }}
               dropdownStyles={{ maxHeight: 120 }}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginHorizontal: 16,
+              }}
+            >
               <TouchableOpacity
                 style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
@@ -221,7 +252,31 @@ export default function Home() {
                   }
                 }}
               >
-                <Text style={[styles.buttonText, { color: "#fff", fontWeight: "bold" }]}>Blink</Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Blink
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                onPress={() => {
+                  if (selectedModule && module[selectedModule - 1] != null) {
+                    blink(module[selectedModule - 1] as Module);
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Calibrate
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.closeButton, { marginLeft: 8 }]}
@@ -310,7 +365,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     gap: 10,
 
-    shadowColor: "rgba(0, 0, 0, 0.24)", 
+    shadowColor: "rgba(0, 0, 0, 0.24)",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
