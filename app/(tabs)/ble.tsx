@@ -10,55 +10,58 @@ import {
 } from "@ui-kitten/components";
 import { BleManager, Device, State } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform, View } from "react-native";
-import { CHARACTERISTIC, prefix } from "../../enum/characteristic";
-import { connectingDevice } from "../../util/ble";
+import { CHARACTERISTIC, prefix } from "@/enum/characteristic";
+import { connectingDevice } from "@/util/ble";
 import { useModuleContext } from "./context/context";
 import { useBleManager } from "./context/blecontext";
 
-export default function Explore() {
+export default function BLE() {
   const { module, setModule } = useModuleContext();
   const { bleManager, connectedDevices, setConnectedDevices, connectToDevice } =
     useBleManager();
   const [deviceList, setDeviceList] = useState<Device[]>([]);
-  const [connectingDeviceList, setConnectingDeviceList] = useState<
-    string | null
-  >(null);
   const [scanning, setScanning] = useState<boolean>(false);
 
   const startScan = async () => {
-    setDeviceList([]);
+    setDeviceList([]); // Clear the list before starting a new scan
     console.log("Scanning...");
     setScanning(true);
+
     bleManager.onStateChange((state) => {
       if (state === State.PoweredOn) {
-        bleManager.startDeviceScan(
-          null,
-          null,
-          (error, device: Device | null) => {
-            // console.log(".");
-            if (error) {
-              console.log("Scan error:", error);
-              return;
-            }
-            if (device) {
-              setDeviceList((prev) => {
-                if (
-                  (!prev.find((e) => e.id == device.id) &&
-                    device.name != null) ||
-                  (device.serviceUUIDs &&
-                    device.serviceUUIDs[0].startsWith(prefix))
-                ) {
-                  prev.push(device);
-                  console.log(device.name, device.id);
-                }
-                return prev;
-              });
-            }
+        bleManager.startDeviceScan(null, null, (error, device) => {
+          if (error) {
+            console.log("Scan error:", error);
+            return;
           }
-        );
+
+          if (device) {
+            setDeviceList((prev) => {
+              // Check if device is already in the list
+              const deviceExists = prev.some((d) => d.id === device.id);
+
+              // Add the device to a new array if not already present and if it matches criteria
+              if (
+                !deviceExists &&
+                (device.name != null ||
+                  (device.serviceUUIDs &&
+                    device.serviceUUIDs[0].startsWith(prefix)))
+              ) {
+                console.log(device.name, device.id);
+
+                // Return a new array to trigger a re-render
+                return [...prev, device];
+              }
+
+              // Return the previous array if no changes
+              return prev;
+            });
+          }
+        });
       }
     }, true);
   };
+
   const HomeScreen = ({ devices }: { devices: Device[] }) => {
     return (
       <Layout
@@ -77,7 +80,7 @@ export default function Explore() {
                     connectToDevice(item.id);
                   }}
                 >
-                  connect
+                  Connect
                 </Button>
               </View>
             </Card>

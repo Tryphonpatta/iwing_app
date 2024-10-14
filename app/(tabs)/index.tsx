@@ -7,7 +7,7 @@ import {
 } from "@ui-kitten/components";
 import * as eva from "@eva-design/eva";
 import { useModuleContext } from "./context/context";
-import { disconnectDevice } from "@/util/ble";
+import { disconnectDevice } from "../../util/ble";
 import { useBleManager } from "./context/blecontext";
 import { Dimensions, ScrollView, StyleSheet, View } from "react-native";
 import { CHARACTERISTIC } from "@/enum/characteristic";
