@@ -11,4 +11,5 @@ export enum CHARACTERISTIC {
   LED = prefix + "0009",
   IR_TX = prefix + "000A",
   MUSIC = prefix + "000B",
+  MODE = prefix + "000C",
 }

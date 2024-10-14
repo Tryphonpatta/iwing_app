@@ -27,6 +27,23 @@ export default function Home() {
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
+  const [isCalibrating, setIsCalibrating] = React.useState(false);
+  const isCalibratingRef = React.useRef(isCalibrating);
+
+  const isCenter = async () => {
+    const right = readCharacteristic(
+      module[3]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    const left = readCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    return { left: left, right: right };
+  };
+
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
@@ -59,58 +76,23 @@ export default function Home() {
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
-    console.log("calibrate : ", isCalibrate);
-    console.log("turn on irtx");
-    const maxRetry = 10;
-    let retry = 0;
-    while (isCalibrateRef.current) {
-      if (retry > maxRetry) {
-        console.log("Failed to calibrate (Timeout)");
-        break;
-      }
-      for (let i = 0; i < 100; i++) {
-        if (!isCalibrateRef.current) break;
-        const data = await readCharacteristic(
-          module[receiver]?.deviceId as string,
-          CHARACTERISTIC.IWING_TRAINERPAD,
-          CHARACTERISTIC.IR_RX
-        );
-        console.log("data : ", data);
-        const val = base64toDec(data ? data : "00") == 1 ? 1 : 0;
-        console.log("value : ", val);
-        if (val != 1) {
-          writeCharacteristic(
-            module[receiver]?.deviceId as string,
-            CHARACTERISTIC.IWING_TRAINERPAD,
-            CHARACTERISTIC.LED,
-            hexToBase64("ff0000")
-          );
-        } else {
-          writeCharacteristic(
-            module[receiver]?.deviceId as string,
-            CHARACTERISTIC.IWING_TRAINERPAD,
-            CHARACTERISTIC.LED,
-            hexToBase64("00ff00")
-          );
-        }
-        console.log(data);
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      retry++;
+    let isOk = false;
+    while (!isOk) {
+      isOk = true;
+      const data = readCharacteristic(
+        module[receiver]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.IR_RX
+      );
+      console.log(data);
     }
+    console.log("Calibration done");
     writeCharacteristic(
       module[sender]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
-    writeCharacteristic(
-      module[receiver]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.LED,
-      hexToBase64("000000")
-    );
-    console.log("turn off irtx");
   };
 
   React.useEffect(() => {
@@ -164,7 +146,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[0] ? "green" : "#808080",
-                  backgroundColor: module[0] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[0]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -181,7 +165,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[1] ? "green" : "#808080",
-                  backgroundColor: module[1] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[1]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -212,7 +198,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[2] ? "green" : "#808080",
-                  backgroundColor: module[2] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[2]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -229,7 +217,9 @@ export default function Home() {
                 styles.outlineContainer,
                 {
                   borderColor: module[3] ? "green" : "#808080",
-                  backgroundColor: module[3] ? "rgba(0, 255, 0, 0.2)" : "#BFBFBF",
+                  backgroundColor: module[3]
+                    ? "rgba(0, 255, 0, 0.2)"
+                    : "#BFBFBF",
                 },
               ]}
               onPress={() => {
@@ -290,7 +280,14 @@ export default function Home() {
               boxStyles={{ height: 40, minWidth: 150, width: 150 }}
               dropdownStyles={{ maxHeight: 120 }}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginHorizontal: 16,
+              }}
+            >
               <TouchableOpacity
                 style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
@@ -301,7 +298,42 @@ export default function Home() {
                   }
                 }}
               >
-                <Text style={[styles.buttonText, { color: "#fff", fontWeight: "bold" }]}>Blink</Text>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Blink
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                onPress={() => {
+                  if (
+                    selectedModule &&
+                    module[selectedModule - 1] != null &&
+                    module[4 - selectedModule] &&
+                    isCalibrating === false
+                  ) {
+                    setIsCalibrating(true);
+                    isCalibratingRef.current = true;
+                    calibrate(selectedModule - 1, 4 - selectedModule);
+                  } else {
+                    console.log("Invalid module");
+                    setIsCalibrating(false);
+                    isCalibratingRef.current = false;
+                  }
+                }}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Calibrate
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.closeButton, { marginLeft: 8 }]}
@@ -391,7 +423,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     gap: 10,
 
-    shadowColor: "rgba(0, 0, 0, 0.24)", 
+    shadowColor: "rgba(0, 0, 0, 0.24)",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 6,

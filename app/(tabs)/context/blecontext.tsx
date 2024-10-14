@@ -21,7 +21,7 @@ interface BleManagerContextType {
     deviceId: string,
     serviceUUID: string,
     characteristicUUID: string
-  ) => Promise<string | null>;
+  ) => void;
   // Add other functions as needed
 }
 
@@ -274,13 +274,26 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("sender ", deviceId);
       console.log("Connected to device: ", deviceId);
 
-      const characteristic = await device.readCharacteristicForService(
-        serviceUUID,
-        characteristicUUID.toLowerCase()
-      );
-      const valueBase64 = characteristic.value as string;
-      console.log("Value: ", valueBase64);
-      return valueBase64;
+      const service = await device
+        .services()
+        .then((services) => services.find((s) => s.uuid === serviceUUID));
+      if (!service) {
+        console.error(`Service ${serviceUUID} not found`);
+        return;
+      }
+
+      const characteristic = await service
+        .characteristics()
+        .then((characteristics) =>
+          characteristics.find((c) => c.uuid === characteristicUUID)
+        );
+      if (!characteristic) {
+        console.error(`Characteristic ${characteristicUUID} not found`);
+        return;
+      }
+      const value = await characteristic.read();
+      console.log("Value: ", value);
+      return value;
     } catch (error) {
       console.error(
         `Failed to read from characteristic: ${characteristicUUID}`,
