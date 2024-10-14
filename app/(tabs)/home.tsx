@@ -25,6 +25,8 @@ export default function Home() {
     null
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
+  const isCalibratingRef = React.useRef(isCalibrating);
+
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
@@ -61,13 +63,20 @@ export default function Home() {
       CHARACTERISTIC.MODE,
       hexToBase64("01")
     );
-    while (isCalibrating) {
-      continue;
+    while (isCalibratingRef.current) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
+    console.log("Calibration done");
     writeCharacteristic(
       module[sender]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
+    writeCharacteristic(
+      module[receiver]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MODE,
       hexToBase64("00")
     );
   };
@@ -264,8 +273,19 @@ export default function Home() {
               <TouchableOpacity
                 style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
-                  if (selectedModule && module[selectedModule - 1] != null) {
-                    blink(module[selectedModule - 1] as Module);
+                  if (
+                    selectedModule &&
+                    module[selectedModule - 1] != null &&
+                    module[4 - selectedModule] &&
+                    isCalibrating === false
+                  ) {
+                    setIsCalibrating(true);
+                    isCalibratingRef.current = true;
+                    calibrate(selectedModule - 1, 4 - selectedModule);
+                  } else {
+                    console.log("Invalid module");
+                    setIsCalibrating(false);
+                    isCalibratingRef.current = false;
                   }
                 }}
               >
