@@ -21,7 +21,7 @@ interface BleManagerContextType {
     deviceId: string,
     serviceUUID: string,
     characteristicUUID: string
-  ) => void;
+  ) => Promise<number | undefined>;
   // Add other functions as needed
 }
 
@@ -279,7 +279,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         .then((services) => services.find((s) => s.uuid === serviceUUID));
       if (!service) {
         console.error(`Service ${serviceUUID} not found`);
-        return;
+        return 0;
       }
 
       const characteristic = await service
@@ -289,11 +289,11 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       if (!characteristic) {
         console.error(`Characteristic ${characteristicUUID} not found`);
-        return;
+        return 0;
       }
       const value = await characteristic.read();
       console.log("Value: ", value);
-      return value;
+      return base64toDec(value.value as string);
     } catch (error) {
       console.error(
         `Failed to read from characteristic: ${characteristicUUID}`,

@@ -5,7 +5,7 @@ import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
-import { hexToBase64 } from "@/util/encode";
+import { base64toDec, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -26,6 +26,20 @@ export default function Home() {
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
+
+  const isCenter = async () => {
+    const right = readCharacteristic(
+      module[3]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    const left = readCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    return { left: left, right: right };
+  };
 
   const blink = async (device: Module) => {
     console.log("Blinking");
