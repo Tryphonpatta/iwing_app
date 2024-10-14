@@ -14,7 +14,7 @@ export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
   const [isCalibrate, setIsCalibrate] = React.useState(false);
-  const isCalibrateRef = React.useRef(isCalibrate); // This ref tracks the latest state of isCalibrate
+  const isCalibrateRef = React.useRef(isCalibrate);
 
   const {
     bleManager,
@@ -257,19 +257,7 @@ export default function Home() {
             <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
             <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                console.log(module);
-                console.log(selectedModule);
-                if (selectedModule && module[selectedModule - 1] != null) {
-                  blink(module[selectedModule - 1] as Module);
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Blink</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, { backgroundColor: 'green' }]}
               onPress={async () => {
                 if (
                   !isCalibrate &&
@@ -287,7 +275,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>SetUP</Text>
+              <Text style={[styles.buttonText, { color: "#fff", fontWeight: "bold" }]}>SetUP</Text>
             </TouchableOpacity>
             <SelectList
               setSelected={(val: number) => {

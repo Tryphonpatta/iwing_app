@@ -39,7 +39,7 @@ const ManualScreen = () => {
 	}
 
 	if (showResult) {
-		return <ResultScreen />;
+		return <ResultScreen totalTime={0} />;
 	}
 
 	return (

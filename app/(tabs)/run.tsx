@@ -1,22 +1,18 @@
-// เหลือเรื่องของ icon นะครับ
-
-import React, { useState } from "react";
-import {
-	View,
-	Text,
-	TouchableOpacity,
-	StyleSheet,
-	Image,
-	Dimensions,
-} from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from "react-native";
 import ManualScreen from "./running/manual";
-import PatternScreen from "./running/pettern";
+import PatternScreen from "./running/pattern";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
 const RunScreen = () => {
 	const [selectedMode, setSelectedMode] = useState<string | null>(null);
+
+	// Ensure layout remains consistent when navigating back
+	useEffect(() => {
+		setSelectedMode(null);
+	}, []);  // Reset selected mode when returning to this screen
 
 	if (selectedMode === "manual") {
 		return <ManualScreen />;
@@ -30,33 +26,27 @@ const RunScreen = () => {
 		<View style={styles.container}>
 			<Text style={styles.title}>Choose Your Mode</Text>
 
-			<View style={styles.imageContainer}>
+			{/* <View style={styles.imageContainer}>
 				<Image
 					source={{ uri: "https://yourimageurl.com/modern-image.jpg" }}
 					style={styles.backgroundImage}
 				/>
-			</View>
+			</View> */}
 
 			<View style={styles.buttonContainer}>
 				<TouchableOpacity
-					style={[
-						styles.modeButton,
-						selectedMode === "pattern" ? styles.selected : styles.unselected,
-					]}
+					style={[styles.modeButton, selectedMode === "pattern" ? styles.selected : styles.unselected]}
 					onPress={() => setSelectedMode("pattern")}
 				>
-					<Ionicons name="md-grid" size={24} color="#fff" />
+					<Ionicons name="walk-outline" size={24} color="#fff" />
 					<Text style={styles.buttonText}>Pattern Mode</Text>
 				</TouchableOpacity>
 
 				<TouchableOpacity
-					style={[
-						styles.modeButton,
-						selectedMode === "manual" ? styles.selected : styles.unselected,
-					]}
+					style={[styles.modeButton, selectedMode === "manual" ? styles.selected : styles.unselected]}
 					onPress={() => setSelectedMode("manual")}
 				>
-					<Ionicons name="md-hand-left" size={24} color="#fff" />
+					<Ionicons name="walk" size={24} color="#fff" />
 					<Text style={styles.buttonText}>Manual Mode</Text>
 				</TouchableOpacity>
 			</View>
@@ -81,7 +71,7 @@ const styles = StyleSheet.create({
 	},
 	imageContainer: {
 		marginBottom: 30,
-		width: width * 0.8,
+		width: width * 0.8, // Fixed width for consistent layout
 		height: width * 0.5,
 		borderRadius: 20,
 		overflow: "hidden",
