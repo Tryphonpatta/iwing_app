@@ -15,6 +15,10 @@ export const isCenter = async (
   module: ModuleHome[],
   readCharacteristic: Function
 ) => {
+  if (module[3] == null || module[2] == null) {
+    console.log("Module not found");
+    return { left: -1, right: -1 };
+  }
   const right = await readCharacteristic(
     module[3]?.deviceId as string,
     CHARACTERISTIC.IWING_TRAINERPAD,
@@ -109,6 +113,19 @@ export default function Home() {
       );
     }
     console.log("Threshold set to: ", val);
+  };
+
+  const isHit = async (id: number) => {
+    try {
+      const hit = await readCharacteristic(
+        module[id]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.VIBRATION
+      );
+      return hit ? hit == 255 : false;
+    } catch (e) {
+      console.log("Error: ", e);
+    }
   };
 
   const calibrate = async (sender: number, receiver: number) => {
