@@ -34,7 +34,7 @@ export default function Home() {
       CHARACTERISTIC.IR_RX
     );
     const left = readCharacteristic(
-      module[0]?.deviceId as string,
+      module[2]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_RX
     );
