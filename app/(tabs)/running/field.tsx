@@ -7,7 +7,7 @@ import {
   Dimensions,
 } from "react-native";
 import ResultScreen from "./result"; // Adjust the import path as needed
-import { isCenter as checkIsCenter } from "../home"; // Import isCenter function
+import { isCenter as checkIsCenter, isHit as checkIsHit } from "../home"; // Import both functions
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
 
 const { width, height } = Dimensions.get("window");
@@ -45,9 +45,10 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
   const [module, setModule] = useState(connectedDevices);
-  
-  // useRef to track centerActive without causing re-renders
+
+  // useRef to track centerActive and hitActive without causing re-renders
   const centerActiveRef = useRef(gameState.centerActive);
+  const hitActiveRef = useRef(false);
 
   // Update centerActiveRef when gameState.centerActive changes
   useEffect(() => {
@@ -113,25 +114,33 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
   const checkCenterStatus = async () => {
     try {
-      // console.log( "centerActiveRef.current " + centerActiveRef.current);
       while (centerActiveRef.current) { // Check ref, not state
         const centerStatus = await checkIsCenter(module, readCharacteristic);
-        // console.log("centerStatus " + centerStatus.left + "|" + centerStatus.right);
 
-        if (centerStatus.left === centerStatus.right) {
+        if (centerStatus.left == 0 && centerStatus.right == 0) {
           handleReturnToCenter();
           break;
         }
-
-        // await delay(100); // Delay to allow state updates to take effect
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
     }
   };
 
-  // Delay function to prevent a tight loop
-  // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const checkHit = async (moduleId: string) => {
+    try {
+      while (hitActiveRef.current) { // Check ref, not state
+        const hitStatus = await checkIsHit(moduleId, readCharacteristic); // Pass moduleId to checkIsHit
+
+        if (hitStatus) {
+          handleHitDetected();
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to read characteristic:", error);
+    }
+  };
 
   // Function to handle the Center button press manually
   const handleCenterPress = () => {
@@ -168,8 +177,17 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     setCurrentIndex((prevIndex) => prevIndex + 1);
   };
 
+  const handleHitDetected = () => {
+    // Triggered when a hit is detected by hardware
+    if (gameState.currentGreen) {
+      handleCirclePress(gameState.currentGreen);
+    }
+  };
+
   const handleCirclePress = (circle: CircleKey) => {
-    if (circleColors[circle] === "green") {
+    const moduleId = module[circle]?.deviceId; // Get the module ID for the pressed circle
+
+    if (circleColors[circle] === "green" && moduleId) {
       const currentTime = Date.now();
       if (lastTimestamp !== null) {
         const timeDiff = (currentTime - lastTimestamp) / 1000;
@@ -190,6 +208,8 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         ...prevState,
         centerActive: true,
       }));
+      hitActiveRef.current = true; // Activate hit monitoring
+      checkHit(moduleId); // Start checking for hits with the specific module ID
     }
   };
 
