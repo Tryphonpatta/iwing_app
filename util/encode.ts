@@ -63,3 +63,8 @@ export function hexToBase64(hex: string): string {
 
   return base64String;
 }
+
+export function decToBase64(dec: number): string {
+  const hex = dec.toString(16);
+  return hexToBase64(hex);
+}

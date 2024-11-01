@@ -5,13 +5,16 @@ import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
-import { base64toDec, hexToBase64 } from "@/util/encode";
+import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
 type ModuleHome = Module | null;
 
-export const isCenter = async (module: ModuleHome[], readCharacteristic: Function) => {
+export const isCenter = async (
+  module: ModuleHome[],
+  readCharacteristic: Function
+) => {
   const right = await readCharacteristic(
     module[3]?.deviceId as string,
     CHARACTERISTIC.IWING_TRAINERPAD,
@@ -90,6 +93,22 @@ export default function Home() {
       CHARACTERISTIC.LED,
       "AAAA"
     );
+  };
+
+  const setThreshold = (val: number) => {
+    if (module.find((e) => e == null)) {
+      console.log("Module not found");
+      return;
+    }
+    for (let i = 0; i < 4; i++) {
+      writeCharacteristic(
+        module[i]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.VIB_THRES,
+        hexToBase64(decToBase64(val))
+      );
+    }
+    console.log("Threshold set to: ", val);
   };
 
   const calibrate = async (sender: number, receiver: number) => {
