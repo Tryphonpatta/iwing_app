@@ -13,6 +13,7 @@ import tw from "twrnc";
 import { useBleManager } from "./context/blecontext";
 import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
@@ -43,7 +44,7 @@ const BLE = () => {
         // Optionally, inform the user that the connection failed
       }
     }
-  }; 
+  };
 
   // Update device status in the list based on its connection status
   const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
@@ -104,35 +105,131 @@ const BLE = () => {
     (device) => !device.isConnect
   );
 
+  // const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
+  //   return (
+  //     <View
+  //       style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+  //     >
+  //       <Image
+  //         source={require("../../assets/images/device.png")}
+  //         style={tw`w-20 h-20`}
+  //       />
+  //       {/*display card*/}
+  //       <MaterialIcons name="wb-twilight" size={48} color="black" />
+  //       <View style={tw`ml-4`}>
+  //         <Text style={tw`text-base font-bold text-black mb-1`}>
+  //           Device ID: {device.id ? device.id : "N/A"}
+  //         </Text>
+  //         <Text
+  //           style={[
+  //             tw`text-sm`,
+  //             device.isConnect ? styles.connectedText : styles.disconnectedText,
+  //           ]}
+  //         >
+  //           Status:{" "}
+  //           {device.isConnect ? (
+  //             <Text>
+  //               <FontAwesome name="circle" size={24} color="green" />
+  //               Connected
+  //             </Text>
+  //           ) : (
+  //             <Text>
+  //               <FontAwesome name="circle" size={24} color="red" />
+  //               Disconnected
+  //             </Text>
+  //           )}
+  //         </Text>
+
+  //         <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
+  //           Battery Voltage:{" "}
+  //           {device.manufacturerData
+  //             ? base64toDecManu(device.manufacturerData)
+  //             : "N/A"}
+  //         </Text>
+  //       </View>
+
+  //       <TouchableOpacity
+  //         style={styles.blinkButton}
+  //         onPress={() => toggleConnection(device)}
+  //       >
+  //         <Text style={tw`text-gray-700`}>
+  //           {device.isConnect ? "Disconnect" : "Connect"}
+  //         </Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   );
+  // };
+
+  //ws' version card
   const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
+    const getBatteryIconAndColor = (batteryLevel: number | null) => {
+      if (batteryLevel === null || isNaN(batteryLevel)) {
+        return {
+          icon: <FontAwesome name="battery-2" size={24} color="transparent" />,
+          color: "transparent",
+        };
+      }
+      if (batteryLevel === 100) {
+        return {
+          icon: <FontAwesome name="battery-4" size={24} color="green" />,
+          color: "green",
+        };
+      } else if (batteryLevel > 15) {
+        return {
+          icon: <FontAwesome name="battery-2" size={24} color="yellow" />,
+          color: "yellow",
+        };
+      } else {
+        return {
+          icon: <FontAwesome name="battery-1" size={24} color="red" />,
+          color: "red",
+        };
+      }
+    };
+    const batteryLevel = device.manufacturerData
+      ? base64toDecManu(device.manufacturerData)
+      : null;
+    const { icon, color } = getBatteryIconAndColor(batteryLevel);
     return (
       <View
-        style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+        style={[
+          tw`flex-row items-center p-4 m-2`,
+          styles.deviceContainer,
+          {
+            backgroundColor: device.isConnect ? "#FFFFFF" : "#D9D9D9",
+          },
+        ]}
       >
-        <Image
-          source={require("../../assets/images/device.png")}
-          style={tw`w-20 h-20`}
-        />
-
-        <View style={tw`ml-4`}>
-          <Text style={tw`text-base font-bold text-black mb-1`}>
-            Device ID: {device.id ? device.id : "N/A"}
-          </Text>
-          <Text
-            style={[
-              tw`text-sm`,
-              device.isConnect ? styles.connectedText : styles.disconnectedText,
-            ]}
-          >
-            Status: {device.isConnect ? "Connected" : "Disconnected"}
+        <MaterialIcons name="wb-twilight" size={24} color="black" />
+        <View style={tw`flex-1`}>
+          <Text style={tw`text-base font-bold text-black mb-2`}>
+            Name: {device.name ? device.name : "N/A"}
           </Text>
 
-          <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
-            Battery Voltage:{" "}
-            {device.manufacturerData
-              ? base64toDecManu(device.manufacturerData)
-              : "N/A"}
-          </Text>
+          <View style={tw`flex-row items-center mb-1`}>
+            <FontAwesome
+              name="circle"
+              size={12}
+              color={device.isConnect ? "green" : "red"}
+            />
+            <Text
+              style={[
+                tw`ml-2`,
+                device.isConnect
+                  ? styles.connectedText
+                  : styles.disconnectedText,
+              ]}
+            >
+              {device.isConnect ? "connect" : "disconnect"}
+            </Text>
+          </View>
+
+          <View style={tw`flex-row items-center`}>
+            {icon}
+            <Text style={tw`ml-2 text-sm text-gray-700`}>
+              battery: {batteryLevel !== null ? `${batteryLevel}%` : ""}
+            </Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -149,30 +246,45 @@ const BLE = () => {
 
   return (
     <View style={[tw`flex-1`, { backgroundColor: "#E8F5E9" }]}>
-      <Text style={[tw`text-center font-bold text-white my-4 mt-8 shadow-lg`, { backgroundColor: "#419E68", fontSize: 36 }]}>
+      <Text
+        style={[
+          tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
+          { backgroundColor: "#419E68", fontSize: 36 },
+        ]}
+      >
         Settings
       </Text>
 
       {/* Render connected devices */}
       <View style={tw`bg-white shadow-lg`}>
-      <Text style={tw`text-lg font-bold text-black rounded-lg p-2 `}>  Connected Devices</Text>
+        <Text style={tw`text-lg font-bold text-black rounded-lg p-2 `}>
+          {" "}
+          Connected Devices
+        </Text>
       </View>
       <FlatList
         data={connectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>  No connected devices</Text>}
+        ListEmptyComponent={
+          <Text style={tw`mx-4 my-2`}> No connected devices</Text>
+        }
       />
 
       {/* Render disconnected devices */}
       <View style={tw`bg-white shadow-lg`}>
-      <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>  Disconnected Devices</Text>
+        <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>
+          {" "}
+          Disconnected Devices
+        </Text>
       </View>
       <FlatList
         data={disconnectedDevicesList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>  No disconnected devices</Text>}
+        ListEmptyComponent={
+          <Text style={tw`mx-4 my-2`}> No disconnected devices</Text>
+        }
       />
 
       <Button
