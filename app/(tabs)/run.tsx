@@ -1,8 +1,19 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from "react-native";
 // import Slider from "@react-native-community/slider";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import { Slider } from "@rneui/themed";
+import CounterInput from "react-native-counter-input";
+//counter lib usage:https://github.com/WrathChaos/react-native-counter-input
+import tw from "twrnc";
+
 export default function App() {
   const [lightOut, setLightOut] = useState("");
   const [timeout, setTimeout] = useState(0);
@@ -14,292 +25,389 @@ export default function App() {
   const [duration, setDuration] = useState("");
   const [timeduration, setTimeDuration] = useState(0);
   const [hitduration, setHitDuration] = useState(0);
-
+  const [minDuration, setMinDuration] = useState(0);
+  const [secDuration, setSecDuration] = useState(0);
   return (
-    <View style={styles.container}>
-      {/* Light Out Section */}
-      <View style={styles.section}>
-        <View style={styles.label}>
-          <MaterialIcons name="wb-twighlight" size={24} color="black" />
-          <Text style={styles.labelText}>Light out</Text>
-        </View>
-        <View style={styles.selectBar}>
-          <TouchableOpacity
-            style={[styles.option, lightOut === "Hit" && styles.activeOption]}
-            onPress={() => setLightOut("Hit")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightOut === "Hit" && styles.activeOptionText,
-              ]}
-            >
-              Hit
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.option,
-              lightOut === "Timeout" && styles.activeOption,
-            ]}
-            onPress={() => setLightOut("Timeout")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightOut === "Timeout" && styles.activeOptionText,
-              ]}
-            >
-              Timeout
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.option,
-              lightOut === "Hit or Timeout" && styles.activeOption,
-            ]}
-            onPress={() => setLightOut("Hit or Timeout")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightOut === "Hit or Timeout" && styles.activeOptionText,
-              ]}
-            >
-              Hit or Timeout
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {lightOut === "Timeout" && (
-          // Time out slider
+    <ScrollView style={styles.scrollView}>
+      <View style={[tw`flex-1`, { backgroundColor: "#e1f4f3" }]}>
+        <Text
+          style={[
+            tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
+            { backgroundColor: "#419E68", fontSize: 36 },
+          ]}
+        >
+          Settings
+        </Text>
+        <View style={styles.container}>
+          {/* Light Out Section */}
           <View style={styles.section}>
-            <Text style={styles.labelText}>Timeout : {timeout} </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              value={timeout}
-              step={1}
-              onValueChange={(value) => setTimeout(value)}
-              minimumTrackTintColor="#4caf50"
-              maximumTrackTintColor="#545454" // Custom track color
-              thumbStyle={styles.thumb} // Custom thumb style
-              trackStyle={styles.track}
-            />
-          </View>
-        )}
-        {lightOut === "Hit" && (
-          // hit slider
-          <View style={styles.section}>
-            <Text style={styles.labelText}>Hit Count : {hitCount} </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              value={hitCount}
-              onValueChange={(value) => setHitCount(value)}
-              minimumTrackTintColor="#4caf50"
-              maximumTrackTintColor="#545454" // Custom track color
-              thumbStyle={styles.thumb} // Custom thumb style
-              trackStyle={styles.track}
-            />
-          </View>
-        )}
-        {lightOut === "Hit or Timeout" && (
-          <>
-            {/* Time out slider */}
-            <View style={styles.section}>
-              <Text style={styles.labelText}>Timeout : {timeout}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={100}
-                value={timeout}
-                step={1}
-                onValueChange={(value) => setTimeout(value)}
-                minimumTrackTintColor="#4caf50"
-                maximumTrackTintColor="#545454" // Custom track color
-                thumbStyle={styles.thumb} // Custom thumb style
-                trackStyle={styles.track}
+            <View style={styles.label}>
+              <MaterialIcons
+                name="wb-twighlight"
+                size={30}
+                color="black"
+                style={styles.icon}
               />
+              <Text style={styles.labelText}>Light out</Text>
             </View>
-            {/* Hit slider */}
-            <View style={styles.section}>
-              <Text style={styles.labelText}>Hit Count : {hitCount}</Text>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={100}
-                value={hitCount}
-                step={1}
-                onValueChange={(value) => setHitCount(value)}
-                minimumTrackTintColor="#4caf50"
-                maximumTrackTintColor="#545454" // Custom track color
-                thumbStyle={styles.thumb} // Custom thumb style
-                trackStyle={styles.track}
-              />
-            </View>
-          </>
-        )}
-      </View>
+            <View style={styles.selectBar}>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightOut === "Hit" && styles.activeOption,
+                ]}
+                onPress={() => setLightOut("Hit")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightOut === "Hit" && styles.activeOptionText,
+                  ]}
+                >
+                  Hit
+                </Text>
+              </TouchableOpacity>
 
-      {/* Light Delay Time Section */}
-      <View style={styles.section}>
-        <View style={styles.label}>
-          <MaterialIcons name="wb-twighlight" size={24} color="black" />
-          <Text style={styles.labelText}>Light Delay Time</Text>
-        </View>
-        <View style={styles.selectBar}>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              lightDelay === "None" && styles.activeOption,
-            ]}
-            onPress={() => setLightDelay("None")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightDelay === "None" && styles.activeOptionText,
-              ]}
-            >
-              None
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              lightDelay === "Fixed" && styles.activeOption,
-            ]}
-            onPress={() => setLightDelay("Fixed")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightDelay === "Fixed" && styles.activeOptionText,
-              ]}
-            >
-              Fixed
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              lightDelay === "Random" && styles.activeOption,
-            ]}
-            onPress={() => setLightDelay("Random")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                lightDelay === "Random" && styles.activeOptionText,
-              ]}
-            >
-              Random
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {lightDelay === "Fixed" && ( // Updated to "Fixed"
-          <View style={styles.section}>
-            <Text style={styles.labelText}>
-              Timeout : {delaytime.toFixed(2)} seconds
-            </Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0.5}
-              maximumValue={5}
-              step={0.01}
-              value={delaytime}
-              onValueChange={(value) => setDelaytime(value)}
-              minimumTrackTintColor="#4caf50"
-              maximumTrackTintColor="#545454" // Custom track color
-              thumbStyle={styles.thumb} // Custom thumb style
-              trackStyle={styles.track}
-            />
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightOut === "Timeout" && styles.activeOption,
+                ]}
+                onPress={() => setLightOut("Timeout")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightOut === "Timeout" && styles.activeOptionText,
+                  ]}
+                >
+                  Timeout
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightOut === "Hit or Timeout" && styles.activeOption,
+                ]}
+                onPress={() => setLightOut("Hit or Timeout")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightOut === "Hit or Timeout" && styles.activeOptionText,
+                  ]}
+                >
+                  Hit or Timeout
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {lightOut === "Timeout" && (
+              // Time out slider
+              <View style={styles.section}>
+                <Text style={styles.labelText}>Timeout : {timeout} </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={100}
+                  value={timeout}
+                  step={1}
+                  onValueChange={(value) => setTimeout(value)}
+                  minimumTrackTintColor="#4caf50"
+                  maximumTrackTintColor="#545454" // Custom track color
+                  thumbStyle={styles.thumb} // Custom thumb style
+                  trackStyle={styles.track}
+                />
+              </View>
+            )}
+            {lightOut === "Hit" && (
+              // hit slider
+              <View style={styles.section}>
+                <Text style={styles.labelText}>Hit Count : {hitCount} </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={100}
+                  step={1}
+                  value={hitCount}
+                  onValueChange={(value) => setHitCount(value)}
+                  minimumTrackTintColor="#4caf50"
+                  maximumTrackTintColor="#545454" // Custom track color
+                  thumbStyle={styles.thumb} // Custom thumb style
+                  trackStyle={styles.track}
+                />
+              </View>
+            )}
+            {lightOut === "Hit or Timeout" && (
+              <>
+                {/* Time out slider */}
+                <View style={styles.section}>
+                  <Text style={styles.labelText}>Timeout : {timeout}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={100}
+                    value={timeout}
+                    step={1}
+                    onValueChange={(value) => setTimeout(value)}
+                    minimumTrackTintColor="#4caf50"
+                    maximumTrackTintColor="#545454" // Custom track color
+                    thumbStyle={styles.thumb} // Custom thumb style
+                    trackStyle={styles.track}
+                  />
+                </View>
+                {/* Hit slider */}
+                <View style={styles.section}>
+                  <Text style={styles.labelText}>Hit Count : {hitCount}</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0}
+                    maximumValue={100}
+                    value={hitCount}
+                    step={1}
+                    onValueChange={(value) => setHitCount(value)}
+                    minimumTrackTintColor="#4caf50"
+                    maximumTrackTintColor="#545454" // Custom track color
+                    thumbStyle={styles.thumb} // Custom thumb style
+                    trackStyle={styles.track}
+                  />
+                </View>
+              </>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Duration Section */}
-      <View style={styles.section}>
-        <View style={styles.label}>
-          <Entypo name="back-in-time" size={24} color="black" />
-          <Text style={styles.labelText}>Duration</Text>
+          {/* Light Delay Time Section */}
+          <View style={styles.section}>
+            <View style={styles.label}>
+              <MaterialIcons
+                name="wb-twighlight"
+                size={30}
+                color="black"
+                style={styles.icon}
+              />
+              <Text style={styles.labelText}>Light Delay Time</Text>
+            </View>
+            <View style={styles.selectBar}>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightDelay === "None" && styles.activeOption,
+                ]}
+                onPress={() => setLightDelay("None")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightDelay === "None" && styles.activeOptionText,
+                  ]}
+                >
+                  None
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightDelay === "Fixed" && styles.activeOption,
+                ]}
+                onPress={() => setLightDelay("Fixed")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightDelay === "Fixed" && styles.activeOptionText,
+                  ]}
+                >
+                  Fixed
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  lightDelay === "Random" && styles.activeOption,
+                ]}
+                onPress={() => setLightDelay("Random")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    lightDelay === "Random" && styles.activeOptionText,
+                  ]}
+                >
+                  Random
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {lightDelay === "Fixed" && ( // Updated to "Fixed"
+              <View style={styles.section}>
+                <Text style={styles.labelText}>
+                  Timeout : {delaytime.toFixed(2)} seconds
+                </Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0.5}
+                  maximumValue={5}
+                  step={0.01}
+                  value={delaytime}
+                  onValueChange={(value) => setDelaytime(value)}
+                  minimumTrackTintColor="#4caf50"
+                  maximumTrackTintColor="#545454" // Custom track color
+                  thumbStyle={styles.thumb} // Custom thumb style
+                  trackStyle={styles.track}
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Duration Section */}
+          <View style={styles.section}>
+            <View style={styles.label}>
+              <Entypo
+                name="back-in-time"
+                size={30}
+                color="black"
+                style={styles.icon}
+              />
+              <Text style={styles.labelText}>Duration</Text>
+            </View>
+            <View style={styles.selectBar}>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  duration === "Hit" && styles.activeOption,
+                ]}
+                onPress={() => setDuration("Hit")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    duration === "Hit" && styles.activeOptionText,
+                  ]}
+                >
+                  Hit
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  duration === "Timeout" && styles.activeOption,
+                ]}
+                onPress={() => setDuration("Timeout")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    duration === "Timeout" && styles.activeOptionText,
+                  ]}
+                >
+                  Timeout
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  duration === "Hit or Timeout" && styles.activeOption,
+                ]}
+                onPress={() => setDuration("Hit or Timeout")}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    duration === "Hit or Timeout" && styles.activeOptionText,
+                  ]}
+                >
+                  Hit or Timeout
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {duration === "Hit" && (
+              <View style={styles.section}>
+                <Text style={styles.labelText}>Hit Count : {hitduration}</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={100}
+                  step={1}
+                  value={hitduration}
+                  onValueChange={(value) => setHitDuration(value)}
+                  minimumTrackTintColor="#4caf50"
+                  maximumTrackTintColor="#545454" // Custom track color
+                  thumbStyle={styles.thumb} // Custom thumb style
+                  trackStyle={styles.track}
+                />
+              </View>
+            )}
+            {duration === "Timeout" && (
+              <View style={styles.section}>
+                <Text style={styles.labelText}>
+                  Timeout : {minDuration} min {secDuration} sec
+                </Text>
+                <View style={styles.counterContainer}>
+                  <CounterInput
+                    min={0}
+                    max={59}
+                    onChange={(value) => setMinDuration(value)}
+                    horizontal={true}
+                    style={styles.counter}
+                  />
+                  <Text style={styles.labelText_counter}>min</Text>
+                  <CounterInput
+                    min={0}
+                    max={59}
+                    horizontal={true}
+                    onChange={(value) => setSecDuration(value)}
+                    style={styles.counter}
+                  />
+                  <Text style={styles.labelText_counter}>sec</Text>
+                </View>
+              </View>
+            )}
+            {duration === "Hit or Timeout" && (
+              <View style={styles.section}>
+                <Text style={styles.labelText}>
+                  Timeout : {minDuration} min {secDuration} sec
+                </Text>
+                <View style={styles.counterContainer}>
+                  <CounterInput
+                    min={0}
+                    max={59}
+                    onChange={(value) => setMinDuration(value)}
+                    horizontal={true}
+                    style={styles.counter}
+                  />
+                  <Text style={styles.labelText_counter}>min</Text>
+                  <CounterInput
+                    min={0}
+                    max={59}
+                    horizontal={true}
+                    onChange={(value) => setSecDuration(value)}
+                    style={styles.counter}
+                  />
+                  <Text style={styles.labelText_counter}>sec</Text>
+                </View>
+                <Text style={styles.labelText}>Hit Count : {hitduration}</Text>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={100}
+                  step={1}
+                  value={hitduration}
+                  onValueChange={(value) => setHitDuration(value)}
+                  minimumTrackTintColor="#4caf50"
+                  maximumTrackTintColor="#545454" // Custom track color
+                  thumbStyle={styles.thumb} // Custom thumb style
+                  trackStyle={styles.track}
+                />
+              </View>
+            )}
+          </View>
+          <TouchableOpacity>
+            <View style={styles.button}>
+              <Text style={styles.buttonText}>Train</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-        <View style={styles.selectBar}>
-          <TouchableOpacity
-            style={[styles.option, duration === "Hit" && styles.activeOption]}
-            onPress={() => setDuration("Hit")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                duration === "Hit" && styles.activeOptionText,
-              ]}
-            >
-              Hit
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              duration === "Timeout" && styles.activeOption,
-            ]}
-            onPress={() => setDuration("Timeout")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                duration === "Timeout" && styles.activeOptionText,
-              ]}
-            >
-              Timeout
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              duration === "Hit or Timeout" && styles.activeOption,
-            ]}
-            onPress={() => setDuration("Hit or Timeout")}
-          >
-            <Text
-              style={[
-                styles.optionText,
-                duration === "Hit or Timeout" && styles.activeOptionText,
-              ]}
-            >
-              Hit or Timeout
-            </Text>
-          </TouchableOpacity>
-        </View>
-        {duration === "Hit" && (
-          <>
-            <Text>Hit Count : {hitduration}</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              value={hitduration}
-              onValueChange={(value) => setHitDuration(value)}
-              minimumTrackTintColor="#4caf50"
-              maximumTrackTintColor="#545454" // Custom track color
-              thumbStyle={styles.thumb} // Custom thumb style
-              trackStyle={styles.track}
-            />
-          </>
-        )}
       </View>
-      <TouchableOpacity>
-        <View style={styles.button}>
-          <Text>Train</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -325,7 +433,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 30,
     height: 30,
-    marginRight: 20,
+    marginRight: 10,
   },
   selectBar: {
     flexDirection: "row",
@@ -362,11 +470,55 @@ const styles = StyleSheet.create({
     height: 5,
   },
   button: {
-    backgroundColor: "D9D9D9", // Primary color for the button
-    paddingVertical: 12, // Adds padding to make the button more clickable
-    paddingHorizontal: 20, // Horizontal padding for a wider button
-    alignItems: "center", // Centers the text inside the button
-    borderRadius: 15, // Rounded corners
-    marginTop: 20, // Space above the button
+    backgroundColor: "#545454", // Set a visible button color
+    paddingVertical: 12, // Padding for height
+    paddingHorizontal: 20, // Padding for width
+    alignItems: "center",
+    borderRadius: 15,
+    marginTop: 20,
+    width: 200,
+    alignSelf: "center",
+  },
+  counterContainer: {
+    flexDirection: "row",
+  },
+  counterLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  counterText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 5,
+  },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginHorizontal: 8,
+  },
+  counter: {
+    // flexDirection: "row",
+    width: 60, // Set a smaller width for the counter
+    height: 30,
+    fontSize: 13,
+    fontWeight: "regular",
+  },
+  buttonText: {
+    color: "white", // Text color for contrast
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#e1f4f3", // Background color for the entire scrollable area
+  },
+  labelText_counter: {
+    width: 60, // Set a smaller width for the counter
+    height: 30,
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 15,
+    marginRight: 10,
   },
 });

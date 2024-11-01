@@ -245,7 +245,7 @@ const BLE = () => {
   };
 
   return (
-    <View style={[tw`flex-1`, { backgroundColor: "#E8F5E9" }]}>
+    <View style={[tw`flex-1`, { backgroundColor: "#e1f4f3" }]}>
       <Text
         style={[
           tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
