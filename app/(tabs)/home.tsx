@@ -1,5 +1,12 @@
 import * as React from "react";
-import { StyleSheet, Text, View, Modal, TouchableOpacity , Image } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Modal,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
@@ -32,8 +39,11 @@ export const isCenter = async (
   return { left, right };
 };
 
-export const isHit = async (module: ModuleHome[],
-  readCharacteristic: Function, id: number) => {
+export const isHit = async (
+  module: ModuleHome[],
+  readCharacteristic: Function,
+  id: number
+) => {
   try {
     const hit = await readCharacteristic(
       module[id]?.deviceId as string,
@@ -55,11 +65,12 @@ export default function Home() {
   const {
     bleManager,
     connectedDevices,
+    module,
+    setModule,
     setConnectedDevices,
     writeCharacteristic,
     readCharacteristic,
   } = useBleManager();
-  const [module, setModule] = React.useState<ModuleHome[]>([]);
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );

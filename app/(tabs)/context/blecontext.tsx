@@ -4,9 +4,12 @@ import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { BleManager, Device } from "react-native-ble-plx";
 
+type ModuleHome = Module | null;
 interface BleManagerContextType {
   bleManager: BleManager;
   connectedDevices: Module[];
+  module: ModuleHome[];
+  setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
   setConnectedDevices: React.Dispatch<React.SetStateAction<Module[]>>;
   updateAllConnectedDevices: (deviceId: string) => void;
   disconnectDevice: (deviceId: string) => void;
@@ -32,6 +35,7 @@ const BleManagerContext = createContext<BleManagerContextType | undefined>(
 export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [module, setModule] = useState<ModuleHome[]>([]);
   const [bleManager] = useState(new BleManager());
   const [connectedDevices, setConnectedDevices] = useState<Module[]>([]);
 
@@ -315,6 +319,8 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         bleManager,
         connectedDevices,
+        module,
+        setModule,
         setConnectedDevices,
         updateAllConnectedDevices,
         disconnectDevice,
