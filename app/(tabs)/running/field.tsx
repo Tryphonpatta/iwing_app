@@ -114,10 +114,10 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
   const checkCenterStatus = async () => {
     try {
-      while (centerActiveRef.current) { // Check ref, not state
+      while (centerActiveRef.current) {
         const centerStatus = await checkIsCenter(module, readCharacteristic);
 
-        if (centerStatus.left == 0 && centerStatus.right == 0) {
+        if (centerStatus.left === 0 && centerStatus.right === 0) {
           handleReturnToCenter();
           break;
         }
@@ -127,22 +127,6 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     }
   };
 
-  const checkHit = async (id: number) => {
-    try {
-      while (hitActiveRef.current) { // Check ref, not state
-        const hitStatus = await checkIsHit(module, readCharacteristic, id); // Pass module id to checkIsHit
-
-        if (hitStatus) {
-          handleHitDetected();
-          break;
-        }
-      }
-    } catch (error) {
-      console.error("Failed to read characteristic:", error);
-    }
-  };
-
-  // Function to handle the Center button press manually
   const handleCenterPress = () => {
     if (gameState.centerActive) {
       setGameState((prevState) => ({
@@ -177,20 +161,43 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     setCurrentIndex((prevIndex) => prevIndex + 1);
   };
 
+  useEffect(() => {
+    if (gameState.currentGreen) {
+      const id = gameState.currentGreen === "R1" ? 0 : gameState.currentGreen === "R2" ? 1 : gameState.currentGreen === "L1" ? 2 : 3;
+      hitActiveRef.current = true;
+      checkHit(id);
+    }
+  }, [gameState.currentGreen]);
+
+  const checkHit = async (id: number) => {
+    try {
+      while (hitActiveRef.current) {
+        const hitStatus = await checkIsHit(module, readCharacteristic, id);
+
+        if (hitStatus) {
+          handleHitDetected();
+          hitActiveRef.current = false; // Exit hit checking after detection
+          return;
+        }
+
+        // Check for hitActiveRef updates to ensure no infinite loop
+        if (!hitActiveRef.current) return;
+
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Prevent tight looping
+      }
+    } catch (error) {
+      console.error("Failed to read characteristic:", error);
+      hitActiveRef.current = false;
+    }
+  };
+
   const handleHitDetected = () => {
-    // Triggered when a hit is detected by hardware
     if (gameState.currentGreen) {
       handleCirclePress(gameState.currentGreen);
     }
   };
 
   const handleCirclePress = (circle: CircleKey) => {
-    const id = circle === "L1" ? 0 
-         : circle === "R1" ? 1 
-         : circle === "L2" ? 2 
-         : circle === "R2" ? 3 
-         : -1;
-
     if (circleColors[circle] === "green") {
       const currentTime = Date.now();
       if (lastTimestamp !== null) {
@@ -212,8 +219,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         ...prevState,
         centerActive: true,
       }));
-      hitActiveRef.current = true; // Activate hit monitoring
-      checkHit(id); // Start checking for hits with the specific module ID
+      hitActiveRef.current = false; // Stop hit checking on manual press
     }
   };
 
@@ -267,7 +273,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
         <TouchableOpacity
           style={[styles.circle, { backgroundColor: circleColors.Center }]}
-          onPress={handleCenterPress} // Manual override for center confirmation
+          onPress={handleCenterPress}
         >
           <Text style={styles.text}>Center</Text>
         </TouchableOpacity>

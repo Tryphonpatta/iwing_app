@@ -1,5 +1,5 @@
 import * as React from "react";
-import { StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Modal, TouchableOpacity , Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
@@ -15,10 +15,10 @@ export const isCenter = async (
   module: ModuleHome[],
   readCharacteristic: Function
 ) => {
-  if (module[3] == null || module[2] == null) {
-    console.log("Module not found");
-    return { left: -1, right: -1 };
-  }
+  // if (module[3] == null || module[2] == null) {
+  //   console.log("Module not found");
+  //   return { left: -1, right: -1 };
+  // }
   const right = await readCharacteristic(
     module[3]?.deviceId as string,
     CHARACTERISTIC.IWING_TRAINERPAD,
@@ -266,9 +266,12 @@ export default function Home() {
               backgroundColor: "#f0f0f0",
             }}
           >
-            <View
-              style={{ backgroundColor: "green", width: 300, height: 350 }}
-            ></View>
+            <View style={styles.imageContainer}>
+              <Image
+                source={require("../../assets/images/field.png")}
+                style={styles.fieldImage}
+              />
+            </View>
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -457,6 +460,15 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  imageContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fieldImage: {
+    width: 300,
+    height: 350,
+    resizeMode: "cover", // Adjust the image scaling as needed
+  },
   outlineContainer: {
     justifyContent: "center",
     alignItems: "center",
