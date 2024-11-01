@@ -10,6 +10,21 @@ import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
 type ModuleHome = Module | null;
+
+export const isCenter = async (module: ModuleHome[], readCharacteristic: Function) => {
+  const right = await readCharacteristic(
+    module[3]?.deviceId as string,
+    CHARACTERISTIC.IWING_TRAINERPAD,
+    CHARACTERISTIC.IR_RX
+  );
+  const left = await readCharacteristic(
+    module[0]?.deviceId as string,
+    CHARACTERISTIC.IWING_TRAINERPAD,
+    CHARACTERISTIC.IR_RX
+  );
+  return { left, right };
+};
+
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
@@ -30,19 +45,19 @@ export default function Home() {
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
 
-  const isCenter = async () => {
-    const right = readCharacteristic(
-      module[3]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    const left = readCharacteristic(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    return { left: left, right: right };
-  };
+  // export const isCenter = async () => {
+  //   const right = readCharacteristic(
+  //     module[3]?.deviceId as string,
+  //     CHARACTERISTIC.IWING_TRAINERPAD,
+  //     CHARACTERISTIC.IR_RX
+  //   );
+  //   const left = readCharacteristic(
+  //     module[0]?.deviceId as string,
+  //     CHARACTERISTIC.IWING_TRAINERPAD,
+  //     CHARACTERISTIC.IR_RX
+  //   );
+  //   return { left: left, right: right };
+  // };
 
   const blink = async (device: Module) => {
     console.log("Blinking");

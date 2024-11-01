@@ -2,7 +2,7 @@ import React from "react";
 import { ModuleContextProvider } from "./context/context";
 import { BleManagerProvider } from "./context/blecontext";
 import { Tabs } from 'expo-router'; 
-import { Ionicons } from '@expo/vector-icons'; // Import icons for better visual design
+import { Ionicons } from '@expo/vector-icons';
 export default function TabLayout() {
 
   return (
@@ -13,7 +13,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#2f95dc',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: { backgroundColor: '#fff' },
-        headerShown: false,  // Hide the header to keep things clean
+        headerShown: false,
       }}
     >
       <Tabs.Screen
