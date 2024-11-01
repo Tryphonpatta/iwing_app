@@ -165,23 +165,51 @@ const BLE = () => {
     const getBatteryIconAndColor = (batteryLevel: number | null) => {
       if (batteryLevel === null || isNaN(batteryLevel)) {
         return {
-          icon: <FontAwesome name="battery-2" size={24} color="transparent" />,
+          icon: (
+            <FontAwesome
+              name="battery-2"
+              size={24}
+              color="transparent"
+              style={styles.icon}
+            />
+          ),
           color: "transparent",
         };
       }
       if (batteryLevel === 100) {
         return {
-          icon: <FontAwesome name="battery-4" size={24} color="green" />,
+          icon: (
+            <FontAwesome
+              name="battery-4"
+              size={15}
+              color="green"
+              style={styles.icon}
+            />
+          ),
           color: "green",
         };
       } else if (batteryLevel > 15) {
         return {
-          icon: <FontAwesome name="battery-2" size={24} color="yellow" />,
+          icon: (
+            <FontAwesome
+              name="battery-2"
+              size={15}
+              color="orange "
+              style={styles.icon}
+            />
+          ),
           color: "yellow",
         };
       } else {
         return {
-          icon: <FontAwesome name="battery-1" size={24} color="red" />,
+          icon: (
+            <FontAwesome
+              name="battery-1"
+              size={15}
+              color="red"
+              style={styles.icon}
+            />
+          ),
           color: "red",
         };
       }
@@ -200,7 +228,12 @@ const BLE = () => {
           },
         ]}
       >
-        <MaterialIcons name="wb-twilight" size={60} color="black" />
+        <MaterialIcons
+          name="wb-twilight"
+          size={60}
+          color="black"
+          style={styles.light}
+        />
         <View style={tw`flex-1`}>
           <Text style={tw`text-base font-bold text-black mb-2`}>
             Name: {device.name ? device.name : "N/A"}
@@ -236,7 +269,7 @@ const BLE = () => {
           style={styles.blinkButton}
           onPress={() => toggleConnection(device)}
         >
-          <Text style={tw`text-gray-700`}>
+          <Text style={tw`text-gray-700 `}>
             {device.isConnect ? "Disconnect" : "Connect"}
           </Text>
         </TouchableOpacity>
@@ -320,6 +353,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     position: "absolute",
     right: 10,
+  },
+  icon: {
+    marginRight: 3,
+  },
+  light: {
+    marginRight: 5,
   },
 });
 

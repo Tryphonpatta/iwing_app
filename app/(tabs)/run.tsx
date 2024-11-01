@@ -46,7 +46,7 @@ export default function App() {
             { backgroundColor: "#419E68", fontSize: 36 },
           ]}
         >
-          Settings
+          Training
         </Text>
         <View style={styles.container}>
           {/* Light Out Section */}
@@ -370,7 +370,7 @@ export default function App() {
                     horizontal={true}
                     style={styles.counter}
                   />
-                  <Text style={styles.labelText_counter}>min</Text>
+
                   <CounterInput
                     min={0}
                     max={59}
@@ -378,7 +378,6 @@ export default function App() {
                     onChange={(value) => setSecDuration(value)}
                     style={styles.counter}
                   />
-                  <Text style={styles.labelText_counter}>sec</Text>
                 </View>
               </View>
             )}
@@ -395,7 +394,7 @@ export default function App() {
                     horizontal={true}
                     style={styles.counter}
                   />
-                  <Text style={styles.labelText_counter}>min</Text>
+
                   <CounterInput
                     min={0}
                     max={59}
@@ -403,7 +402,6 @@ export default function App() {
                     onChange={(value) => setSecDuration(value)}
                     style={styles.counter}
                   />
-                  <Text style={styles.labelText_counter}>sec</Text>
                 </View>
                 <Text style={styles.labelText}>Hit Count : {hitduration}</Text>
                 <Slider
@@ -452,9 +450,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   icon: {
-    width: 30,
+    width: 100,
     height: 30,
-    marginRight: 10,
+    marginRight: 0,
   },
   selectBar: {
     flexDirection: "row",
@@ -520,10 +518,11 @@ const styles = StyleSheet.create({
   },
   counter: {
     // flexDirection: "row",
-    width: 60, // Set a smaller width for the counter
-    height: 30,
-    fontSize: 13,
+    width: 100, // Set a smaller width for the counter
+
     fontWeight: "regular",
+    transform: [{ scale: 0.8 }],
+    marginRight: 20,
   },
   buttonText: {
     color: "white", // Text color for contrast
