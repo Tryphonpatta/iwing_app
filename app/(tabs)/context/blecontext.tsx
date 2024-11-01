@@ -293,7 +293,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const value = await characteristic.read();
       console.log("Value: ", value);
-      return value;
+      return base64toDec(value.value as string);
     } catch (error) {
       console.error(
         `Failed to read from characteristic: ${characteristicUUID}`,

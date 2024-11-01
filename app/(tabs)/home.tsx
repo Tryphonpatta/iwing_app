@@ -59,6 +59,15 @@ export default function Home() {
   //   return { left: left, right: right };
   // };
 
+  const testMusic = async (index: number) => {
+    writeCharacteristic(
+      module[index]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MUSIC,
+      hexToBase64("616161")
+    );
+  };
+
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
@@ -84,28 +93,32 @@ export default function Home() {
   };
 
   const calibrate = async (sender: number, receiver: number) => {
-    console.log(sender, receiver);
     writeCharacteristic(
       module[sender]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
-    let isOk = false;
-    while (!isOk) {
-      isOk = true;
-      const data = readCharacteristic(
-        module[receiver]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.IR_RX
-      );
-      console.log(data);
+    writeCharacteristic(
+      module[receiver]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MODE,
+      hexToBase64("01")
+    );
+    while (isCalibratingRef.current) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     console.log("Calibration done");
     writeCharacteristic(
       module[sender]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
+    writeCharacteristic(
+      module[receiver]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MODE,
       hexToBase64("00")
     );
   };
@@ -262,7 +275,7 @@ export default function Home() {
             <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: 'green' }]}
+              style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
                 if (
                   !isCalibrate &&
@@ -280,7 +293,14 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={[styles.buttonText, { color: "#fff", fontWeight: "bold" }]}>SetUP</Text>
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: "#fff", fontWeight: "bold" },
+                ]}
+              >
+                SetUP
+              </Text>
             </TouchableOpacity>
             <SelectList
               setSelected={(val: number) => {
@@ -348,6 +368,21 @@ export default function Home() {
                   ]}
                 >
                   Calibrate
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                onPress={() => {
+                  testMusic((selectedModule as number) - 1);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Music!!
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
