@@ -32,6 +32,20 @@ export const isCenter = async (
   return { left, right };
 };
 
+export const isHit = async (module: ModuleHome[],
+  readCharacteristic: Function, id: number) => {
+  try {
+    const hit = await readCharacteristic(
+      module[id]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.VIBRATION
+    );
+    return hit ? hit == 255 : false;
+  } catch (e) {
+    console.log("Error: ", e);
+  }
+};
+
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
@@ -115,18 +129,18 @@ export default function Home() {
     console.log("Threshold set to: ", val);
   };
 
-  const isHit = async (id: number) => {
-    try {
-      const hit = await readCharacteristic(
-        module[id]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.VIBRATION
-      );
-      return hit ? hit == 255 : false;
-    } catch (e) {
-      console.log("Error: ", e);
-    }
-  };
+  // const isHit = async (id: number) => {
+  //   try {
+  //     const hit = await readCharacteristic(
+  //       module[id]?.deviceId as string,
+  //       CHARACTERISTIC.IWING_TRAINERPAD,
+  //       CHARACTERISTIC.VIBRATION
+  //     );
+  //     return hit ? hit == 255 : false;
+  //   } catch (e) {
+  //     console.log("Error: ", e);
+  //   }
+  // };
 
   const calibrate = async (sender: number, receiver: number) => {
     writeCharacteristic(

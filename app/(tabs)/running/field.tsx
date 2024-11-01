@@ -127,10 +127,10 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     }
   };
 
-  const checkHit = async (moduleId: string) => {
+  const checkHit = async (id: number) => {
     try {
       while (hitActiveRef.current) { // Check ref, not state
-        const hitStatus = await checkIsHit(moduleId, readCharacteristic); // Pass moduleId to checkIsHit
+        const hitStatus = await checkIsHit(module, readCharacteristic, id); // Pass module id to checkIsHit
 
         if (hitStatus) {
           handleHitDetected();
@@ -185,9 +185,13 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   };
 
   const handleCirclePress = (circle: CircleKey) => {
-    const moduleId = module[circle]?.deviceId; // Get the module ID for the pressed circle
+    const id = circle === "L1" ? 0 
+         : circle === "R1" ? 1 
+         : circle === "L2" ? 2 
+         : circle === "R2" ? 3 
+         : -1;
 
-    if (circleColors[circle] === "green" && moduleId) {
+    if (circleColors[circle] === "green") {
       const currentTime = Date.now();
       if (lastTimestamp !== null) {
         const timeDiff = (currentTime - lastTimestamp) / 1000;
@@ -209,7 +213,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         centerActive: true,
       }));
       hitActiveRef.current = true; // Activate hit monitoring
-      checkHit(moduleId); // Start checking for hits with the specific module ID
+      checkHit(id); // Start checking for hits with the specific module ID
     }
   };
 
