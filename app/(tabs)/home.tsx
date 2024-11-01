@@ -15,6 +15,10 @@ export const isCenter = async (
   module: ModuleHome[],
   readCharacteristic: Function
 ) => {
+  if (module[3] == null || module[2] == null) {
+    console.log("Module not found");
+    return { left: -1, right: -1 };
+  }
   const right = await readCharacteristic(
     module[3]?.deviceId as string,
     CHARACTERISTIC.IWING_TRAINERPAD,
