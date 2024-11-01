@@ -44,6 +44,15 @@ export default function Home() {
     return { left: left, right: right };
   };
 
+  const testMusic = async (index: number) => {
+    writeCharacteristic(
+      module[index]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.MUSIC,
+      hexToBase64("616161")
+    );
+  };
+
   const blink = async (device: Module) => {
     console.log("Blinking");
     let redLight = true;
@@ -333,6 +342,21 @@ export default function Home() {
                   ]}
                 >
                   Calibrate
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                onPress={() => {
+                  testMusic((selectedModule as number) - 1);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Music!!
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
