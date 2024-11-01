@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   View,
   Text,
@@ -44,7 +44,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
-  const [module, setModule] = useState(connectedDevices);
+  const { module, setModule } = useBleManager();
 
   // useRef to track centerActive and hitActive without causing re-renders
   const centerActiveRef = useRef(gameState.centerActive);
@@ -107,7 +107,10 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         ...prevState,
         currentGreen: nextCircle,
       }));
-    } else if (currentIndex >= circleSequence.length && !gameState.centerActive) {
+    } else if (
+      currentIndex >= circleSequence.length &&
+      !gameState.centerActive
+    ) {
       setShowResultScreen(true);
     }
   }, [gameState.centerActive, currentIndex, circleSequence]);
@@ -163,7 +166,14 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
   useEffect(() => {
     if (gameState.currentGreen) {
-      const id = gameState.currentGreen === "R1" ? 0 : gameState.currentGreen === "R2" ? 1 : gameState.currentGreen === "L1" ? 2 : 3;
+      const id =
+        gameState.currentGreen === "R1"
+          ? 0
+          : gameState.currentGreen === "R2"
+          ? 1
+          : gameState.currentGreen === "L1"
+          ? 2
+          : 3;
       hitActiveRef.current = true;
       checkHit(id);
     }
@@ -233,10 +243,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
       0
     );
     return (
-      <ResultScreen
-        interactionTimes={interactionTimes}
-        totalTime={totalTime}
-      />
+      <ResultScreen interactionTimes={interactionTimes} totalTime={totalTime} />
     );
   }
 
@@ -244,28 +251,40 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     <View style={styles.containerField}>
       <View style={styles.circleContainer}>
         <TouchableOpacity
-          style={[styles.circle, { top: 20, left: 20, backgroundColor: circleColors.L1 }]}
+          style={[
+            styles.circle,
+            { top: 20, left: 20, backgroundColor: circleColors.L1 },
+          ]}
           onPress={() => handleCirclePress("L1")}
         >
           <Text style={styles.text}>L1</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.circle, { top: 20, right: 20, backgroundColor: circleColors.R1 }]}
+          style={[
+            styles.circle,
+            { top: 20, right: 20, backgroundColor: circleColors.R1 },
+          ]}
           onPress={() => handleCirclePress("R1")}
         >
           <Text style={styles.text}>R1</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.circle, { bottom: 20, left: 20, backgroundColor: circleColors.L2 }]}
+          style={[
+            styles.circle,
+            { bottom: 20, left: 20, backgroundColor: circleColors.L2 },
+          ]}
           onPress={() => handleCirclePress("L2")}
         >
           <Text style={styles.text}>L2</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.circle, { bottom: 20, right: 20, backgroundColor: circleColors.R2 }]}
+          style={[
+            styles.circle,
+            { bottom: 20, right: 20, backgroundColor: circleColors.R2 },
+          ]}
           onPress={() => handleCirclePress("R2")}
         >
           <Text style={styles.text}>R2</Text>
@@ -279,7 +298,10 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.stopButton} onPress={handleStopAndShowResult}>
+      <TouchableOpacity
+        style={styles.stopButton}
+        onPress={handleStopAndShowResult}
+      >
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
     </View>
