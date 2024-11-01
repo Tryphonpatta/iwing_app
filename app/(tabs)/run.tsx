@@ -13,6 +13,7 @@ import { Slider } from "@rneui/themed";
 import CounterInput from "react-native-counter-input";
 //counter lib usage:https://github.com/WrathChaos/react-native-counter-input
 import tw from "twrnc";
+import { light } from "@eva-design/eva";
 
 export default function App() {
   const [lightOut, setLightOut] = useState("");
@@ -27,6 +28,15 @@ export default function App() {
   const [hitduration, setHitDuration] = useState(0);
   const [minDuration, setMinDuration] = useState(0);
   const [secDuration, setSecDuration] = useState(0);
+  const [randomNumber, setRandomNumber] = useState<number | null>(null); // State to hold the random number
+
+  const getRandomNumber = (): number => {
+    const min = 0.5;
+    const max = 5.0;
+    const random = (Math.random() * (max - min) + min).toFixed(2); // Generate random number between 0.50 and 5.00
+    return parseFloat(random); // Convert the string to a number
+  };
+
   return (
     <ScrollView style={styles.scrollView}>
       <View style={[tw`flex-1`, { backgroundColor: "#e1f4f3" }]}>
@@ -105,7 +115,9 @@ export default function App() {
             {lightOut === "Timeout" && (
               // Time out slider
               <View style={styles.section}>
-                <Text style={styles.labelText}>Timeout : {timeout} </Text>
+                <Text style={styles.labelText}>
+                  Timeout : {timeout} seconds
+                </Text>
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -142,7 +154,9 @@ export default function App() {
               <>
                 {/* Time out slider */}
                 <View style={styles.section}>
-                  <Text style={styles.labelText}>Timeout : {timeout}</Text>
+                  <Text style={styles.labelText}>
+                    Timeout : {timeout} seconds
+                  </Text>
                   <Slider
                     style={styles.slider}
                     minimumValue={0}
@@ -232,6 +246,10 @@ export default function App() {
                     styles.optionText,
                     lightDelay === "Random" && styles.activeOptionText,
                   ]}
+                  onPress={() => {
+                    setLightDelay("Random");
+                    setDelaytime(getRandomNumber()); // Generate and set random delay when selecting "Random"
+                  }}
                 >
                   Random
                 </Text>
@@ -255,6 +273,9 @@ export default function App() {
                   trackStyle={styles.track}
                 />
               </View>
+            )}
+            {lightDelay === "Random" && (
+              <Text style={styles.labelText}>Random Time : {delaytime}</Text>
             )}
           </View>
 

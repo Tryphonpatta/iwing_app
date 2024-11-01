@@ -17,77 +17,78 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
+
 const BLE = () => {
   const { bleManager, connectToDevice, connectedDevices } = useBleManager(); // BLE context values
   const [deviceList, setDeviceList] = useState<DeviceCustom[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
-
+  //mockup data for connected device list
   // Connect or disconnect the device and update its status immediately
-  const toggleConnection = async (device: DeviceCustom) => {
-    if (device.isConnect) {
-      try {
-        // Disconnect from the device
-        await bleManager.cancelDeviceConnection(device.id);
-        updateDeviceStatus(device.id, false);
-      } catch (error) {
-        console.log("Failed to disconnect from device:", device.id, error);
-      }
-    } else {
-      try {
-        console.log("Connecting to device:", device.id);
-        // Attempt to connect to the device
-        await connectToDevice(device.id);
-        // Update the status only if the connection was successful
-        updateDeviceStatus(device.id, true);
-      } catch (error) {
-        console.log("Failed to connect to device:", device.id, error);
-        // Optionally, inform the user that the connection failed
-      }
-    }
-  };
+  //   const toggleConnection = async (device: DeviceCustom) => {
+  //     if (device.isConnect) {
+  //       try {
+  //         // Disconnect from the device
+  //         await bleManager.cancelDeviceConnection(device.id);
+  //         updateDeviceStatus(device.id, false);
+  //       } catch (error) {
+  //         console.log("Failed to disconnect from device:", device.id, error);
+  //       }
+  //     } else {
+  //       try {
+  //         console.log("Connecting to device:", device.id);
+  //         // Attempt to connect to the device
+  //         await connectToDevice(device.id);
+  //         // Update the status only if the connection was successful
+  //         updateDeviceStatus(device.id, true);
+  //       } catch (error) {
+  //         console.log("Failed to connect to device:", device.id, error);
+  //         // Optionally, inform the user that the connection failed
+  //       }
+  //     }
+  //   };
 
-  // Update device status in the list based on its connection status
-  const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
-    setDeviceList((prevList: any) =>
-      prevList.map((d: any) =>
-        d.id === deviceId ? { ...d, isConnect: isConnect } : d
-      )
-    );
-  };
+  //   // Update device status in the list based on its connection status
+  //   const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
+  //     setDeviceList((prevList: any) =>
+  //       prevList.map((d: any) =>
+  //         d.id === deviceId ? { ...d, isConnect: isConnect } : d
+  //       )
+  //     );
+  //   };
 
-  const startScan = async () => {
-    setDeviceList([]); // Clear the list before starting a new scan
-    console.log("Scanning...");
-    setScanning(true);
+  //   const startScan = async () => {
+  //     setDeviceList([]); // Clear the list before starting a new scan
+  //     console.log("Scanning...");
+  //     setScanning(true);
 
-    bleManager.onStateChange((state) => {
-      if (state === State.PoweredOn) {
-        bleManager.startDeviceScan(null, null, (error, device) => {
-          if (error) {
-            console.log("Scan error:", error);
-            return;
-          }
+  //     bleManager.onStateChange((state) => {
+  //       if (state === State.PoweredOn) {
+  //         bleManager.startDeviceScan(null, null, (error, device) => {
+  //           if (error) {
+  //             console.log("Scan error:", error);
+  //             return;
+  //           }
 
-          if (device) {
-            setDeviceList((prev: any) => {
-              const deviceExists = prev.some((d: any) => d.id === device.id);
+  //           if (device) {
+  //             setDeviceList((prev: any) => {
+  //               const deviceExists = prev.some((d: any) => d.id === device.id);
 
-              if (device.name === "Trainning_PAD" && !deviceExists) {
-                return [...prev, { ...device, isConnect: false }];
-              }
-              return prev;
-            });
-          }
-        });
-      }
-    }, true);
+  //               if (device.name === "Trainning_PAD" && !deviceExists) {
+  //                 return [...prev, { ...device, isConnect: false }];
+  //               }
+  //               return prev;
+  //             });
+  //           }
+  //         });
+  //       }
+  //     }, true);
 
-    setTimeout(() => {
-      bleManager.stopDeviceScan();
-      setScanning(false);
-      console.log("Scan stopped after 10 seconds.");
-    }, 10000);
-  };
+  //     setTimeout(() => {
+  //       bleManager.stopDeviceScan();
+  //       setScanning(false);
+  //       console.log("Scan stopped after 10 seconds.");
+  //     }, 10000);
+  //   };
 
   useEffect(() => {
     // Update device connection statuses when connectedDevices change
@@ -101,9 +102,6 @@ const BLE = () => {
 
   // Separate the devices into connected and disconnected groups
   const connectedDevicesList = deviceList.filter((device) => device.isConnect);
-  const disconnectedDevicesList = deviceList.filter(
-    (device) => !device.isConnect
-  );
 
   // const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
   //   return (
@@ -162,34 +160,9 @@ const BLE = () => {
 
   //ws' version card
   const DeviceItem: React.FC<{ device: DeviceCustom }> = ({ device }) => {
-    const getBatteryIconAndColor = (batteryLevel: number | null) => {
-      if (batteryLevel === null || isNaN(batteryLevel)) {
-        return {
-          icon: <FontAwesome name="battery-2" size={24} color="transparent" />,
-          color: "transparent",
-        };
-      }
-      if (batteryLevel === 100) {
-        return {
-          icon: <FontAwesome name="battery-4" size={24} color="green" />,
-          color: "green",
-        };
-      } else if (batteryLevel > 15) {
-        return {
-          icon: <FontAwesome name="battery-2" size={24} color="yellow" />,
-          color: "yellow",
-        };
-      } else {
-        return {
-          icon: <FontAwesome name="battery-1" size={24} color="red" />,
-          color: "red",
-        };
-      }
-    };
     const batteryLevel = device.manufacturerData
       ? base64toDecManu(device.manufacturerData)
       : null;
-    const { icon, color } = getBatteryIconAndColor(batteryLevel);
     return (
       <View
         style={[
@@ -200,46 +173,19 @@ const BLE = () => {
           },
         ]}
       >
-        <MaterialIcons name="wb-twilight" size={60} color="black" />
+        {/* (show only name of connected device) */}
+        <MaterialIcons name="wb-twilight" size={70} color="black" />
         <View style={tw`flex-1`}>
           <Text style={tw`text-base font-bold text-black mb-2`}>
             Name: {device.name ? device.name : "N/A"}
           </Text>
-
-          <View style={tw`flex-row items-center mb-1`}>
-            <FontAwesome
-              name="circle"
-              size={12}
-              color={device.isConnect ? "green" : "red"}
-            />
-            <Text
-              style={[
-                tw`ml-2`,
-                device.isConnect
-                  ? styles.connectedText
-                  : styles.disconnectedText,
-              ]}
-            >
-              {device.isConnect ? "connect" : "disconnect"}
-            </Text>
-          </View>
-
-          <View style={tw`flex-row items-center`}>
-            {icon}
-            <Text style={tw`ml-0 text-sm text-gray-700`}>
-              battery : {batteryLevel !== null ? `${batteryLevel}%` : ""}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.blinkButton}
-          onPress={() => toggleConnection(device)}
-        >
-          <Text style={tw`text-gray-700`}>
-            {device.isConnect ? "Disconnect" : "Connect"}
+          <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
+            Battery Voltage:{" "}
+            {device.manufacturerData
+              ? base64toDecManu(device.manufacturerData)
+              : "N/A"}
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -252,7 +198,7 @@ const BLE = () => {
           { backgroundColor: "#419E68", fontSize: 36 },
         ]}
       >
-        Settings
+        Home
       </Text>
 
       {/* Render connected devices */}
@@ -269,28 +215,6 @@ const BLE = () => {
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No connected devices</Text>
         }
-      />
-
-      {/* Render disconnected devices */}
-      <View style={tw`bg-white shadow-lg`}>
-        <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>
-          {" "}
-          Disconnected Devices
-        </Text>
-      </View>
-      <FlatList
-        data={disconnectedDevicesList}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <DeviceItem device={item} />}
-        ListEmptyComponent={
-          <Text style={tw`mx-4 my-2`}> No disconnected devices</Text>
-        }
-      />
-
-      <Button
-        onPress={startScan}
-        title={scanning ? "Scanning..." : "Start Scan"}
-        disabled={scanning}
       />
     </View>
   );
@@ -312,14 +236,6 @@ const styles = StyleSheet.create({
   },
   defaultBatteryText: {
     color: "#4CAF50",
-  },
-  blinkButton: {
-    backgroundColor: "#e0e0e0",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
-    position: "absolute",
-    right: 10,
   },
 });
 
