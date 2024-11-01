@@ -115,6 +115,19 @@ export default function Home() {
     console.log("Threshold set to: ", val);
   };
 
+  const isHit = async (id: number) => {
+    try {
+      const hit = await readCharacteristic(
+        module[id]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.VIBRATION
+      );
+      return hit ? hit == 255 : false;
+    } catch (e) {
+      console.log("Error: ", e);
+    }
+  };
+
   const calibrate = async (sender: number, receiver: number) => {
     writeCharacteristic(
       module[sender]?.deviceId as string,
