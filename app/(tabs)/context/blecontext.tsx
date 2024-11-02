@@ -269,6 +269,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     characteristicUUID: string
   ) => {
     try {
+      console.log("Reading from device: ", deviceId);
       console.log(
         "Reading from characteristic: ",
         characteristicUUID.toLowerCase()
@@ -277,26 +278,11 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       await device.discoverAllServicesAndCharacteristics();
       console.log("sender ", deviceId);
       console.log("Connected to device: ", deviceId);
-
-      const service = await device
-        .services()
-        .then((services) => services.find((s) => s.uuid === serviceUUID));
-      if (!service) {
-        console.error(`Service ${serviceUUID} not found`);
-        return null;
-      }
-
-      const characteristic = await service
-        .characteristics()
-        .then((characteristics) =>
-          characteristics.find((c) => c.uuid === characteristicUUID)
-        );
-      if (!characteristic) {
-        console.error(`Characteristic ${characteristicUUID} not found`);
-        return null;
-      }
-      const value = await characteristic.read();
-      console.log("Value: ", value);
+      const value = await device.readCharacteristicForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristicUUID
+      );
+      console.log("value: ", value.value);
       return base64toDec(value.value as string);
     } catch (error) {
       console.error(

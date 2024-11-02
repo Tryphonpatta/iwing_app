@@ -7,8 +7,10 @@ import {
   Dimensions,
 } from "react-native";
 import ResultScreen from "./result"; // Adjust the import path as needed
-import { isCenter as checkIsCenter, isHit as checkIsHit } from "../home"; // Import both functions
+import { ModuleHome } from "../home"; // Import both functions
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
+import { CHARACTERISTIC } from "@/enum/characteristic";
+import { parse } from "@babel/core";
 
 const { width, height } = Dimensions.get("window");
 
@@ -27,7 +29,8 @@ type Interaction = {
 };
 
 const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
-  const { readCharacteristic, connectedDevices } = useBleManager();
+  const { readCharacteristic, connectedDevices, module, setModule } =
+    useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -44,8 +47,19 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
-  const { module, setModule } = useBleManager();
-
+  const isCenter = async () => {
+    const right = await readCharacteristic(
+      module[3]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    const left = await readCharacteristic(
+      module[2]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    return { left, right };
+  };
   // useRef to track centerActive and hitActive without causing re-renders
   const centerActiveRef = useRef(gameState.centerActive);
   const hitActiveRef = useRef(false);
@@ -118,12 +132,13 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const checkCenterStatus = async () => {
     try {
       while (centerActiveRef.current) {
-        const centerStatus = await checkIsCenter(module, readCharacteristic);
+        const centerStatus = await isCenter();
 
         if (centerStatus.left === 0 && centerStatus.right === 0) {
           handleReturnToCenter();
           break;
         }
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
@@ -168,13 +183,14 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     if (gameState.currentGreen) {
       const id =
         gameState.currentGreen === "R1"
-          ? 0
-          : gameState.currentGreen === "R2"
           ? 1
+          : gameState.currentGreen === "R2"
+          ? 3
           : gameState.currentGreen === "L1"
-          ? 2
-          : 3;
+          ? 0
+          : 2;
       hitActiveRef.current = true;
+
       checkHit(id);
     }
   }, [gameState.currentGreen]);
@@ -182,7 +198,8 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const checkHit = async (id: number) => {
     try {
       while (hitActiveRef.current) {
-        const hitStatus = await checkIsHit(module, readCharacteristic, id);
+        if (!module[id]?.deviceId) throw new Error("DeviceId is NULL");
+        const hitStatus = await isHit(id);
 
         if (hitStatus) {
           handleHitDetected();
@@ -193,14 +210,28 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         // Check for hitActiveRef updates to ensure no infinite loop
         if (!hitActiveRef.current) return;
 
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Prevent tight looping
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Prevent tight looping
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
       hitActiveRef.current = false;
     }
   };
+  const isHit = async (id: number) => {
+    try {
+      if (module[id]?.deviceId === undefined)
+        throw new Error("DeviceId is NULL");
+      const hit = await readCharacteristic(
+        module[id]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.VIBRATION
+      );
 
+      return hit ? hit == 255 : false;
+    } catch (e) {
+      console.log("Error: ", e);
+    }
+  };
   const handleHitDetected = () => {
     if (gameState.currentGreen) {
       handleCirclePress(gameState.currentGreen);

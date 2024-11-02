@@ -16,7 +16,7 @@ import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
-type ModuleHome = Module | null;
+export type ModuleHome = Module | null;
 
 export const isCenter = async (
   module: ModuleHome[],
@@ -48,8 +48,9 @@ export const isHit = async (
     const hit = await readCharacteristic(
       module[id]?.deviceId as string,
       CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.VIBRATION
+      CHARACTERISTIC.IR_RX
     );
+    console.log(hit);
     return hit ? hit == 255 : false;
   } catch (e) {
     console.log("Error: ", e);
