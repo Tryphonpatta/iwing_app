@@ -190,7 +190,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
           ? 0
           : 2;
       hitActiveRef.current = true;
-
+      console.log("Checking hit for", gameState.currentGreen);
       checkHit(id);
     }
   }, [gameState.currentGreen]);
@@ -210,7 +210,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         // Check for hitActiveRef updates to ensure no infinite loop
         if (!hitActiveRef.current) return;
 
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Prevent tight looping
+        await new Promise((resolve) => setTimeout(resolve, 300)); // Prevent tight looping
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
@@ -226,7 +226,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         CHARACTERISTIC.IWING_TRAINERPAD,
         CHARACTERISTIC.VIBRATION
       );
-
+      console.log(hit);
       return hit ? hit == 255 : false;
     } catch (e) {
       console.log("Error: ", e);
