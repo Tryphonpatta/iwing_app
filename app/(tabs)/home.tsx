@@ -16,7 +16,7 @@ import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
-export type ModuleHome = Module | null;
+export type ModuleHome = Module  | null;
 
 export const isCenter = async (
   module: ModuleHome[],

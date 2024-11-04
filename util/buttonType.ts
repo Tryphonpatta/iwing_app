@@ -1,4 +1,4 @@
-import { BleManager } from "react-native-ble-plx";
+import { BleManager, Device } from "react-native-ble-plx";
 
 export type Module = {
   deviceId: string;
@@ -10,4 +10,5 @@ export type Module = {
   VIB_threshold: number;
   IR_TX_status: boolean;
   music: string;
+  device: Device;
 };

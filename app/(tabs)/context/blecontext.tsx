@@ -11,7 +11,6 @@ interface BleManagerContextType {
   module: ModuleHome[];
   setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
   setConnectedDevices: React.Dispatch<React.SetStateAction<Module[]>>;
-  updateAllConnectedDevices: (deviceId: string) => void;
   disconnectDevice: (deviceId: string) => void;
   connectToDevice: (deviceId: string) => void;
   writeCharacteristic: (
@@ -64,92 +63,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error(`Failed to disconnect from device: ${deviceId}`, error);
     }
-  };
-
-  const updateAllConnectedDevices = async (deviceId: string) => {
-    await bleManager.connectToDevice(deviceId);
-    const connected = await bleManager.connectedDevices([
-      CHARACTERISTIC.IWING_TRAINERPAD,
-    ]);
-    const isConnected = await bleManager.isDeviceConnected(deviceId);
-    console.log("isConnected: ", isConnected);
-    const characteristicMap = new Map<string, string>();
-    if (isConnected) {
-      if (connectedDevices.find((device) => device.deviceId === deviceId)) {
-        const index = connectedDevices.findIndex(
-          (device) => device.deviceId === deviceId
-        );
-        const updatedModule = connectedDevices[index];
-        await connected[0].discoverAllServicesAndCharacteristics();
-        const services = await connected[0].services();
-        for (const service of services) {
-          const characteristics = await service.characteristics();
-          for (const characteristic of characteristics) {
-            const value = await characteristic.read();
-
-            if (
-              characteristic.uuid.toUpperCase() === CHARACTERISTIC.BATT_VOLTAGE
-            ) {
-              updatedModule.batteryVoltage = base64toDec(value.value as string);
-              console.log("Battery Voltage: ", updatedModule.batteryVoltage);
-            }
-            characteristicMap.set(
-              characteristic.uuid.toUpperCase(),
-              value.value as string
-            );
-          }
-        }
-        setConnectedDevices((prev) => {
-          prev[index] = {
-            deviceId: deviceId,
-            batteryVoltage: base64toDec(
-              characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) as string
-            ),
-            bleManager: bleManager,
-            battFull:
-              base64toDec(
-                characteristicMap.get(CHARACTERISTIC.BATT_FULL) as string
-              ) == 1,
-
-            battCharging:
-              base64toDec(
-                characteristicMap.get(CHARACTERISTIC.BATT_CHARGING) as string
-              ) == 1,
-            IR_RX_status:
-              base64toDec(
-                characteristicMap.get(CHARACTERISTIC.IR_RX) as string
-              ) == 1,
-            VIB_threshold:
-              base64toDec(
-                characteristicMap.get(CHARACTERISTIC.VIB_THRES) as string
-              ) || 0,
-            IR_TX_status:
-              base64toDec(
-                characteristicMap.get(CHARACTERISTIC.IR_TX) as string
-              ) == 1,
-            music: characteristicMap.get(CHARACTERISTIC.MUSIC) || "",
-          };
-          return prev;
-        });
-        return;
-      }
-      setConnectedDevices((prev) => {
-        prev.push({
-          deviceId: deviceId,
-          batteryVoltage: 0,
-          bleManager: bleManager,
-          battFull: false,
-          battCharging: false,
-          IR_RX_status: false,
-          VIB_threshold: 0,
-          IR_TX_status: false,
-          music: "",
-        });
-        return prev.filter(Boolean);
-      });
-    }
-
-    // console.log(connectedDevices);
   };
 
   const connectToDevice = async (deviceId: string) => {
@@ -223,6 +136,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           VIB_threshold: 0,
           IR_TX_status: false,
           music: "",
+          device: device,
         });
         return prev.filter(Boolean);
       });
@@ -308,7 +222,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         module,
         setModule,
         setConnectedDevices,
-        updateAllConnectedDevices,
         disconnectDevice,
         connectToDevice,
         writeCharacteristic,
