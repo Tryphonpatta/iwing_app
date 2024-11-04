@@ -43,7 +43,11 @@ const RunScreen = () => {
 				</TouchableOpacity>
 
 				<TouchableOpacity
-					style={[styles.modeButton, selectedMode === "manual" ? styles.selected : styles.unselected]}
+					style={[
+						styles.modeButton,
+						{ backgroundColor: "#d1d1d1" },
+					]}
+					// style={[ styles.modeButton,selectedMode === "manual" ? styles.selected : styles.unselected]}
 					onPress={() => setSelectedMode("manual")}
 				>
 					<Ionicons name="walk" size={24} color="#fff" />
