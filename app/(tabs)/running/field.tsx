@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,8 @@ import {
   Dimensions,
 } from "react-native";
 import ResultScreen from "./result"; // Adjust the import path as needed
-import { ModuleHome } from "../home"; // Import both functions
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
 import { CHARACTERISTIC } from "@/enum/characteristic";
-import { parse } from "@babel/core";
 
 const { width, height } = Dimensions.get("window");
 
@@ -29,8 +27,7 @@ type Interaction = {
 };
 
 const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
-  const { readCharacteristic, connectedDevices, module, setModule } =
-    useBleManager();
+  const { readCharacteristic, module } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -38,7 +35,6 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     L2: "red",
     Center: "blue",
   });
-
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [gameState, setGameState] = useState({
     currentGreen: null as CircleKey | null,
@@ -47,22 +43,11 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
-  const isCenter = async () => {
-    const right = await readCharacteristic(
-      module[3]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    const left = await readCharacteristic(
-      module[2]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    return { left, right };
-  };
-  // useRef to track centerActive and hitActive without causing re-renders
+
+  // References to manage async loops
   const centerActiveRef = useRef(gameState.centerActive);
   const hitActiveRef = useRef(false);
+  const stopActiveRef = useRef(false);
 
   // Update centerActiveRef when gameState.centerActive changes
   useEffect(() => {
@@ -87,8 +72,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     for (let i = 0; i < R1Count; i++) sequence.push("R1");
     for (let i = 0; i < R2Count; i++) sequence.push("R2");
 
-    sequence = shuffleArray(sequence);
-    setCircleSequence(sequence);
+    setCircleSequence(shuffleArray(sequence));
   }, []);
 
   const shuffleArray = (array: CircleKey[]) => {
@@ -129,9 +113,23 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     }
   }, [gameState.centerActive, currentIndex, circleSequence]);
 
+  const isCenter = async () => {
+    const right = await readCharacteristic(
+      module[3]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    const left = await readCharacteristic(
+      module[2]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_RX
+    );
+    return { left, right };
+  };
+
   const checkCenterStatus = async () => {
     try {
-      while (centerActiveRef.current) {
+      while (centerActiveRef.current && !stopActiveRef.current) {
         const centerStatus = await isCenter();
 
         if (centerStatus.left === 0 && centerStatus.right === 0) {
@@ -159,19 +157,13 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
     const currentTime = Date.now();
     if (lastTimestamp !== null && gameState.currentGreen !== null) {
       const timeDiff = (currentTime - lastTimestamp) / 1000;
-      const interactionDescription = `${gameState.currentGreen} to Center`;
       setInteractionTimes((prevTimes) => [
         ...prevTimes,
-        { description: interactionDescription, time: timeDiff },
+        { description: `${gameState.currentGreen} to Center`, time: timeDiff },
       ]);
     }
     setLastTimestamp(currentTime);
-
-    setCircleColors((prevColors) => ({
-      ...prevColors,
-      Center: "blue",
-    }));
-
+    setCircleColors((prevColors) => ({ ...prevColors, Center: "blue" }));
     setGameState((prevState) => ({
       ...prevState,
       centerActive: false,
@@ -190,48 +182,44 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
           ? 0
           : 2;
       hitActiveRef.current = true;
-      console.log("Checking hit for", gameState.currentGreen);
       checkHit(id);
     }
   }, [gameState.currentGreen]);
 
   const checkHit = async (id: number) => {
     try {
-      while (hitActiveRef.current) {
+      while (hitActiveRef.current && !stopActiveRef.current) {
         if (!module[id]?.deviceId) throw new Error("DeviceId is NULL");
         const hitStatus = await isHit(id);
 
         if (hitStatus) {
           handleHitDetected();
-          hitActiveRef.current = false; // Exit hit checking after detection
+          hitActiveRef.current = false;
           return;
         }
-
-        // Check for hitActiveRef updates to ensure no infinite loop
-        if (!hitActiveRef.current) return;
-
-        await new Promise((resolve) => setTimeout(resolve, 300)); // Prevent tight looping
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
       hitActiveRef.current = false;
     }
   };
+
   const isHit = async (id: number) => {
     try {
-      if (module[id]?.deviceId === undefined)
-        throw new Error("DeviceId is NULL");
+      if (module[id]?.deviceId === undefined) throw new Error("DeviceId is NULL");
       const hit = await readCharacteristic(
         module[id]?.deviceId as string,
         CHARACTERISTIC.IWING_TRAINERPAD,
         CHARACTERISTIC.VIBRATION
       );
-      console.log(hit);
       return hit ? hit == 255 : false;
     } catch (e) {
-      console.log("Error: ", e);
+      console.error("Error reading hit characteristic:", e);
+      return false;
     }
   };
+
   const handleHitDetected = () => {
     if (gameState.currentGreen) {
       handleCirclePress(gameState.currentGreen);
@@ -243,34 +231,26 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
       const currentTime = Date.now();
       if (lastTimestamp !== null) {
         const timeDiff = (currentTime - lastTimestamp) / 1000;
-        const interactionDescription = `Center to ${circle}`;
         setInteractionTimes((prevTimes) => [
           ...prevTimes,
-          { description: interactionDescription, time: timeDiff },
+          { description: `Center to ${circle}`, time: timeDiff },
         ]);
       }
       setLastTimestamp(currentTime);
-
-      setCircleColors((prevColors) => ({
-        ...prevColors,
-        [circle]: "red",
-        Center: "yellow",
-      }));
-      setGameState((prevState) => ({
-        ...prevState,
-        centerActive: true,
-      }));
-      hitActiveRef.current = false; // Stop hit checking on manual press
+      setCircleColors((prevColors) => ({ ...prevColors, [circle]: "red", Center: "yellow" }));
+      setGameState((prevState) => ({ ...prevState, centerActive: true }));
+      hitActiveRef.current = false;
     }
   };
 
   const handleStopAndShowResult = () => {
+    stopActiveRef.current = true; // Stop all async loops
     setShowResultScreen(true);
   };
 
   if (showResultScreen) {
     const totalTime = interactionTimes.reduce(
-      (accumulator, interaction) => accumulator + interaction.time,
+      (acc, interaction) => acc + interaction.time,
       0
     );
     return (
@@ -281,58 +261,23 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   return (
     <View style={styles.containerField}>
       <View style={styles.circleContainer}>
-        <TouchableOpacity
-          style={[
-            styles.circle,
-            { top: 20, left: 20, backgroundColor: circleColors.L1 },
-          ]}
-          onPress={() => handleCirclePress("L1")}
-        >
+        <TouchableOpacity style={[styles.circle, { top: 20, left: 20, backgroundColor: circleColors.L1 }]} onPress={() => handleCirclePress("L1")}>
           <Text style={styles.text}>L1</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.circle,
-            { top: 20, right: 20, backgroundColor: circleColors.R1 },
-          ]}
-          onPress={() => handleCirclePress("R1")}
-        >
+        <TouchableOpacity style={[styles.circle, { top: 20, right: 20, backgroundColor: circleColors.R1 }]} onPress={() => handleCirclePress("R1")}>
           <Text style={styles.text}>R1</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.circle,
-            { bottom: 20, left: 20, backgroundColor: circleColors.L2 },
-          ]}
-          onPress={() => handleCirclePress("L2")}
-        >
+        <TouchableOpacity style={[styles.circle, { bottom: 20, left: 20, backgroundColor: circleColors.L2 }]} onPress={() => handleCirclePress("L2")}>
           <Text style={styles.text}>L2</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.circle,
-            { bottom: 20, right: 20, backgroundColor: circleColors.R2 },
-          ]}
-          onPress={() => handleCirclePress("R2")}
-        >
+        <TouchableOpacity style={[styles.circle, { bottom: 20, right: 20, backgroundColor: circleColors.R2 }]} onPress={() => handleCirclePress("R2")}>
           <Text style={styles.text}>R2</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.circle, { backgroundColor: circleColors.Center }]}
-          onPress={handleCenterPress}
-        >
+        <TouchableOpacity style={[styles.circle, { backgroundColor: circleColors.Center }]} onPress={handleCenterPress}>
           <Text style={styles.text}>Center</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.stopButton}
-        onPress={handleStopAndShowResult}
-      >
+      <TouchableOpacity style={styles.stopButton} onPress={handleStopAndShowResult}>
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
     </View>

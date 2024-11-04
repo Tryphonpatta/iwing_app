@@ -339,6 +339,7 @@ export default function Home() {
           <View style={styles.modalContent}>
             <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
+            <View style={styles.dividerLine} />
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
@@ -358,6 +359,7 @@ export default function Home() {
                 }
               }}
             >
+              
               <Text
                 style={[
                   styles.buttonText,
@@ -382,6 +384,7 @@ export default function Home() {
             />
             <View
               style={{
+                display: "flex",
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -389,7 +392,7 @@ export default function Home() {
               }}
             >
               <TouchableOpacity
-                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                style={[styles.button, { backgroundColor: "red" , marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
                   console.log(module);
                   console.log(selectedModule);
@@ -408,7 +411,7 @@ export default function Home() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                style={[styles.button, { backgroundColor: "orange" , marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
                   if (
                     selectedModule &&
@@ -447,11 +450,26 @@ export default function Home() {
                     { color: "#fff", fontWeight: "bold" },
                   ]}
                 >
-                  Music!!
+                  Music
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[styles.closeButton, { marginLeft: 8 }]}
+                onPress={() => {
+                  setSelectedModule(null);
+                  toggleModal("");
+                }}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity> */}
+            </View>
+            {/* <Text style={styles.conditionalText}>
+              {isCalibrate ? "Sender" : "Receiver"}
+            </Text> */}
+            <View style={styles.dividerLine} />
+            <View style={{ width: '100%', alignItems: 'flex-end'}}>
+              <TouchableOpacity
+                style={[styles.closeButton, { backgroundColor: "#cccccc" , marginLeft: 4 }]}
                 onPress={() => {
                   setSelectedModule(null);
                   toggleModal("");
@@ -472,6 +490,18 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  conditionalText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333", // Customize the color as desired
+    marginVertical: 10,
+  },
+  dividerLine: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#ccc', // Light gray line color
+    marginVertical: 10, // Adjust spacing above and below the line as needed
+  },
   imageContainer: {
     justifyContent: "center",
     alignItems: "center",
@@ -526,7 +556,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#007bff",
     padding: 10,
     borderRadius: 5,
-    minWidth: "40%",
+    minWidth: "25%",
   },
   buttonText: {
     color: "#00000",

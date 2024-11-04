@@ -1,25 +1,39 @@
 // pattern.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Easing,
+  FlatList,
 } from "react-native";
 import Field from "./field"; // Ensure the import path is correct
+import RunScreen from "../run"; // Import RunScreen
+import InputSpinner from "react-native-input-spinner";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+
+const modes = [
+  { id: 1, icon: "walk" },
+  { id: 2, icon: "bicycle" },
+  { id: 3, icon: "car" },
+  { id: 4, icon: "train" },
+]; // Add other modes as needed
 
 const PatternScreen = () => {
-  const [R1, setR1] = useState("");
-  const [R2, setR2] = useState("");
-  const [L1, setL1] = useState("");
-  const [L2, setL2] = useState("");
+  const [R1, setR1] = useState(0);
+  const [R2, setR2] = useState(0);
+  const [L1, setL1] = useState(0);
+  const [L2, setL2] = useState(0);
   const [goField, setShowField] = useState(false);
+  const [showRunScreen, setShowRunScreen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState(modes[0].id);
+
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
 
   const handleStart = () => {
-    // Ensure at least one count is provided
-    const totalCounts =
-      (parseInt(R1) || 0) + (parseInt(R2) || 0) + (parseInt(L1) || 0) + (parseInt(L2) || 0);
+    const totalCounts = R1 + R2 + L1 + L2;
     if (totalCounts > 0) {
       setShowField(true);
     } else {
@@ -27,83 +41,211 @@ const PatternScreen = () => {
     }
   };
 
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shakeAnimation, {
+          toValue: 5,
+          duration: 100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: -5,
+          duration: 100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shakeAnimation, {
+          toValue: 0,
+          duration: 100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  if (showRunScreen) {
+    return <RunScreen />;
+  }
+
   if (goField) {
     return <Field R1={R1} R2={R2} L1={L1} L2={L2} />;
   }
 
+  const renderModeIcon = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.iconContainer,
+        selectedMode === item.id && styles.selectedIconContainer,
+      ]}
+      onPress={() => setSelectedMode(item.id)}
+    >
+      <Ionicons
+        name={item.icon}
+        size={80}
+        color={selectedMode === item.id ? "#2f855a" : "#ccc"}
+      />
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Pattern Mode</Text>
+    <View style={styles.screen}>
+      {/* Header with Back Icon */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setShowRunScreen(true)}>
+          <Ionicons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Pattern Mode</Text>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        value={R1}
-        onChangeText={(text) => setR1(text.replace(/[^0-9]/g, ""))}
-        keyboardType="numeric"
-        placeholder="R1"
-      />
+      <View style={styles.container}>
+        <Text style={styles.selectText}>SELECT</Text>
+        <View style={styles.modeSelector}>
+          <FlatList
+            data={modes}
+            renderItem={renderModeIcon}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+          />
+        </View>
 
-      <TextInput
-        style={styles.input}
-        value={R2}
-        onChangeText={(text) => setR2(text.replace(/[^0-9]/g, ""))}
-        keyboardType="numeric"
-        placeholder="R2"
-      />
+        {/* Input Spinners */}
+        <InputSpinner
+          max={100}
+          min={0}
+          step={1}
+          value={R1}
+          onChange={(num) => setR1(num)}
+          style={styles.spinner}
+          skin="clean"
+          color="#2f855a"
+          placeholder="R1"
+        />
+        <InputSpinner
+          max={100}
+          min={0}
+          step={1}
+          value={R2}
+          onChange={(num) => setR2(num)}
+          style={styles.spinner}
+          skin="clean"
+          color="#2f855a"
+          placeholder="R2"
+        />
+        <InputSpinner
+          max={100}
+          min={0}
+          step={1}
+          value={L1}
+          onChange={(num) => setL1(num)}
+          style={styles.spinner}
+          skin="clean"
+          color="#2f855a"
+          placeholder="L1"
+        />
+        <InputSpinner
+          max={100}
+          min={0}
+          step={1}
+          value={L2}
+          onChange={(num) => setL2(num)}
+          style={styles.spinner}
+          skin="clean"
+          color="#2f855a"
+          placeholder="L2"
+        />
 
-      <TextInput
-        style={styles.input}
-        value={L1}
-        onChangeText={(text) => setL1(text.replace(/[^0-9]/g, ""))}
-        keyboardType="numeric"
-        placeholder="L1"
-      />
-
-      <TextInput
-        style={styles.input}
-        value={L2}
-        onChangeText={(text) => setL2(text.replace(/[^0-9]/g, ""))}
-        keyboardType="numeric"
-        placeholder="L2"
-      />
-
-      <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-        <Text style={styles.startButtonText}>Start</Text>
-      </TouchableOpacity>
+        {/* Start Button */}
+        <TouchableOpacity style={styles.startButton} onPress={handleStart}>
+          <Text style={styles.startButtonText}>Start</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
     backgroundColor: "#E8F5E9",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#419E68",
+    marginTop: 30,
+    height: 60,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    color: "white",
+    textAlign: "center",
+    flex: 1,
   },
-  input: {
-    width: 150,
-    height: 50,
-    backgroundColor: "#e0e0e0",
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  selectText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "red",
+    marginBottom: 10,
+  },
+  modeSelector: {
+    borderWidth: 2,
+    borderColor: "red",
+    padding: 10,
     marginBottom: 20,
     borderRadius: 10,
-    paddingHorizontal: 10,
-    fontSize: 18,
+    width: "80%",
+    height: 120,
+    alignItems: "center",
+  },
+  iconContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    width: 100,
+  },
+  selectedIconContainer: {
+    backgroundColor: "#d9f7be", // Light green background for selected icon
+    borderRadius: 50,
+  },
+  spinner: {
+    width: "90%",
+    marginBottom: 15,
+    borderRadius: 25,
+    backgroundColor: "#fff",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   startButton: {
     backgroundColor: "#2f855a",
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 70,
+    borderRadius: 30,
+    marginTop: 20,
+    width: "80%",
+    alignItems: "center",
   },
   startButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     color: "#fff",
     fontWeight: "bold",
   },
