@@ -11,6 +11,7 @@ interface BleManagerContextType {
   updateAllConnectedDevices: (deviceId: string) => void;
   disconnectDevice: (deviceId: string) => void;
   connectToDevice: (deviceId: string) => void;
+  blink: (device: Module) => void;
   writeCharacteristic: (
     deviceId: string,
     serviceUUID: string,
@@ -61,7 +62,28 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error(`Failed to disconnect from device: ${deviceId}`, error);
     }
   };
-
+  const blink = async (device: Module) => {
+    console.log("Blinking");
+    let redLight = true;
+    const redColor = "/wAB";
+    const blueColor = "AAD/";
+    for (let i = 0; i < 10; i++) {
+      await writeCharacteristic(
+        device.deviceId,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.LED,
+        redLight ? redColor : blueColor
+      );
+      redLight = !redLight;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await writeCharacteristic(
+      device.deviceId,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.LED,
+      "AAAA"
+    );
+  };
   const updateAllConnectedDevices = async (deviceId: string) => {
     const device = await bleManager.connectToDevice(deviceId);
     const connected = await bleManager.connectedDevices([
@@ -324,6 +346,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         connectToDevice,
         writeCharacteristic,
         readCharacteristic,
+        blink,
       }}
     >
       {children}

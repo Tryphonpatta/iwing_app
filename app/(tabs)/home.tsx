@@ -14,7 +14,7 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { base64toDec, base64toDecManu, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 // Define the type for the module state
 type ModuleHome = Module | null;
@@ -123,11 +123,14 @@ export default function Home() {
     pad_no: number;
   }) => (
     <View style={styles.cardcontainer}>
-      <Text>Trainer Pad {pad_no}</Text>
-      <View>
-        <TouchableOpacity onPress={() => blink(device)}>
-          <Text>Blink</Text>
-        </TouchableOpacity>
+      <MaterialIcons name="wb-twilight" size={60} color="black" />
+      <View style={styles.cardcontent}>
+        <Text>Trainer Pad : {pad_no}</Text>
+        <View style={styles.blinkbutton}>
+          <TouchableOpacity onPress={() => blink(device)}>
+            <Text style={tw`text-gray-700 `}>Blink</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -142,6 +145,11 @@ export default function Home() {
       >
         Home
       </Text>
+      <View style={tw`bg-white shadow-lg`}>
+        <Text style={tw`text-lg font-bold text-black rounded-lg p-2 `}>
+          Connected Device
+        </Text>
+      </View>
       <FlatList
         data={module}
         keyExtractor={(item, index) => (item ? item.deviceId : `null-${index}`)}
@@ -160,7 +168,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E8F5E9",
+    backgroundColor: "#e1f4f3",
   },
   footer: {
     padding: 10,
@@ -169,6 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
   },
   cardcontainer: {
+    marginTop: 5,
     padding: 10,
     backgroundColor: "#fff",
     marginBottom: 10,
@@ -178,5 +187,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+    flexDirection: "row",
+  },
+  cardcontent: {
+    flexDirection: "column",
+  },
+  blinkbutton: {
+    backgroundColor: "#e0e0e0",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    position: "absolute",
+    right: 10,
+    marginTop: 25,
   },
 });

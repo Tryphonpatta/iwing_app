@@ -260,7 +260,8 @@ const BLE = () => {
           <View style={tw`flex-row items-center`}>
             {icon}
             <Text style={tw`ml-0 text-sm text-gray-700`}>
-              battery : {batteryLevel !== null ? `${batteryLevel}%` : ""}
+              battery :{" "}
+              {batteryLevel !== null ? `${Math.floor(batteryLevel / 10)}%` : ""}
             </Text>
           </View>
         </View>
