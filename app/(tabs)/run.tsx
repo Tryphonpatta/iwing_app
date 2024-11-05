@@ -15,6 +15,8 @@ import CounterInput from "react-native-counter-input";
 import tw from "twrnc";
 import { light } from "@eva-design/eva";
 import Result from "./result";
+import { useModuleContext } from "./context/context";
+import { useBleManager } from "./context/blecontext";
 
 export default function App() {
 	const [lightOut, setLightOut] = useState("");
@@ -40,6 +42,24 @@ export default function App() {
 		// ถ้า showResult เป็น true แสดง Result component
 		return <Result onClose={() => setShowResult(false)} />; // ใช้ onClose เพื่อตั้งค่า showResult ให้กลับมาเป็น false
 	}
+	const { writeCharacteristic } = useBleManager();
+	const { module } = useModuleContext();
+
+	const handleSendHitCount = async () => {
+		try {
+			for (const device of module) {
+				const hitCountString = btoa(String(hitCount));
+				await writeCharacteristic(
+					device.deviceId,
+					device.serviceUUID,
+					device.serviceUUID,
+					hitCountString
+				);
+			}
+		} catch (error) {
+			console.log("error to send hit : ", error);
+		}
+	};
 
 	const getRandomNumber = (): number => {
 		const min = 0.5;
