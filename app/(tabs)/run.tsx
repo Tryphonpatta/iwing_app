@@ -6,6 +6,7 @@ import {
 	StyleSheet,
 	Image,
 	ScrollView,
+	Module,
 } from "react-native";
 // import Slider from "@react-native-community/slider";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
@@ -17,50 +18,26 @@ import { light } from "@eva-design/eva";
 import Result from "./result";
 import { useModuleContext } from "./context/context";
 import { useBleManager } from "./context/blecontext";
-
+import { Device } from "react-native-ble-plx";
 export default function App() {
 	const [lightOut, setLightOut] = useState("");
 	const [timeout, setTimeout] = useState(0);
 	const [hitCount, setHitCount] = useState(0);
-
 	const [lightDelay, setLightDelay] = useState("");
 	const [delaytime, setDelaytime] = useState(0);
-
 	const [duration, setDuration] = useState("");
 	const [timeduration, setTimeDuration] = useState(0);
 	const [hitduration, setHitDuration] = useState(0);
 	const [minDuration, setMinDuration] = useState(0);
 	const [secDuration, setSecDuration] = useState(0);
-	const [randomNumber, setRandomNumber] = useState<number | null>(null); // State to hold the random number
-
 	const [showResult, setShowResult] = useState(false);
-	const handleTrain = () => {
-		setShowResult(true); // เมื่อกดปุ่ม Train ให้เปลี่ยนค่า state เพื่อแสดง Result screen
-	};
 
-	if (showResult) {
-		// ถ้า showResult เป็น true แสดง Result component
-		return <Result onClose={() => setShowResult(false)} />; // ใช้ onClose เพื่อตั้งค่า showResult ให้กลับมาเป็น false
-	}
 	const { writeCharacteristic } = useBleManager();
 	const { module } = useModuleContext();
 
-	const handleSendHitCount = async () => {
-		try {
-			for (const device of module) {
-				const hitCountString = btoa(String(hitCount));
-				await writeCharacteristic(
-					device.deviceId,
-					device.serviceUUID,
-					device.serviceUUID,
-					hitCountString
-				);
-			}
-		} catch (error) {
-			console.log("error to send hit : ", error);
-		}
-	};
-
+	if (showResult) {
+		return <Result onClose={() => setShowResult(false)} />;
+	}
 	const getRandomNumber = (): number => {
 		const min = 0.5;
 		const max = 5.0;
@@ -450,7 +427,7 @@ export default function App() {
 							</View>
 						)}
 					</View>
-					<TouchableOpacity onPress={handleTrain}>
+					<TouchableOpacity>
 						<View style={styles.button}>
 							<Text style={styles.buttonText}>Train</Text>
 						</View>
