@@ -14,7 +14,7 @@ import Draggable from "react-native-draggable";
 import { useIconPosition } from "./IconPositionContext";
 
 const Running = () => {
-  const { connectedDevices, blink } = useBleManager();
+  const { connectedDevices, blink, turnOn_light } = useBleManager();
   const { positions, setPosition } = useIconPosition();
   const [module, setModule] = React.useState<Module[]>([]);
 
@@ -41,7 +41,7 @@ const Running = () => {
       }
     >
       <View style={styles.draggableContainer}>
-        <TouchableOpacity onPress={() => blink(device)}>
+        <TouchableOpacity onPress={() => turnOn_light(device, 40, "red")}>
           <MaterialIcons
             name="wb-twilight"
             size={60}
