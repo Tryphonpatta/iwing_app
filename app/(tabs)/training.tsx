@@ -14,7 +14,8 @@ import CounterInput from "react-native-counter-input";
 //counter lib usage:https://github.com/WrathChaos/react-native-counter-input
 import tw from "twrnc";
 import { light } from "@eva-design/eva";
-
+import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
+import { useNavigation } from "@react-navigation/native";
 export default function App() {
   const [lightOut, setLightOut] = useState("");
   const [timeout, setTimeout] = useState(0);
@@ -37,6 +38,42 @@ export default function App() {
     return parseFloat(random); // Convert the string to a number
   };
 
+  type RootStackParamList = {
+    start: {
+      lightOut: string;
+      hitCount: number;
+      timeout: number;
+      lightDelay: string;
+      delaytime: number;
+      duration: string;
+      hitduration: number;
+      minDuration: number;
+      secDuration: number;
+    };
+    training: undefined; // add other routes here as needed
+  };
+
+  type TrainingScreenNavigationProp = NativeStackNavigationProp<
+    RootStackParamList,
+    "training"
+  >;
+  const navigation = useNavigation<TrainingScreenNavigationProp>();
+
+  const goToStartPage = () => {
+    navigation.navigate("start", {
+      lightOut,
+      hitCount,
+      timeout,
+      lightDelay,
+      delaytime,
+      duration,
+      hitduration,
+      minDuration,
+      secDuration,
+    });
+    console.log(`min duration ${minDuration} sec duration ${secDuration}`);
+    console.log("go to the start page");
+  };
   return (
     <ScrollView style={styles.scrollView}>
       <View style={[tw`flex-1`, { backgroundColor: "#e1f4f3" }]}>
@@ -390,7 +427,9 @@ export default function App() {
                   <CounterInput
                     min={0}
                     max={59}
-                    onChange={(value) => setMinDuration(value)}
+                    onChange={(value) => {
+                      setMinDuration(value);
+                    }}
                     horizontal={true}
                     style={styles.counter}
                   />
@@ -399,7 +438,9 @@ export default function App() {
                     min={0}
                     max={59}
                     horizontal={true}
-                    onChange={(value) => setSecDuration(value)}
+                    onChange={(value) => {
+                      setSecDuration(value);
+                    }}
                     style={styles.counter}
                   />
                 </View>
@@ -419,7 +460,11 @@ export default function App() {
               </View>
             )}
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              goToStartPage();
+            }}
+          >
             <View style={styles.button}>
               <Text style={styles.buttonText}>Finish</Text>
             </View>

@@ -236,7 +236,7 @@ const BLE = () => {
         />
         <View style={tw`flex-1`}>
           <Text style={tw`text-base font-bold text-black mb-2`}>
-            Name: {device.name ? device.name : "N/A"}
+            Name: {device.id ? device.id : "N/A"}
           </Text>
 
           <View style={tw`flex-row items-center mb-1`}>

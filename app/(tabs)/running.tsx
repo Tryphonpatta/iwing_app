@@ -41,7 +41,7 @@ const Running = () => {
       }
     >
       <View style={styles.draggableContainer}>
-        <TouchableOpacity onPress={() => turnOn_light(device, 40, "red")}>
+        <TouchableOpacity onPress={() => blink(device)}>
           <MaterialIcons
             name="wb-twilight"
             size={60}

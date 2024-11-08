@@ -24,6 +24,7 @@ interface BleManagerContextType {
     characteristicUUID: string
   ) => Promise<number | undefined>;
   turnOn_light: (device: Module, sec: number, color: string) => void;
+  turnOff_light: (device: Module) => void;
   // Add other functions as needed
 }
 
@@ -89,25 +90,40 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   //ws test function for turning on LED light
   const turnOn_light = async (device: Module, sec: number, color: string) => {
-    console.log(`Turning on ${color} light for ${sec} minute`);
+    console.log(
+      `Turning on ${device.deviceId} ${color} light for ${sec} seconds`
+    );
+
+    // Define color codes
     const redColor = "/wAB";
     const blueColor = "AAD/";
-    if (color === "blue") {
-      color = blueColor;
-    } else if (color === "red") {
-      color = redColor;
-    }
+    const offColor = "AAAA";
 
+    // Choose color based on input
+    const onColor = color === "blue" ? blueColor : redColor;
+
+    // Turn on the light with the selected color
     await writeCharacteristic(
       device.deviceId,
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.LED,
-      color
+      onColor
     );
-    //turn
+
+    // Wait for the specified duration
     await new Promise((resolve) => setTimeout(resolve, sec * 1000));
-    console.log(`Turning off ${color} light after ${sec} minute`);
   };
+
+  const turnOff_light = async (device: Module) => {
+    await writeCharacteristic(
+      device.deviceId,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.LED,
+      "AAAA"
+    );
+    console.log(`turning off ${device.deviceId}`);
+  };
+
   const updateAllConnectedDevices = async (deviceId: string) => {
     const device = await bleManager.connectToDevice(deviceId);
     const connected = await bleManager.connectedDevices([
@@ -372,6 +388,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         readCharacteristic,
         blink,
         turnOn_light,
+        turnOff_light,
       }}
     >
       {children}
