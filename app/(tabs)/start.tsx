@@ -136,12 +136,12 @@ const StartGame = () => {
 				const battVoltage = await readCharacteristic(
 					device.deviceId,
 					CHARACTERISTIC.IWING_TRAINERPAD,
-					CHARACTERISTIC.VIBRATION
+					CHARACTERISTIC.BUTTONS
 				);
 
-				// console.log(
-				// 	`Device ${device.deviceId} - Battery Voltage: ${battVoltage}V`
-				// );
+				console.log(
+					`Device ${device.deviceId} - Battery Voltage: ${battVoltage}V`
+				);
 			}
 		}, 5000);
 
