@@ -24,6 +24,8 @@ interface BleManagerContextType {
 		serviceUUID: string,
 		characteristicUUID: string
 	) => Promise<number | null>;
+	turnOn_light: (device: Module, sec: number, color: string) => void;
+	turnOff_light: (device: Module) => void;
 	// Add other functions as needed
 }
 
@@ -180,6 +182,42 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 		}
 	};
 
+	//ws test function for turning on LED light
+	const turnOn_light = async (device: Module, sec: number, color: string) => {
+		console.log(
+			`Turning on ${device.deviceId} ${color} light for ${sec} seconds`
+		);
+
+		// Define color codes
+		const redColor = "/wAB";
+		const blueColor = "AAD/";
+		const offColor = "AAAA";
+
+		// Choose color based on input
+		const onColor = color === "blue" ? blueColor : redColor;
+
+		// Turn on the light with the selected color
+		await writeCharacteristic(
+			device.deviceId,
+			CHARACTERISTIC.IWING_TRAINERPAD,
+			CHARACTERISTIC.LED,
+			onColor
+		);
+
+		// Wait for the specified duration
+		await new Promise((resolve) => setTimeout(resolve, sec * 1000));
+	};
+
+	const turnOff_light = async (device: Module) => {
+		await writeCharacteristic(
+			device.deviceId,
+			CHARACTERISTIC.IWING_TRAINERPAD,
+			CHARACTERISTIC.LED,
+			"AAAA"
+		);
+		console.log(`turning off ${device.deviceId}`);
+	};
+
 	const readCharacteristic = async (
 		deviceId: string,
 		serviceUUID: string,
@@ -229,6 +267,8 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 				connectToDevice,
 				writeCharacteristic,
 				readCharacteristic,
+				turnOn_light,
+				turnOff_light,
 			}}
 		>
 			{children}

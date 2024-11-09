@@ -125,31 +125,6 @@ const StartGame = () => {
 		}, duration);
 	};
 
-	useEffect(() => {
-		const intervalId = setInterval(async () => {
-			if (connectedDevices.length === 0) return;
-
-			for (let i = 0; i < connectedDevices.length; i++) {
-				const device = connectedDevices[i];
-				if (!device) continue;
-
-				const battVoltage = await readCharacteristic(
-					device.deviceId,
-					CHARACTERISTIC.IWING_TRAINERPAD,
-					CHARACTERISTIC.BUTTONS
-				);
-
-				console.log(
-					`Device ${device.deviceId} - Battery Voltage: ${battVoltage}V`
-				);
-			}
-		}, 5000);
-
-		return () => {
-			clearInterval(intervalId);
-		};
-	}, [connectedDevices, readCharacteristic]);
-
 	return (
 		<SafeAreaView style={styles.container}>
 			<Text style={styles.header}>Start Game</Text>
