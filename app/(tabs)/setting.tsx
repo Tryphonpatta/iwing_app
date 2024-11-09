@@ -14,40 +14,44 @@ import { useBleManager } from "./context/blecontext";
 import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 import { ModuleHome } from "./home";
+import { disconnectDevice } from "@/util/ble";
 
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
-  const { bleManager, connectToDevice, connectedDevices, module, setModule } =
-    useBleManager(); // BLE context values
-  const [deviceList, setDeviceList] = useState<ModuleHome[]>([]); // List of BLE devices with custom type
+  const {
+    bleManager,
+    connectToDevice,
+    connectedDevices,
+    module,
+    setModule,
+    disconnectDevice,
+  } = useBleManager(); // BLE context values
+  const [deviceList, setDeviceList] = useState<Device[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
 
   // Connect or disconnect the device and update its status immediately
-  const toggleConnection = async (device: ModuleHome) => {
-    if (!device) return;
-    const isConnect = module.find((m) => m?.deviceId == device.deviceId);
+  const toggleConnection = async (deviceId: string) => {
+    if (!deviceId) return;
+    const isConnect = module.find((m) => m?.deviceId == deviceId);
     if (isConnect) {
       try {
         // Disconnect from the device
-        await bleManager.cancelDeviceConnection(device.deviceId);
-        updateDeviceStatus(device.deviceId, false);
+        await bleManager.cancelDeviceConnection(deviceId);
+        updateDeviceStatus(deviceId, false);
       } catch (error) {
-        console.log(
-          "Failed to disconnect from device:",
-          device.deviceId,
-          error
-        );
+        disconnectDevice(deviceId);
+        console.log("Failed to disconnect from device:", deviceId, error);
       }
     } else {
       try {
-        console.log("Connecting to device:", device.deviceId);
+        console.log("Connecting to device:", deviceId);
         // Attempt to connect to the device
-        await connectToDevice(device.deviceId);
+        await connectToDevice(deviceId);
         // Update the status only if the connection was successful
-        updateDeviceStatus(device.deviceId, true);
+        updateDeviceStatus(deviceId, true);
       } catch (error) {
-        console.log("Failed to connect to device:", device.deviceId, error);
+        console.log("Failed to connect to device:", deviceId, error);
         // Optionally, inform the user that the connection failed
       }
     }
@@ -80,6 +84,8 @@ const BLE = () => {
               const deviceExists = prev.some((d: any) => d.id === device.id);
 
               if (device.name === "Trainning_PAD" && !deviceExists) {
+                console.log("Device found:", device.id, device.name);
+
                 return [...prev, { ...device, isConnect: false }];
               }
               return prev;
@@ -108,8 +114,10 @@ const BLE = () => {
 
   // Separate the devices into connected and disconnected groups
 
-  const DeviceItem: React.FC<{ device: ModuleHome }> = ({ device }) => {
-    const isConnect = module.find((m) => m?.deviceId == device?.deviceId);
+  const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
+    const isConnect = module.find((m) => m?.deviceId == device?.id);
+    // console.log(device);
+    console.log(isConnect);
     return (
       <View
         style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
@@ -121,7 +129,7 @@ const BLE = () => {
 
         <View style={tw`ml-4`}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
-            Device ID: {device?.deviceId ? device.deviceId : "N/A"}
+            Device ID: {device?.id ? device.id : "N/A"}
           </Text>
           <Text
             style={[
@@ -134,21 +142,22 @@ const BLE = () => {
 
           <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
             Battery Voltage:{" "}
-            {device?.device.manufacturerData
-              ? base64toDecManu(device?.device.manufacturerData)
+            {device?.manufacturerData
+              ? base64toDecManu(device?.manufacturerData)
               : "N/A"}
           </Text>
         </View>
 
         <TouchableOpacity
           style={styles.blinkButton}
-          onPress={() => toggleConnection(device)}
+          onPress={() => toggleConnection(device.id)}
         >
           <Text style={tw`text-gray-700`}>
-            {!isConnect ? "Disconnect" : "Connect"}
+            {isConnect ? "Disconnect" : "Connect"}
           </Text>
         </TouchableOpacity>
       </View>
+      // <Text>test</Text>
     );
   };
 
@@ -173,7 +182,7 @@ const BLE = () => {
       <FlatList
         data={connectedDevices}
         keyExtractor={(item) => item?.deviceId}
-        renderItem={({ item }) => <DeviceItem device={item} />}
+        renderItem={({ item }) => <DeviceItem device={item.device} />}
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No connected devices</Text>
         }
@@ -187,8 +196,10 @@ const BLE = () => {
         </Text>
       </View>
       <FlatList
-        data={connectedDevices}
-        keyExtractor={(item) => item.deviceId}
+        data={deviceList.filter(
+          (d) => d != null && !module.find((m) => m?.deviceId == d.id)
+        )}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No disconnected devices</Text>

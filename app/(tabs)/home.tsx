@@ -16,7 +16,7 @@ import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
-export type ModuleHome = Module  | null;
+export type ModuleHome = Module | null;
 
 export const isCenter = async (
   module: ModuleHome[],
@@ -71,6 +71,7 @@ export default function Home() {
     setConnectedDevices,
     writeCharacteristic,
     readCharacteristic,
+    disconnectDevice,
   } = useBleManager();
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
@@ -343,30 +344,20 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                if (
-                  !isCalibrate &&
-                  selectedModule &&
-                  module[4 - selectedModule] != null
-                ) {
-                  setIsCalibrate(true);
-                  isCalibrateRef.current = true;
-                  await calibrate(selectedModule - 1, 4 - selectedModule);
-                } else if (isCalibrate) {
-                  console.log("cancel calibrate : ", isCalibrate);
-                  setIsCalibrate(false);
-                } else {
-                  console.log("Module not found");
+                if (selectedModule && module[selectedModule - 1] != null) {
+                  disconnectDevice(
+                    module[selectedModule - 1]?.deviceId as string
+                  );
                 }
               }}
             >
-              
               <Text
                 style={[
                   styles.buttonText,
                   { color: "#fff", fontWeight: "bold" },
                 ]}
               >
-                SetUP
+                disconnect
               </Text>
             </TouchableOpacity>
             <SelectList
@@ -392,7 +383,10 @@ export default function Home() {
               }}
             >
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: "red" , marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                style={[
+                  styles.button,
+                  { backgroundColor: "red", marginRight: 8 },
+                ]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
                   console.log(module);
                   console.log(selectedModule);
@@ -411,7 +405,10 @@ export default function Home() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: "orange" , marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
+                style={[
+                  styles.button,
+                  { backgroundColor: "orange", marginRight: 8 },
+                ]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
                   if (
                     selectedModule &&
@@ -467,9 +464,12 @@ export default function Home() {
               {isCalibrate ? "Sender" : "Receiver"}
             </Text> */}
             <View style={styles.dividerLine} />
-            <View style={{ width: '100%', alignItems: 'flex-end'}}>
+            <View style={{ width: "100%", alignItems: "flex-end" }}>
               <TouchableOpacity
-                style={[styles.closeButton, { backgroundColor: "#cccccc" , marginLeft: 4 }]}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: "#cccccc", marginLeft: 4 },
+                ]}
                 onPress={() => {
                   setSelectedModule(null);
                   toggleModal("");
@@ -497,9 +497,9 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   dividerLine: {
-    width: '100%',
+    width: "100%",
     height: 1,
-    backgroundColor: '#ccc', // Light gray line color
+    backgroundColor: "#ccc", // Light gray line color
     marginVertical: 10, // Adjust spacing above and below the line as needed
   },
   imageContainer: {

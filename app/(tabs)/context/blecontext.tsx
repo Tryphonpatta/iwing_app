@@ -11,7 +11,7 @@ interface BleManagerContextType {
   module: ModuleHome[];
   setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
   setConnectedDevices: React.Dispatch<React.SetStateAction<Module[]>>;
-  disconnectDevice: (deviceId: string) => void;
+  disconnectDevice: (deviceId: string) => Promise<void>;
   connectToDevice: (deviceId: string) => void;
   writeCharacteristic: (
     deviceId: string,
@@ -39,30 +39,33 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [connectedDevices, setConnectedDevices] = useState<Module[]>([]);
 
   const disconnectDevice = async (deviceId: string) => {
-    try {
-      // Check if the device is currently connected
-      const isConnected = await bleManager.isDeviceConnected(deviceId);
-      console.log(`Is device ${deviceId} connected: `, isConnected);
+    // Check if the device is currently connected
+    console.log(`Checking if device ${deviceId} is connected...`);
+    const connectDevice = await bleManager.connectToDevice(deviceId);
+    const isConnected = await bleManager.isDeviceConnected(deviceId);
+    console.log(`Is device ${deviceId} connected: `, isConnected);
 
-      if (isConnected) {
-        console.log(`Attempting to disconnect from device: ${deviceId}`);
+    // if (isConnected) {
+    console.log(`Attempting to disconnect from device: ${deviceId}`);
 
-        // Cancel the device connection
-        const result = await bleManager.cancelDeviceConnection(deviceId);
-        console.log("Result from cancelDeviceConnection:", result);
-
-        // Remove the device from the connectedDevices array using a new array
+    // Cancel the device connection
+    const result = await bleManager.cancelDeviceConnection(deviceId).then(
+      () => {
+        console.log("Disconnected from device: ", deviceId);
         setConnectedDevices((prev) =>
           prev.filter((device) => device.deviceId !== deviceId).filter(Boolean)
         );
-
-        console.log(`Successfully disconnected from device: ${deviceId}`);
-      } else {
-        console.log(`Device ${deviceId} is already disconnected or not found`);
+      },
+      (error) => {
+        console.error("Failed to disconnect from device: ", deviceId, error);
       }
-    } catch (error) {
-      console.error(`Failed to disconnect from device: ${deviceId}`, error);
-    }
+    );
+    console.log("Result from cancelDeviceConnection:", result);
+
+    // Remove the device from the connectedDevices array using a new array
+
+    // } else {
+    // }
   };
 
   const connectToDevice = async (deviceId: string) => {
