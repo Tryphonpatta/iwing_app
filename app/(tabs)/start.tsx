@@ -37,7 +37,7 @@ const StartGame = () => {
 	const {
 		lightOut = "",
 		hitCount = 0,
-		timeout = 0,
+		timeout = 1, // Set default timeout to 1 second if not provided
 		lightDelay = "",
 		delaytime = 0,
 		duration = "",
@@ -58,6 +58,14 @@ const StartGame = () => {
 		let hitCount = initialHitCount;
 		let hitDetectionIntervalId: NodeJS.Timeout;
 		let intervalId: NodeJS.Timeout;
+
+		// Ensure interval and duration are positive values
+		if (interval <= 0) {
+			interval = 1000; // Default to 1 second
+		}
+		if (duration <= 0) {
+			duration = 60000; // Default to 1 minute
+		}
 
 		// Function to activate a random pad
 		const activateRandomPad = () => {
@@ -139,9 +147,6 @@ const StartGame = () => {
 							console.log(`Time: ${new Date().toLocaleTimeString()}`);
 							console.log(`Hit Count: ${hitCount}`);
 							console.log("-------------------");
-						} else {
-							// Uncomment the following line if you want to see when no press is detected
-							// console.log(`No button press detected on device ${i}`);
 						}
 					} catch (error) {
 						console.error("Error reading characteristic:", error);
@@ -195,11 +200,11 @@ const StartGame = () => {
 		}, interval + delay);
 
 		// Stop the game after the specified duration
-		setTimeout(() => {
-			if (initialHitCount === 0 || hitCount > 0) {
+		if (initialHitCount === 0) {
+			setTimeout(() => {
 				stopGame();
-			}
-		}, duration);
+			}, duration);
+		}
 	};
 
 	// useEffect for debugging
