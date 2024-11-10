@@ -16,8 +16,8 @@ import { Device } from "react-native-ble-plx";
 
 const StartGame = () => {
 	const { positions } = useIconPosition();
-	const [activePadIndex, setActivePadIndex] = useState(-1); // No pad is active initially
-	const [isPlaying, setIsPlaying] = useState(false); // To track if the game is active
+	const [activePadIndex, setActivePadIndex] = useState(-1);
+	const [isPlaying, setIsPlaying] = useState(false);
 	const {
 		connectedDevices,
 		blink,
@@ -26,7 +26,6 @@ const StartGame = () => {
 		readCharacteristic,
 	} = useBleManager();
 
-	// Get the config mode from the training page
 	type StartScreenParams = {
 		lightOut: string;
 		hitCount: number;
@@ -52,7 +51,6 @@ const StartGame = () => {
 		secDuration = 0,
 	} = route.params || {};
 
-	// Function to start the game :interval=timeout
 	const play = async (
 		duration: number,
 		interval: number,
@@ -62,8 +60,8 @@ const StartGame = () => {
 		setIsPlaying(true);
 		const totalPads = positions.length;
 		let count = hitCount;
+		let intervalId: NodeJS.Timeout;
 
-		// Function to activate a random pad
 		const activateRandomPad = () => {
 			setActivePadIndex(-1);
 			const randomIndex = Math.floor(Math.random() * totalPads);
@@ -71,8 +69,12 @@ const StartGame = () => {
 			return randomIndex;
 		};
 
-		// Function to handle pad activation and BLE interactions
 		const handlePad = async () => {
+			if (count <= 0) {
+				stopGame();
+				return;
+			}
+
 			const padIndex = activateRandomPad();
 			const device = connectedDevices[padIndex];
 			if (device) {
@@ -89,39 +91,31 @@ const StartGame = () => {
 
 				// Read the characteristic after a delay
 				setTimeout(async () => {
-					if (hitCount === 0) {
-						turnOff_light(device);
-					}
+					if (count === 0) return;
 					if (connectedDevices.length === 0) return;
 
-					for (let i = 0; i < connectedDevices.length; i++) {
-						const device = connectedDevices[i];
-						if (!device) continue;
-						try {
-							turnOn_light(device, 1000, "red");
-							const press = await readCharacteristic(
-								device.deviceId,
-								CHARACTERISTIC.IWING_TRAINERPAD,
-								CHARACTERISTIC.BUTTONS
-							);
-							if (press === 0) {
-								console.log("press");
-								hitCount--;
-							} else {
-								console.log("not press");
+					try {
+						const press = await readCharacteristic(
+							device.deviceId,
+							CHARACTERISTIC.IWING_TRAINERPAD,
+							CHARACTERISTIC.BUTTONS
+						);
+						if (press === 0) {
+							console.log("press");
+							count--;
+							if (count <= 0) {
+								stopGame();
 							}
-						} catch (error) {
-							console.error("bug");
+						} else {
+							console.log("not press");
 						}
+					} catch (error) {
+						console.error("bug");
 					}
-				}, 1000);
-				return () => {
-					clearInterval(intervalId);
-				};
+				}, 5000);
 			}
 		};
 
-		// Function to stop the game
 		const stopGame = () => {
 			setIsPlaying(false);
 			setActivePadIndex(-1);
@@ -133,7 +127,7 @@ const StartGame = () => {
 		await handlePad();
 
 		// Start the interval to handle activation
-		const intervalId = setInterval(() => {
+		intervalId = setInterval(() => {
 			if (!isPlaying) {
 				clearInterval(intervalId);
 				return;
@@ -146,88 +140,6 @@ const StartGame = () => {
 			stopGame();
 		}, duration);
 	};
-
-	// 			const offTime = new Date().toLocaleTimeString();
-	// 			console.log(`Pad number ${startPadIndex} is turned off at ${offTime}`);
-	// 			turnOff_light(device);
-	// 		}, interval);
-	// 	}
-
-	// 	// Start the interval to handle activation, deactivation, and delay
-	// 	const intervalId = setInterval(() => {
-	// 		// Activate a random pad and get its index
-	// 		const padIndex = activateRandomPad();
-	// 		const device = connectedDevices[padIndex];
-
-	// 		if (device) {
-	// 			// Get the current time for logging
-	// 			const currentTime = new Date().toLocaleTimeString();
-
-	// 			// Log when the pad is turned on
-	// 			console.log(`Pad number ${padIndex} is turned on at ${currentTime}`);
-
-	// 			// Turn on light on the selected device
-	// 			turnOn_light(device, interval, "blue");
-
-	// 			// Turn off the light after `interval` time
-	// 			setTimeout(() => {
-	// 				// Log when the pad is turned off
-	// 				const offTime = new Date().toLocaleTimeString();
-	// 				console.log(`Pad number ${padIndex} is turned off at ${offTime}`);
-
-	// 				// Turn off the light
-	// 				turnOff_light(device);
-
-	// 				// Wait for `delay` time before activating the next pad
-	// 				setTimeout(() => {
-	// 					if (isPlaying) {
-	// 						activateRandomPad();
-	// 					}
-	// 				}, delay);
-	// 			}, interval);
-	// 		}
-	// 	}, interval + delay);
-
-	// 	// function hit
-	// 	let count = hitCount;
-	// 	while (count > 0 && isPlaying) {
-	// 	  const padIndex = activateRandomPad();
-	// 	  const device =connectedDevices[padIndex];
-	// 	  if (device) {
-	// 	    turnOn_light(device, timeout * 1000, "blue");
-	// 	    try {
-	// 	      const press = readCharacteristic(
-	// 	        device.deviceId,
-	// 	        CHARACTERISTIC.IWING_TRAINERPAD,
-	// 	        CHARACTERISTIC.BUTTONS
-	// 	      );
-	// 	      if (press === 0) {
-	// 	        console.log("กดแล้วฮับ");
-	// 	        count--;
-	// 	      }
-	// 	      else {
-	// 	        console.log("ยังไอสัส");
-
-	// 	      }
-	// 	    }
-	// 	  }
-	// 	}
-	// 	// Stop the game after the specified duration
-	// 	setTimeout(() => {
-	// 		clearInterval(intervalId);
-	// 		setIsPlaying(false);
-	// 		setActivePadIndex(-1); // Deactivate all pads after the game ends
-	// 	}, duration);
-	// };
-	useEffect(() => {
-		const intervalId = setInterval(async () => {
-			console.log("hit :", hitCount);
-			console.log("time :", timeout);
-		}, 1000);
-		return () => {
-			clearInterval(intervalId);
-		};
-	}, [connectedDevices, readCharacteristic]);
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -244,7 +156,7 @@ const StartGame = () => {
 						<MaterialIcons
 							name="wb-twilight"
 							size={60}
-							color={activePadIndex === index ? "blue" : "black"} // Show color for active pad
+							color={activePadIndex === index ? "blue" : "black"}
 						/>
 						<Text>Trainer Pad: {index}</Text>
 					</View>
@@ -254,13 +166,13 @@ const StartGame = () => {
 				style={styles.playButton}
 				onPress={() =>
 					play(
-						(minDuration * 60 + secDuration) * 1000, // duration in ms
-						timeout * 1000, // interval in ms
-						delaytime * 1000, // delay time in ms
+						(minDuration * 60 + secDuration) * 1000,
+						timeout * 1000,
+						delaytime * 1000,
 						hitCount
 					)
 				}
-				disabled={isPlaying} // Disable button if already playing
+				disabled={isPlaying}
 			>
 				<Text style={styles.buttonText}>
 					{isPlaying ? "Playing..." : "Start Game"}
