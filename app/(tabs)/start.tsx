@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -15,10 +15,15 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 
 const StartGame = () => {
 	const { positions } = useIconPosition();
-	const [activePadIndex, setActivePadIndex] = useState(-1); // No pad is active initially
-	const [isPlaying, setIsPlaying] = useState(false); // To track if the game is active
+	const [activePadIndex, setActivePadIndex] = useState(-1);
+	const [isPlaying, setIsPlaying] = useState(false);
 	const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
 		useBleManager();
+
+	// Declare refs for intervals
+	const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+	const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+	const alternatingLightsIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
 	// Get the config mode from the training page
 	type StartScreenParams = {
@@ -37,7 +42,7 @@ const StartGame = () => {
 	const {
 		lightOut = "",
 		hitCount = 0,
-		timeout = 1, // Set default timeout to 1 second if not provided
+		timeout = 1,
 		lightDelay = "",
 		delaytime = 0,
 		duration = "",
@@ -46,28 +51,38 @@ const StartGame = () => {
 		secDuration = 0,
 	} = route.params || {};
 
-	// Function to start the game
 	const play = async (
 		duration: number,
 		interval: number,
 		delay: number,
 		initialHitCount: number
 	) => {
+		// Clear any existing intervals
+		if (intervalIdRef.current) {
+			clearInterval(intervalIdRef.current);
+			intervalIdRef.current = null;
+		}
+		if (hitDetectionIntervalIdRef.current) {
+			clearInterval(hitDetectionIntervalIdRef.current);
+			hitDetectionIntervalIdRef.current = null;
+		}
+		if (alternatingLightsIntervalIdRef.current) {
+			clearInterval(alternatingLightsIntervalIdRef.current);
+			alternatingLightsIntervalIdRef.current = null;
+		}
+
 		setIsPlaying(true);
 		const totalPads = positions.length;
-		let hitCount = initialHitCount;
-		let hitDetectionIntervalId: NodeJS.Timeout;
-		let intervalId: NodeJS.Timeout;
+		let currentHitCount = initialHitCount;
 
 		// Ensure interval and duration are positive values
 		if (interval <= 0) {
-			interval = 1000; // Default to 1 second
+			interval = 1000;
 		}
 		if (duration <= 0) {
-			duration = 60000; // Default to 1 minute
+			duration = 60000;
 		}
 
-		// Function to activate a random pad
 		const activateRandomPad = () => {
 			setActivePadIndex(-1);
 			const randomIndex = Math.floor(Math.random() * totalPads);
@@ -75,7 +90,6 @@ const StartGame = () => {
 			return randomIndex;
 		};
 
-		// Function to handle pad activation
 		const handlePad = async () => {
 			const padIndex = activateRandomPad();
 			const device = connectedDevices[padIndex];
@@ -84,7 +98,7 @@ const StartGame = () => {
 				console.log(`Pad number ${padIndex} is turned on at ${startTime}`);
 
 				try {
-					await turnOn_light(device, interval / 1000, "blue"); // Convert interval to seconds
+					await turnOn_light(device, interval / 1000, "blue");
 				} catch (error) {
 					console.error("Error turning on light:", error);
 				}
@@ -104,9 +118,8 @@ const StartGame = () => {
 			}
 		};
 
-		// Function to detect hits
 		const detectHits = () => {
-			hitDetectionIntervalId = setInterval(async () => {
+			hitDetectionIntervalIdRef.current = setInterval(async () => {
 				if (connectedDevices.length === 0) return;
 
 				for (let i = 0; i < connectedDevices.length; i++) {
@@ -120,47 +133,47 @@ const StartGame = () => {
 						);
 						if (press === 0) {
 							console.log(`Button pressed on device ${i}`);
-							// Turn off the red light
 							await turnOff_light(device);
-							// After 1 second, turn the red light back on
 							setTimeout(async () => {
 								await turnOn_light(device, 0, "red");
 							}, 1000);
 
-							// Decrement hit count and check for game over
 							if (initialHitCount > 0) {
-								hitCount--;
-								console.log(`Hit count decreased to ${hitCount}`);
-								if (hitCount <= 0) {
+								currentHitCount--;
+								console.log(`Hit count decreased to ${currentHitCount}`);
+								if (currentHitCount <= 0) {
 									stopGame();
 								}
 							}
 
-							// Log "success" 100 times for each press
 							for (let k = 0; k < 100; k++) {
 								console.log("success");
 							}
 
-							// Show debug information
 							console.log("---- Hit Debug ----");
 							console.log(`Device ID: ${device.deviceId}`);
 							console.log(`Time: ${new Date().toLocaleTimeString()}`);
-							console.log(`Hit Count: ${hitCount}`);
+							console.log(`Hit Count: ${currentHitCount}`);
 							console.log("-------------------");
 						}
 					} catch (error) {
 						console.error("Error reading characteristic:", error);
 					}
 				}
-			}, 500); // Adjust the interval as needed
+			}, 500);
 		};
 
-		// Function to stop the game
 		const stopGame = () => {
 			setIsPlaying(false);
 			setActivePadIndex(-1);
-			clearInterval(intervalId);
-			clearInterval(hitDetectionIntervalId);
+			if (intervalIdRef.current) {
+				clearInterval(intervalIdRef.current);
+				intervalIdRef.current = null;
+			}
+			if (hitDetectionIntervalIdRef.current) {
+				clearInterval(hitDetectionIntervalIdRef.current);
+				hitDetectionIntervalIdRef.current = null;
+			}
 
 			// Turn off all lights
 			connectedDevices.forEach(async (device) => {
@@ -182,24 +195,41 @@ const StartGame = () => {
 			for (let k = 0; k < 100; k++) {
 				console.log("success");
 			}
+
+			// Start alternating lights
+			startAlternatingLights();
 		};
 
-		// Start hit detection
-		detectHits();
+		const startAlternatingLights = () => {
+			let isRed = true;
+			alternatingLightsIntervalIdRef.current = setInterval(() => {
+				connectedDevices.forEach(async (device) => {
+					if (device) {
+						try {
+							if (isRed) {
+								await turnOn_light(device, 0, "red");
+							} else {
+								await turnOn_light(device, 0, "blue");
+							}
+						} catch (error) {
+							console.error(
+								`Error toggling light for device ${device.deviceId}:`,
+								error
+							);
+						}
+					}
+				});
+				isRed = !isRed;
+			}, 1000);
+		};
 
-		// Activate a pad immediately
+		detectHits();
 		await handlePad();
 
-		// Start the interval to handle activation
-		intervalId = setInterval(() => {
-			if (!isPlaying) {
-				clearInterval(intervalId);
-				return;
-			}
+		intervalIdRef.current = setInterval(() => {
 			handlePad();
 		}, interval + delay);
 
-		// Stop the game after the specified duration
 		if (initialHitCount === 0) {
 			setTimeout(() => {
 				stopGame();
@@ -207,7 +237,6 @@ const StartGame = () => {
 		}
 	};
 
-	// useEffect for debugging
 	useEffect(() => {
 		const intervalId = setInterval(async () => {
 			console.log("---- Debug Information ----");
@@ -216,11 +245,26 @@ const StartGame = () => {
 			console.log("Active Pad Index:", activePadIndex);
 			console.log("Connected Devices:", connectedDevices.length);
 			console.log("----------------------------");
-		}, 5000); // Display info every 5 seconds
+		}, 5000);
 		return () => {
 			clearInterval(intervalId);
 		};
 	}, [hitCount, isPlaying, activePadIndex, connectedDevices]);
+
+	// Cleanup intervals on unmount
+	useEffect(() => {
+		return () => {
+			if (intervalIdRef.current) {
+				clearInterval(intervalIdRef.current);
+			}
+			if (hitDetectionIntervalIdRef.current) {
+				clearInterval(hitDetectionIntervalIdRef.current);
+			}
+			if (alternatingLightsIntervalIdRef.current) {
+				clearInterval(alternatingLightsIntervalIdRef.current);
+			}
+		};
+	}, []);
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -237,7 +281,7 @@ const StartGame = () => {
 						<MaterialIcons
 							name="wb-twilight"
 							size={60}
-							color={activePadIndex === index ? "blue" : "black"} // Show color for active pad
+							color={activePadIndex === index ? "blue" : "black"}
 						/>
 						<Text>Trainer Pad: {index}</Text>
 					</View>
@@ -247,13 +291,13 @@ const StartGame = () => {
 				style={styles.playButton}
 				onPress={() =>
 					play(
-						(minDuration * 60 + secDuration) * 1000, // duration in ms
-						timeout * 1000, // interval in ms
-						delaytime * 1000, // delay time in ms
+						(minDuration * 60 + secDuration) * 1000,
+						timeout * 1000,
+						delaytime * 1000,
 						hitCount
 					)
 				}
-				disabled={isPlaying} // Disable button if already playing
+				disabled={isPlaying}
 			>
 				<Text style={styles.buttonText}>
 					{isPlaying ? "Playing..." : "Start Game"}
