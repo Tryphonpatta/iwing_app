@@ -13,6 +13,9 @@ import { RouteProp, useRoute } from "@react-navigation/native";
 import { useBleManager } from "./context/blecontext";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 
+const COLOR_BLUE = "red";
+const COLOR_RED = "blue";
+
 const StartGame = () => {
 	const { positions } = useIconPosition();
 	const [activePadIndex, setActivePadIndex] = useState(-1);
@@ -23,9 +26,11 @@ const StartGame = () => {
 	// Declare refs for intervals
 	const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 	const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+	const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const alternatingLightsIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+	const alternatingLightsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Get the config mode from the training page
+	// Receive settings from the training screen
 	type StartScreenParams = {
 		lightOut: string;
 		hitCount: number;
@@ -51,13 +56,8 @@ const StartGame = () => {
 		secDuration = 0,
 	} = route.params || {};
 
-	const play = async (
-		duration: number,
-		interval: number,
-		delay: number,
-		initialHitCount: number
-	) => {
-		// Clear any existing intervals
+	// Move clearAllIntervalsAndTimeouts here
+	const clearAllIntervalsAndTimeouts = () => {
 		if (intervalIdRef.current) {
 			clearInterval(intervalIdRef.current);
 			intervalIdRef.current = null;
@@ -66,114 +66,70 @@ const StartGame = () => {
 			clearInterval(hitDetectionIntervalIdRef.current);
 			hitDetectionIntervalIdRef.current = null;
 		}
+		if (gameTimeoutRef.current) {
+			clearTimeout(gameTimeoutRef.current);
+			gameTimeoutRef.current = null;
+		}
 		if (alternatingLightsIntervalIdRef.current) {
 			clearInterval(alternatingLightsIntervalIdRef.current);
 			alternatingLightsIntervalIdRef.current = null;
 		}
-
-		setIsPlaying(true);
-		const totalPads = positions.length;
-		let currentHitCount = initialHitCount;
-
-		// Ensure interval and duration are positive values
-		if (interval <= 0) {
-			interval = 1000;
+		if (alternatingLightsTimeoutRef.current) {
+			clearTimeout(alternatingLightsTimeoutRef.current);
+			alternatingLightsTimeoutRef.current = null;
 		}
-		if (duration <= 0) {
-			duration = 60000;
-		}
+	};
 
-		const activateRandomPad = () => {
-			setActivePadIndex(-1);
-			const randomIndex = Math.floor(Math.random() * totalPads);
-			setActivePadIndex(randomIndex);
-			return randomIndex;
-		};
-
-		const handlePad = async () => {
-			const padIndex = activateRandomPad();
-			const device = connectedDevices[padIndex];
-			if (device) {
-				const startTime = new Date().toLocaleTimeString();
-				console.log(`Pad number ${padIndex} is turned on at ${startTime}`);
-
-				try {
-					await turnOn_light(device, interval / 1000, "blue");
-				} catch (error) {
-					console.error("Error turning on light:", error);
-				}
-
-				// Turn off the light after the `interval`
-				setTimeout(async () => {
-					const offTime = new Date().toLocaleTimeString();
-					console.log(`Pad number ${padIndex} is turned off at ${offTime}`);
-					try {
-						await turnOff_light(device);
-					} catch (error) {
-						console.error("Error turning off light:", error);
-					}
-				}, interval);
-			} else {
-				console.error(`No device found at index ${padIndex}`);
-			}
-		};
-
-		const detectHits = () => {
-			hitDetectionIntervalIdRef.current = setInterval(async () => {
-				if (connectedDevices.length === 0) return;
-
-				for (let i = 0; i < connectedDevices.length; i++) {
-					const device = connectedDevices[i];
-					if (!device) continue;
-					try {
-						const press = await readCharacteristic(
-							device.deviceId,
-							CHARACTERISTIC.IWING_TRAINERPAD,
-							CHARACTERISTIC.BUTTONS
-						);
-						if (press === 0) {
-							console.log(`Button pressed on device ${i}`);
-							await turnOff_light(device);
-							setTimeout(async () => {
-								await turnOn_light(device, 0, "red");
-							}, 1000);
-
-							if (initialHitCount > 0) {
-								currentHitCount--;
-								console.log(`Hit count decreased to ${currentHitCount}`);
-								if (currentHitCount <= 0) {
-									stopGame();
-								}
-							}
-
-							for (let k = 0; k < 100; k++) {
-								console.log("success");
-							}
-
-							console.log("---- Hit Debug ----");
-							console.log(`Device ID: ${device.deviceId}`);
-							console.log(`Time: ${new Date().toLocaleTimeString()}`);
-							console.log(`Hit Count: ${currentHitCount}`);
-							console.log("-------------------");
+	const startAlternatingLights = () => {
+		try {
+			let isRed = true;
+			alternatingLightsIntervalIdRef.current = setInterval(() => {
+				console.log(`Toggling lights to ${isRed ? "RED" : "BLUE"}`);
+				connectedDevices.forEach(async (device) => {
+					if (device) {
+						try {
+							// Toggle lights between red and blue
+							const color = isRed ? COLOR_RED : COLOR_BLUE;
+							await turnOn_light(device, 0, color);
+						} catch (error) {
+							console.error(
+								`Error toggling light for device ${device.deviceId}:`,
+								error
+							);
 						}
-					} catch (error) {
-						console.error("Error reading characteristic:", error);
 					}
-				}
-			}, 500);
-		};
+				});
+				isRed = !isRed;
+			}, 1000);
 
-		const stopGame = () => {
+			alternatingLightsTimeoutRef.current = setTimeout(() => {
+				if (alternatingLightsIntervalIdRef.current) {
+					clearInterval(alternatingLightsIntervalIdRef.current);
+					alternatingLightsIntervalIdRef.current = null;
+				}
+				connectedDevices.forEach(async (device) => {
+					if (device) {
+						try {
+							await turnOff_light(device);
+						} catch (error) {
+							console.error(
+								`Error turning off light for device ${device.deviceId}:`,
+								error
+							);
+						}
+					}
+				});
+			}, 10000); // 10 seconds
+		} catch (error) {
+			console.error("Error in startAlternatingLights:", error);
+		}
+	};
+
+	const stopGame = () => {
+		try {
 			setIsPlaying(false);
 			setActivePadIndex(-1);
-			if (intervalIdRef.current) {
-				clearInterval(intervalIdRef.current);
-				intervalIdRef.current = null;
-			}
-			if (hitDetectionIntervalIdRef.current) {
-				clearInterval(hitDetectionIntervalIdRef.current);
-				hitDetectionIntervalIdRef.current = null;
-			}
+			clearAllIntervalsAndTimeouts();
 
 			// Turn off all lights
 			connectedDevices.forEach(async (device) => {
@@ -191,49 +147,140 @@ const StartGame = () => {
 
 			console.log("Game stopped");
 
-			// Log "success" 100 times
-			for (let k = 0; k < 100; k++) {
-				console.log("success");
-			}
-
 			// Start alternating lights
 			startAlternatingLights();
-		};
+		} catch (error) {
+			console.error("Error in stopGame:", error);
+		}
+	};
 
-		const startAlternatingLights = () => {
-			let isRed = true;
-			alternatingLightsIntervalIdRef.current = setInterval(() => {
-				connectedDevices.forEach(async (device) => {
+	const play = async (
+		duration: number,
+		interval: number,
+		delay: number,
+		initialHitCount: number
+	) => {
+		try {
+			// Clear any existing intervals and timeouts
+			clearAllIntervalsAndTimeouts();
+
+			setIsPlaying(true);
+			const totalPads = positions.length;
+			let currentHitCount = initialHitCount;
+
+			// Check interval and duration values
+			if (interval <= 0) {
+				interval = 1000;
+			}
+			if (duration <= 0) {
+				duration = 60000;
+			}
+
+			const activateRandomPad = () => {
+				try {
+					setActivePadIndex(-1);
+					const randomIndex = Math.floor(Math.random() * totalPads);
+					setActivePadIndex(randomIndex);
+					return randomIndex;
+				} catch (error) {
+					console.error("Error in activateRandomPad:", error);
+					return -1;
+				}
+			};
+
+			const handlePad = async () => {
+				try {
+					const padIndex = activateRandomPad();
+					const device = connectedDevices[padIndex];
 					if (device) {
-						try {
-							if (isRed) {
-								await turnOn_light(device, 0, "red");
-							} else {
-								await turnOn_light(device, 0, "blue");
-							}
-						} catch (error) {
-							console.error(
-								`Error toggling light for device ${device.deviceId}:`,
-								error
-							);
+						const startTime = new Date().toLocaleTimeString();
+						console.log(`Pad number ${padIndex} is turned on at ${startTime}`);
+
+						await turnOn_light(device, 0, COLOR_BLUE); // Use the color constant
+
+						if (hitCount === 0) {
+							stopGame();
 						}
 					}
-				});
-				isRed = !isRed;
-			}, 1000);
-		};
+				} catch (error) {
+					console.error("Error in handlePad:", error);
+				}
+			};
 
-		detectHits();
-		await handlePad();
+			const detectHits = () => {
+				try {
+					hitDetectionIntervalIdRef.current = setInterval(async () => {
+						if (connectedDevices.length === 0) return;
 
-		intervalIdRef.current = setInterval(() => {
-			handlePad();
-		}, interval + delay);
+						for (let i = 0; i < connectedDevices.length; i++) {
+							const device = connectedDevices[i];
+							if (!device) continue;
+							try {
+								const press = await readCharacteristic(
+									device.deviceId,
+									CHARACTERISTIC.IWING_TRAINERPAD,
+									CHARACTERISTIC.BUTTONS
+								);
+								if (press === 0) {
+									console.log(`Button pressed on device ${i}`);
+									turnOff_light(device);
+									setTimeout(() => {
+										turnOn_light(device, 0, COLOR_RED); // Use the color constant
+									}, 1000);
 
-		if (initialHitCount === 0) {
-			setTimeout(() => {
-				stopGame();
-			}, duration);
+									if (initialHitCount > 0) {
+										currentHitCount--;
+										console.log(`Hit count decreased to ${currentHitCount}`);
+										if (currentHitCount <= 0) {
+											console.log("Hit count reached zero. Stopping game.");
+											stopGame();
+											return;
+										}
+									}
+
+									console.log("---- Hit Debug ----");
+									console.log(`Device ID: ${device.deviceId}`);
+									console.log(`Time: ${new Date().toLocaleTimeString()}`);
+									console.log(`Hit Count: ${currentHitCount}`);
+									console.log("-------------------");
+								}
+							} catch (error) {
+								console.error("Error reading characteristic:", error);
+							}
+						}
+					}, 500);
+				} catch (error) {
+					console.error("Error in detectHits:", error);
+				}
+			};
+
+			detectHits();
+			await handlePad();
+
+			// Schedule additional pad activations
+			intervalIdRef.current = setInterval(() => {
+				handlePad();
+			}, interval + delay);
+
+			// Manage game duration
+			if (initialHitCount === 0 && duration > 0) {
+				// 'timelight' mode
+				gameTimeoutRef.current = setTimeout(() => {
+					console.log("Time is up. Stopping game.");
+					stopGame();
+				}, duration);
+			} else if (initialHitCount > 0 && duration === 0) {
+				// 'hit' mode
+				// Game stops when hit count reaches zero
+			} else if (initialHitCount > 0 && duration > 0) {
+				// 'hit or timelight' mode
+				gameTimeoutRef.current = setTimeout(() => {
+					console.log("Time is up. Stopping game.");
+					stopGame();
+				}, duration);
+			}
+		} catch (error) {
+			console.error("Error in play function:", error);
 		}
 	};
 
@@ -251,18 +298,10 @@ const StartGame = () => {
 		};
 	}, [hitCount, isPlaying, activePadIndex, connectedDevices]);
 
-	// Cleanup intervals on unmount
+	// Clear intervals when component is unmounted
 	useEffect(() => {
 		return () => {
-			if (intervalIdRef.current) {
-				clearInterval(intervalIdRef.current);
-			}
-			if (hitDetectionIntervalIdRef.current) {
-				clearInterval(hitDetectionIntervalIdRef.current);
-			}
-			if (alternatingLightsIntervalIdRef.current) {
-				clearInterval(alternatingLightsIntervalIdRef.current);
-			}
+			clearAllIntervalsAndTimeouts();
 		};
 	}, []);
 
