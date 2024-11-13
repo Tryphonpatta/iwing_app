@@ -5,7 +5,10 @@ import {
 	View,
 	SafeAreaView,
 	TouchableOpacity,
-	Alert,
+	ScrollView,
+	LayoutAnimation,
+	UIManager,
+	Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useIconPosition } from "./IconPositionContext";
@@ -13,8 +16,16 @@ import { RouteProp, useRoute } from "@react-navigation/native";
 import { useBleManager } from "./context/blecontext";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 
-const COLOR_BLUE = "red";
-const COLOR_RED = "blue";
+// Enable LayoutAnimation for Android
+if (
+	Platform.OS === "android" &&
+	UIManager.setLayoutAnimationEnabledExperimental
+) {
+	UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const COLOR_BLUE = "blue";
+const COLOR_RED = "red";
 
 const StartGame = () => {
 	const { positions } = useIconPosition();
@@ -23,12 +34,20 @@ const StartGame = () => {
 	const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
 		useBleManager();
 
+	// State for debug information
+	const [debugInfo, setDebugInfo] = useState("");
+
+	// State for toggling debug view visibility
+	const [isDebugVisible, setIsDebugVisible] = useState(false);
+
 	// Declare refs for intervals
-	const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
-	const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
-	const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-	const alternatingLightsIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
-	const alternatingLightsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const intervalIdRef = useRef(null);
+	const hitDetectionIntervalIdRef = useRef(null);
+	const gameTimeoutRef = useRef(null);
+	const gameTimerIntervalRef = useRef(null); // New ref for logging time every second
+	const alternatingLightsIntervalIdRef = useRef(null);
+	const alternatingLightsTimeoutRef = useRef(null);
+	const debugIntervalRef = useRef(null); // Ref for debug interval
 
 	// Receive settings from the training screen
 	type StartScreenParams = {
@@ -56,7 +75,7 @@ const StartGame = () => {
 		secDuration = 0,
 	} = route.params || {};
 
-	// Move clearAllIntervalsAndTimeouts here
+	// Clear all intervals and timeouts
 	const clearAllIntervalsAndTimeouts = () => {
 		if (intervalIdRef.current) {
 			clearInterval(intervalIdRef.current);
@@ -70,6 +89,10 @@ const StartGame = () => {
 			clearTimeout(gameTimeoutRef.current);
 			gameTimeoutRef.current = null;
 		}
+		if (gameTimerIntervalRef.current) {
+			clearInterval(gameTimerIntervalRef.current);
+			gameTimerIntervalRef.current = null;
+		}
 		if (alternatingLightsIntervalIdRef.current) {
 			clearInterval(alternatingLightsIntervalIdRef.current);
 			alternatingLightsIntervalIdRef.current = null;
@@ -78,9 +101,13 @@ const StartGame = () => {
 			clearTimeout(alternatingLightsTimeoutRef.current);
 			alternatingLightsTimeoutRef.current = null;
 		}
+		if (debugIntervalRef.current) {
+			clearInterval(debugIntervalRef.current);
+			debugIntervalRef.current = null;
+		}
 	};
 
-	const startAlternatingLights = () => {
+	const startAlternatingLights = (lightOutTimeout: number) => {
 		try {
 			let isRed = true;
 			alternatingLightsIntervalIdRef.current = setInterval(() => {
@@ -88,7 +115,6 @@ const StartGame = () => {
 				connectedDevices.forEach(async (device) => {
 					if (device) {
 						try {
-							// Toggle lights between red and blue
 							const color = isRed ? COLOR_RED : COLOR_BLUE;
 							await turnOn_light(device, 0, color);
 						} catch (error) {
@@ -119,7 +145,7 @@ const StartGame = () => {
 						}
 					}
 				});
-			}, 10000); // 10 seconds
+			}, lightOutTimeout); // ใช้พารามิเตอร์ lightOutTimeout
 		} catch (error) {
 			console.error("Error in startAlternatingLights:", error);
 		}
@@ -168,42 +194,30 @@ const StartGame = () => {
 			const totalPads = positions.length;
 			let currentHitCount = initialHitCount;
 
-			// Check interval and duration values
+			// Ensure interval and duration have valid values
 			if (interval <= 0) {
 				interval = 1000;
 			}
-			if (duration <= 0) {
-				duration = 60000;
+			if (duration <= 0 && initialHitCount === 0) {
+				// If both duration and hit count are zero, set a default duration
+				duration = 60000; // Default to 1 minute
 			}
 
-			const activateRandomPad = () => {
+			const activateRandomPad = async () => {
 				try {
-					setActivePadIndex(-1);
 					const randomIndex = Math.floor(Math.random() * totalPads);
 					setActivePadIndex(randomIndex);
-					return randomIndex;
-				} catch (error) {
-					console.error("Error in activateRandomPad:", error);
-					return -1;
-				}
-			};
-
-			const handlePad = async () => {
-				try {
-					const padIndex = activateRandomPad();
-					const device = connectedDevices[padIndex];
+					const device = connectedDevices[randomIndex];
 					if (device) {
 						const startTime = new Date().toLocaleTimeString();
-						console.log(`Pad number ${padIndex} is turned on at ${startTime}`);
+						console.log(
+							`Pad number ${randomIndex} is turned on at ${startTime}`
+						);
 
-						await turnOn_light(device, 0, COLOR_BLUE); // Use the color constant
-
-						if (hitCount === 0) {
-							stopGame();
-						}
+						await turnOn_light(device, 0, COLOR_BLUE);
 					}
 				} catch (error) {
-					console.error("Error in handlePad:", error);
+					console.error("Error in activateRandomPad:", error);
 				}
 			};
 
@@ -221,11 +235,12 @@ const StartGame = () => {
 									CHARACTERISTIC.IWING_TRAINERPAD,
 									CHARACTERISTIC.BUTTONS
 								);
+
 								if (press === 0) {
 									console.log(`Button pressed on device ${i}`);
-									turnOff_light(device);
+									await turnOff_light(device);
 									setTimeout(() => {
-										turnOn_light(device, 0, COLOR_RED); // Use the color constant
+										turnOn_light(device, 0, COLOR_RED);
 									}, 1000);
 
 									if (initialHitCount > 0) {
@@ -255,25 +270,27 @@ const StartGame = () => {
 			};
 
 			detectHits();
-			await handlePad();
+			await activateRandomPad();
 
 			// Schedule additional pad activations
 			intervalIdRef.current = setInterval(() => {
-				handlePad();
+				activateRandomPad();
 			}, interval + delay);
 
 			// Manage game duration
-			if (initialHitCount === 0 && duration > 0) {
-				// 'timelight' mode
-				gameTimeoutRef.current = setTimeout(() => {
-					console.log("Time is up. Stopping game.");
-					stopGame();
-				}, duration);
-			} else if (initialHitCount > 0 && duration === 0) {
-				// 'hit' mode
-				// Game stops when hit count reaches zero
-			} else if (initialHitCount > 0 && duration > 0) {
-				// 'hit or timelight' mode
+			if (duration > 0) {
+				let remainingTime = duration / 1000; // Convert milliseconds to seconds
+				console.log(`Game will stop after ${remainingTime} seconds.`);
+
+				// Log time every second
+				gameTimerIntervalRef.current = setInterval(() => {
+					remainingTime--;
+					console.log(`Time remaining: ${remainingTime} seconds`);
+					if (remainingTime <= 0) {
+						clearInterval(gameTimerIntervalRef.current);
+					}
+				}, 1000);
+
 				gameTimeoutRef.current = setTimeout(() => {
 					console.log("Time is up. Stopping game.");
 					stopGame();
@@ -285,18 +302,39 @@ const StartGame = () => {
 	};
 
 	useEffect(() => {
-		const intervalId = setInterval(async () => {
-			console.log("---- Debug Information ----");
-			console.log("Current Hit Count:", hitCount);
-			console.log("Is Playing:", isPlaying);
-			console.log("Active Pad Index:", activePadIndex);
-			console.log("Connected Devices:", connectedDevices.length);
-			console.log("----------------------------");
-		}, 5000);
+		// Debug interval to update debugInfo state every second
+		debugIntervalRef.current = setInterval(() => {
+			const debugData = `
+--- Debug Information ---
+Time: ${new Date().toLocaleTimeString()}
+Is Playing: ${isPlaying}
+Active Pad Index: ${activePadIndex}
+Hit Count: ${hitCount}
+Timeout: ${timeout} seconds
+Delay Time: ${delaytime} seconds
+Duration: ${minDuration} minutes ${secDuration} seconds
+Connected Devices Count: ${connectedDevices.length}
+Connected Devices IDs: ${connectedDevices.map((d) => d.deviceId).join(", ")}
+-------------------------
+`;
+			setDebugInfo(debugData);
+		}, 1000); // Every second
+
 		return () => {
-			clearInterval(intervalId);
+			if (debugIntervalRef.current) {
+				clearInterval(debugIntervalRef.current);
+			}
 		};
-	}, [hitCount, isPlaying, activePadIndex, connectedDevices]);
+	}, [
+		isPlaying,
+		activePadIndex,
+		hitCount,
+		timeout,
+		delaytime,
+		minDuration,
+		secDuration,
+		connectedDevices,
+	]);
 
 	// Clear intervals when component is unmounted
 	useEffect(() => {
@@ -304,6 +342,12 @@ const StartGame = () => {
 			clearAllIntervalsAndTimeouts();
 		};
 	}, []);
+
+	// Toggle debug view with animation
+	const toggleDebugView = () => {
+		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+		setIsDebugVisible(!isDebugVisible);
+	};
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -342,12 +386,31 @@ const StartGame = () => {
 					{isPlaying ? "Playing..." : "Start Game"}
 				</Text>
 			</TouchableOpacity>
+
+			{/* Button to toggle debug view */}
+			<TouchableOpacity
+				style={styles.debugToggleButton}
+				onPress={toggleDebugView}
+			>
+				<Text style={styles.buttonText}>
+					{isDebugVisible ? "Hide Debug" : "Show Debug"}
+				</Text>
+			</TouchableOpacity>
+
+			{/* Debug Information View */}
+			{isDebugVisible && (
+				<View style={styles.debugContainer}>
+					<ScrollView>
+						<Text style={styles.debugText}>{debugInfo}</Text>
+					</ScrollView>
+				</View>
+			)}
 		</SafeAreaView>
 	);
 };
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#e1f4f3" },
+	container: { flex: 1, backgroundColor: "#e1f4f3", padding: 10 },
 	header: {
 		textAlign: "center",
 		fontSize: 24,
@@ -363,10 +426,30 @@ const styles = StyleSheet.create({
 		alignSelf: "center",
 		marginTop: 20,
 	},
+	debugToggleButton: {
+		backgroundColor: "#555",
+		paddingVertical: 10,
+		paddingHorizontal: 15,
+		borderRadius: 8,
+		alignSelf: "center",
+		marginTop: 10,
+	},
 	buttonText: {
 		color: "white",
 		fontWeight: "bold",
 		fontSize: 16,
+	},
+	debugContainer: {
+		backgroundColor: "#000000cc",
+		padding: 10,
+		borderRadius: 10,
+		marginTop: 20,
+		maxHeight: "40%",
+	},
+	debugText: {
+		color: "#00FF00",
+		fontFamily: "monospace",
+		fontSize: 12,
 	},
 });
 
