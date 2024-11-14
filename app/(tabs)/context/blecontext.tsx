@@ -24,7 +24,7 @@ interface BleManagerContextType {
 		serviceUUID: string,
 		characteristicUUID: string
 	) => Promise<number | null>;
-	turnOn_light: (device: Module, sec: number, color: string) => void;
+	turnOn_light: (device: Module, color: string) => void;
 	turnOff_light: (device: Module) => void;
 	// Add other functions as needed
 }
@@ -235,11 +235,11 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 	};
 
 	// Function to turn on LED light
-	const turnOn_light = async (device: Module, sec: number, color: string) => {
+	const turnOn_light = async (device: Module, color: string) => {
 		try {
-			console.log(
-				`Turning on ${device.deviceId} ${color} light for ${sec} seconds`
-			);
+			// console.log(
+			// 	`Turning on ${device.deviceId} ${color} light for ${sec} seconds`
+			// );
 
 			// Define color codes
 			const redColor = "/wAB";
@@ -257,7 +257,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 			);
 
 			// Wait for the specified duration
-			await new Promise((resolve) => setTimeout(resolve, sec * 1000));
+			// await new Promise((resolve) => setTimeout(resolve, sec * 1000));
 		} catch (error) {
 			console.error(
 				`Error turning on light for device ${device.deviceId}:`,

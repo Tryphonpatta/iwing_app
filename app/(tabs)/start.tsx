@@ -1,55 +1,68 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Import necessary React hooks
 import {
 	StyleSheet,
 	Text,
 	View,
 	SafeAreaView,
 	TouchableOpacity,
-	ScrollView,
-	LayoutAnimation,
-	UIManager,
-	Platform,
-} from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import { useIconPosition } from "./IconPositionContext";
-import { RouteProp, useRoute } from "@react-navigation/native";
-import { useBleManager } from "./context/blecontext";
-import { CHARACTERISTIC } from "@/enum/characteristic";
+	Module,
+} from "react-native"; // Import React Native components
+import { MaterialIcons } from "@expo/vector-icons"; // Import Material Icons for visual representation
+import { useIconPosition } from "./IconPositionContext"; // Import custom hook for icon positions
+import { RouteProp, useRoute } from "@react-navigation/native"; // Import navigation hooks
+import { useBleManager } from "./context/blecontext"; // Import custom BLE manager context
+import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteristics enumeration
+function createInterval(callback: any, delay: number) {
+	let intervalId = setInterval(callback, delay);
+	let resolvePromise: any;
 
-// Enable LayoutAnimation for Android
-if (
-	Platform.OS === "android" &&
-	UIManager.setLayoutAnimationEnabledExperimental
-) {
-	UIManager.setLayoutAnimationEnabledExperimental(true);
+	const promise = new Promise((resolve) => {
+		resolvePromise = resolve;
+	});
+
+	const clear = () => {
+		clearInterval(intervalId);
+		resolvePromise();
+	};
+
+	return { intervalId, clear, promise };
 }
-
-const COLOR_BLUE = "blue";
-const COLOR_RED = "red";
-
+// Define the StartGame functional component
 const StartGame = () => {
+	// Destructure positions from the IconPosition context
 	const { positions } = useIconPosition();
+
+	// State to track the currently active pad index; -1 means no active pad
 	const [activePadIndex, setActivePadIndex] = useState(-1);
+
+	//
+	const activePadIndexRef = useRef<number>(activePadIndex);
+
+	// State to track if the game is currently playing
 	const [isPlaying, setIsPlaying] = useState(false);
+
+	// Ref to store the interval ID for hit detection to allow clearing it later
+	const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Ref to store the interval ID for pad activation to allow clearing it later
+	const padActivationIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+
+	// Ref to keep track of the latest hit count to avoid stale closures
+	const hitCountRef = useRef(0);
+
+	// Ref to keep track of the latest isPlaying state
+	const isPlayingRef = useRef(isPlaying);
+
+	// Update isPlayingRef whenever isPlaying state changes
+	useEffect(() => {
+		isPlayingRef.current = isPlaying;
+	}, [isPlaying]);
+
+	// Destructure BLE manager functions and connected devices from the context
 	const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
 		useBleManager();
 
-	// State for debug information
-	const [debugInfo, setDebugInfo] = useState("");
-
-	// State for toggling debug view visibility
-	const [isDebugVisible, setIsDebugVisible] = useState(false);
-
-	// Declare refs for intervals
-	const intervalIdRef = useRef(null);
-	const hitDetectionIntervalIdRef = useRef(null);
-	const gameTimeoutRef = useRef(null);
-	const gameTimerIntervalRef = useRef(null); // New ref for logging time every second
-	const alternatingLightsIntervalIdRef = useRef(null);
-	const alternatingLightsTimeoutRef = useRef(null);
-	const debugIntervalRef = useRef(null); // Ref for debug interval
-
-	// Receive settings from the training screen
+	// Define the type for route parameters received from the training page
 	type StartScreenParams = {
 		lightOut: string;
 		hitCount: number;
@@ -62,11 +75,14 @@ const StartGame = () => {
 		secDuration: number;
 	};
 
+	// Retrieve the route and its parameters using the useRoute hook
 	const route = useRoute<RouteProp<{ start: StartScreenParams }, "start">>();
+
+	// Destructure parameters with default values in case they are undefined
 	const {
 		lightOut = "",
 		hitCount = 0,
-		timeout = 1,
+		timeout = 0,
 		lightDelay = "",
 		delaytime = 0,
 		duration = "",
@@ -75,382 +91,243 @@ const StartGame = () => {
 		secDuration = 0,
 	} = route.params || {};
 
-	// Clear all intervals and timeouts
-	const clearAllIntervalsAndTimeouts = () => {
-		if (intervalIdRef.current) {
-			clearInterval(intervalIdRef.current);
-			intervalIdRef.current = null;
-		}
-		if (hitDetectionIntervalIdRef.current) {
-			clearInterval(hitDetectionIntervalIdRef.current);
-			hitDetectionIntervalIdRef.current = null;
-		}
-		if (gameTimeoutRef.current) {
-			clearTimeout(gameTimeoutRef.current);
-			gameTimeoutRef.current = null;
-		}
-		if (gameTimerIntervalRef.current) {
-			clearInterval(gameTimerIntervalRef.current);
-			gameTimerIntervalRef.current = null;
-		}
-		if (alternatingLightsIntervalIdRef.current) {
-			clearInterval(alternatingLightsIntervalIdRef.current);
-			alternatingLightsIntervalIdRef.current = null;
-		}
-		if (alternatingLightsTimeoutRef.current) {
-			clearTimeout(alternatingLightsTimeoutRef.current);
-			alternatingLightsTimeoutRef.current = null;
-		}
-		if (debugIntervalRef.current) {
-			clearInterval(debugIntervalRef.current);
-			debugIntervalRef.current = null;
+	// State to track the number of hits by the user
+	const [userHitCount, setUserHitCount] = useState(0);
+
+	// Update hitCountRef whenever userHitCount state changes
+	useEffect(() => {
+		hitCountRef.current = userHitCount;
+	}, [userHitCount]);
+
+	// useEffect hook to log the userHitCount whenever it updates
+	useEffect(() => {
+		console.log(`Hit Count updated: ${userHitCount}`);
+	}, [userHitCount]);
+
+	// Function to detect hits by the user with proper handling of lightOut modes
+	const detectHits = async (activePadIndexRef: number): Promise<number> => {
+		try {
+			// ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
+			console.log(
+				`active padingix->${activePadIndexRef}, length conntect->${connectedDevices.length}`
+			);
+
+			if (
+				connectedDevices.length === 0 ||
+				activePadIndexRef < 0 ||
+				activePadIndexRef >= connectedDevices.length
+			) {
+				console.log("No valid connected devices or invalid activePadIndex.");
+				return -1;
+			}
+
+			const device = connectedDevices[activePadIndexRef];
+			// อ่านค่าปุ่มจากอุปกรณ์
+			const press = await readCharacteristic(
+				device.deviceId,
+				CHARACTERISTIC.IWING_TRAINERPAD,
+				CHARACTERISTIC.BUTTONS
+			);
+
+			console.log(`Device ${device.deviceId} - press: ${press}`);
+			if (press === null) {
+				return -1;
+			} else {
+				return press;
+			}
+			return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
+		} catch (error) {
+			console.error("Error in detectHits:", error);
+			return 1;
 		}
 	};
 
-	const startAlternatingLights = (lightOutTimeout: number) => {
-		try {
-			let isRed = true;
-			alternatingLightsIntervalIdRef.current = setInterval(() => {
-				console.log(`Toggling lights to ${isRed ? "RED" : "BLUE"}`);
-				connectedDevices.forEach(async (device) => {
-					if (device) {
-						try {
-							const color = isRed ? COLOR_RED : COLOR_BLUE;
-							await turnOn_light(device, 0, color);
-						} catch (error) {
-							console.error(
-								`Error toggling light for device ${device.deviceId}:`,
-								error
+	// Function to start the game with additional modes and conditions
+	const play_2 = async (duration: number, interval: number, delay: number) => {
+		const activateRandomPad = () => {
+			// Deactivate any currently active pad
+			// setActivePadIndex(-1);
+			const totalPads = connectedDevices.length;
+
+			// Select a random pad index
+
+			const randomIndex = Math.floor(Math.random() * totalPads);
+			// setActivePadIndex(randomIndex); // Set the new active pad index
+			console.log(`Activated pad index: ${randomIndex},${totalPads}`);
+			// setActivePadIndex(randomIndex);
+			// activePadIndexRef.current = randomIndex;
+			return randomIndex; // Return the selected index
+		};
+
+		// random
+		const starttime = Date.now(); // Current time in milliseconds
+		let currentime = Date.now();
+		let hittemp = 0;
+		let wait_hit = false;
+		isPlayingRef.current = true;
+		while (hitCountRef.current < hitduration) {
+			console.log(`${hitCountRef.current},${hitduration} `);
+
+			if (wait_hit === true) {
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				continue;
+			}
+			let currentime = Date.now();
+			// setActivePadIndex(activateRandomPad());
+			// activateRandomPad();
+			activePadIndexRef.current = await activateRandomPad();
+			const activedevice = connectedDevices[activePadIndexRef.current];
+			// console.log("is turning on");
+			console.log(`${activedevice.deviceId}`);
+			//await turnOn_light(activedevice, "red");
+			// console.log(`open light`);
+
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			if (activedevice && wait_hit == false) {
+				// เปิดไฟ
+				await turnOn_light(activedevice, "blue");
+				// console.log(`Light turned on for device ${activedevice.deviceId}`);
+
+				// ตรวจจับการกดในช่วงเวลาที่กำหนด
+				const { clear, promise } = createInterval(async () => {
+					// if (!isPlayingRef.current) {
+					// 	console.log("game is ended");
+					// 	clearInterval(hitInterval); // หยุดการตรวจจับหากเกมหยุดเล่น
+					// 	return;
+					// }
+					// console.log("before hit detect");
+					// console.log(`active padref -> ${activePadIndexRef.current}`);
+
+					if (wait_hit === true) return;
+
+					const hitDetected = await detectHits(activePadIndexRef.current);
+					console.log(`hit detect low -> ${hitDetected}`);
+
+					if (hitDetected === 0 && wait_hit == false) {
+						console.log("this his detect kod law");
+						// พบการกด
+						hittemp++;
+						setUserHitCount((prevCount) => prevCount + 1);
+						console.log(`Hit detected. hittemp: ${hittemp}`);
+						// ปิดไฟเมื่อกดถึงจำนวนที่กำหนด
+						if (lightOut === "Hit" && hittemp >= hitCount) {
+							console.log(
+								"==============================================================="
+							);
+							await turnOff_light(activedevice);
+							wait_hit = true;
+							setTimeout(() => {
+								wait_hit = false;
+							}, 1000);
+							hittemp = 0; // รีเซ็ต hittemp
+							clear(); // หยุดตรวจจับการกด
+							console.log(
+								`Light turned off for device ${activedevice.deviceId} after ${hittemp} hits`
 							);
 						}
 					}
-				});
-				isRed = !isRed;
-			}, 1000);
-
-			alternatingLightsTimeoutRef.current = setTimeout(() => {
-				if (alternatingLightsIntervalIdRef.current) {
-					clearInterval(alternatingLightsIntervalIdRef.current);
-					alternatingLightsIntervalIdRef.current = null;
-				}
-				connectedDevices.forEach(async (device) => {
-					if (device) {
-						try {
-							await turnOff_light(device);
-						} catch (error) {
-							console.error(
-								`Error turning off light for device ${device.deviceId}:`,
-								error
-							);
-						}
-					}
-				});
-			}, lightOutTimeout); // ใช้พารามิเตอร์ lightOutTimeout
-		} catch (error) {
-			console.error("Error in startAlternatingLights:", error);
+				}, 500);
+				await promise;
+			}
 		}
-	};
 
-	const stopGame = () => {
-		try {
-			setIsPlaying(false);
-			setActivePadIndex(-1);
-			clearAllIntervalsAndTimeouts();
+		console.error(`game end`);
 
-			// Turn off all lights
-			connectedDevices.forEach(async (device) => {
-				if (device) {
-					try {
-						await turnOff_light(device);
-					} catch (error) {
-						console.error(
-							`Error turning off light for device ${device.deviceId}:`,
-							error
-						);
-					}
-				}
-			});
+		// Set the game state to playing
+		setIsPlaying(false);
+		isPlayingRef.current = false; // ตั้งค่า ref ทันทีเพื่อให้ gameLogic รู้ว่าเกมกำลังเล่น
 
-			console.log("Game stopped");
+		// Reset the user hit count at the start of the game
+		setUserHitCount(0);
 
-			// Start alternating lights
-			startAlternatingLights();
-		} catch (error) {
-			console.error("Error in stopGame:", error);
-		}
-	};
-
-	const play = async (
-		duration: number,
-		interval: number,
-		delay: number,
-		initialHitCount: number
-	) => {
-		try {
-			// Clear any existing intervals and timeouts
-			clearAllIntervalsAndTimeouts();
-
-			setIsPlaying(true);
-			const totalPads = positions.length;
-			let currentHitCount = initialHitCount;
-
-			// Ensure interval and duration have valid values
-			if (interval <= 0) {
-				interval = 1000;
-			}
-			if (duration <= 0 && initialHitCount === 0) {
-				// If both duration and hit count are zero, set a default duration
-				duration = 60000; // Default to 1 minute
-			}
-
-			const activateRandomPad = async () => {
-				try {
-					const randomIndex = Math.floor(Math.random() * totalPads);
-					setActivePadIndex(randomIndex);
-					const device = connectedDevices[randomIndex];
-					if (device) {
-						const startTime = new Date().toLocaleTimeString();
-						console.log(
-							`Pad number ${randomIndex} is turned on at ${startTime}`
-						);
-
-						await turnOn_light(device, 0, COLOR_BLUE);
-					}
-				} catch (error) {
-					console.error("Error in activateRandomPad:", error);
-				}
-			};
-
-			const detectHits = () => {
-				try {
-					hitDetectionIntervalIdRef.current = setInterval(async () => {
-						if (connectedDevices.length === 0) return;
-
-						for (let i = 0; i < connectedDevices.length; i++) {
-							const device = connectedDevices[i];
-							if (!device) continue;
-							try {
-								const press = await readCharacteristic(
-									device.deviceId,
-									CHARACTERISTIC.IWING_TRAINERPAD,
-									CHARACTERISTIC.BUTTONS
-								);
-
-								if (press === 0) {
-									console.log(`Button pressed on device ${i}`);
-									await turnOff_light(device);
-									setTimeout(() => {
-										turnOn_light(device, 0, COLOR_RED);
-									}, 1000);
-
-									if (initialHitCount > 0) {
-										currentHitCount--;
-										console.log(`Hit count decreased to ${currentHitCount}`);
-										if (currentHitCount <= 0) {
-											console.log("Hit count reached zero. Stopping game.");
-											stopGame();
-											return;
-										}
-									}
-
-									console.log("---- Hit Debug ----");
-									console.log(`Device ID: ${device.deviceId}`);
-									console.log(`Time: ${new Date().toLocaleTimeString()}`);
-									console.log(`Hit Count: ${currentHitCount}`);
-									console.log("-------------------");
-								}
-							} catch (error) {
-								console.error("Error reading characteristic:", error);
-							}
-						}
-					}, 500);
-				} catch (error) {
-					console.error("Error in detectHits:", error);
-				}
-			};
-
-			detectHits();
-			await activateRandomPad();
-
-			// Schedule additional pad activations
-			intervalIdRef.current = setInterval(() => {
-				activateRandomPad();
-			}, interval + delay);
-
-			// Manage game duration
-			if (duration > 0) {
-				let remainingTime = duration / 1000; // Convert milliseconds to seconds
-				console.log(`Game will stop after ${remainingTime} seconds.`);
-
-				// Log time every second
-				gameTimerIntervalRef.current = setInterval(() => {
-					remainingTime--;
-					console.log(`Time remaining: ${remainingTime} seconds`);
-					if (remainingTime <= 0) {
-						clearInterval(gameTimerIntervalRef.current);
-					}
-				}, 1000);
-
-				gameTimeoutRef.current = setTimeout(() => {
-					console.log("Time is up. Stopping game.");
-					stopGame();
-				}, duration);
-			}
-		} catch (error) {
-			console.error("Error in play function:", error);
-		}
-	};
-
-	useEffect(() => {
-		// Debug interval to update debugInfo state every second
-		debugIntervalRef.current = setInterval(() => {
-			const debugData = `
---- Debug Information ---
-Time: ${new Date().toLocaleTimeString()}
-Is Playing: ${isPlaying}
-Active Pad Index: ${activePadIndex}
-Hit Count: ${hitCount}
-Timeout: ${timeout} seconds
-Delay Time: ${delaytime} seconds
-Duration: ${minDuration} minutes ${secDuration} seconds
-Connected Devices Count: ${connectedDevices.length}
-Connected Devices IDs: ${connectedDevices.map((d) => d.deviceId).join(", ")}
--------------------------
-`;
-			setDebugInfo(debugData);
-		}, 1000); // Every second
-
-		return () => {
-			if (debugIntervalRef.current) {
-				clearInterval(debugIntervalRef.current);
-			}
-		};
-	}, [
-		isPlaying,
-		activePadIndex,
-		hitCount,
-		timeout,
-		delaytime,
-		minDuration,
-		secDuration,
-		connectedDevices,
-	]);
-
-	// Clear intervals when component is unmounted
-	useEffect(() => {
-		return () => {
-			clearAllIntervalsAndTimeouts();
-		};
-	}, []);
-
-	// Toggle debug view with animation
-	const toggleDebugView = () => {
-		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-		setIsDebugVisible(!isDebugVisible);
+		// Total number of pads available
+		const totalPads = positions.length;
 	};
 
 	return (
 		<SafeAreaView style={styles.container}>
+			{/* Header text for the game */}
 			<Text style={styles.header}>Start Game</Text>
+
+			{/* Display all pads based on their positions */}
 			<View>
 				{positions.map((position, index) => (
 					<View
-						key={index}
+						key={index} // Unique key for each pad
 						style={[
-							styles.iconContainer,
-							{ left: position.x, top: position.y },
+							styles.iconContainer, // Base styles for icon container
+							{ left: position.x, top: position.y }, // Position the pad based on x and y coordinates
 						]}
 					>
+						{/* Display the pad icon with color based on its active state */}
 						<MaterialIcons
-							name="wb-twilight"
-							size={60}
-							color={activePadIndex === index ? "blue" : "black"}
+							name="wb-twilight" // Icon name
+							size={60} // Icon size
+							color={activePadIndex === index ? "blue" : "black"} // Color changes if the pad is active
 						/>
+						{/* Display the pad number */}
 						<Text>Trainer Pad: {index}</Text>
 					</View>
 				))}
 			</View>
+
+			{/* Button to start the play_2 function */}
 			<TouchableOpacity
-				style={styles.playButton}
-				onPress={() =>
-					play(
-						(minDuration * 60 + secDuration) * 1000,
-						timeout * 1000,
-						delaytime * 1000,
-						hitCount
-					)
-				}
-				disabled={isPlaying}
+				style={styles.playButton} // Styles for the play button
+				onPress={() => {
+					console.log("Start Game button pressed.");
+					play_2(
+						(minDuration * 60 + secDuration) * 1000, // Calculate duration in milliseconds
+						timeout * 1000, // Convert timeout to milliseconds
+						delaytime // Delay time is already in milliseconds
+					);
+				}}
 			>
 				<Text style={styles.buttonText}>
-					{isPlaying ? "Playing..." : "Start Game"}
+					{isPlaying ? "Playing..." : "Start Game 2"}
 				</Text>
 			</TouchableOpacity>
 
-			{/* Button to toggle debug view */}
-			<TouchableOpacity
-				style={styles.debugToggleButton}
-				onPress={toggleDebugView}
-			>
-				<Text style={styles.buttonText}>
-					{isDebugVisible ? "Hide Debug" : "Show Debug"}
-				</Text>
-			</TouchableOpacity>
-
-			{/* Debug Information View */}
-			{isDebugVisible && (
-				<View style={styles.debugContainer}>
-					<ScrollView>
-						<Text style={styles.debugText}>{debugInfo}</Text>
-					</ScrollView>
-				</View>
-			)}
+			{/* Display the current hit count */}
+			<View style={styles.hitCountContainer}>
+				<Text style={styles.hitCountText}>Hit Count: {userHitCount}</Text>
+			</View>
 		</SafeAreaView>
 	);
 };
 
+// Define the styles for the component
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#e1f4f3", padding: 10 },
+	container: { flex: 1, backgroundColor: "#e1f4f3" }, // Container style with background color
 	header: {
-		textAlign: "center",
-		fontSize: 24,
-		fontWeight: "bold",
-		marginVertical: 20,
+		textAlign: "center", // Center align the text
+		fontSize: 24, // Font size
+		fontWeight: "bold", // Bold font weight
+		marginVertical: 20, // Vertical margin
 	},
-	iconContainer: { position: "absolute", alignItems: "center" },
+	iconContainer: { position: "absolute", alignItems: "center" }, // Absolute positioning for icons
 	playButton: {
-		backgroundColor: "#2f95dc",
-		paddingVertical: 12,
-		paddingHorizontal: 20,
-		borderRadius: 10,
-		alignSelf: "center",
-		marginTop: 20,
-	},
-	debugToggleButton: {
-		backgroundColor: "#555",
-		paddingVertical: 10,
-		paddingHorizontal: 15,
-		borderRadius: 8,
-		alignSelf: "center",
-		marginTop: 10,
+		backgroundColor: "#2f95dc", // Button background color
+		paddingVertical: 12, // Vertical padding
+		paddingHorizontal: 20, // Horizontal padding
+		borderRadius: 10, // Rounded corners
+		alignSelf: "center", // Center the button horizontally
+		marginTop: 20, // Top margin
 	},
 	buttonText: {
-		color: "white",
-		fontWeight: "bold",
-		fontSize: 16,
+		color: "white", // Text color
+		fontWeight: "bold", // Bold font weight
+		fontSize: 16, // Font size
 	},
-	debugContainer: {
-		backgroundColor: "#000000cc",
-		padding: 10,
-		borderRadius: 10,
-		marginTop: 20,
-		maxHeight: "40%",
+	hitCountContainer: {
+		marginTop: 30, // Top margin
+		alignItems: "center", // Center align the hit count
 	},
-	debugText: {
-		color: "#00FF00",
-		fontFamily: "monospace",
-		fontSize: 12,
+	hitCountText: {
+		fontSize: 20, // Font size for hit count
+		fontWeight: "bold", // Bold font weight
+		color: "#333", // Text color
 	},
 });
 
-export default StartGame;
+export default StartGame; // Export the StartGame component

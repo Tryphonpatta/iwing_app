@@ -28,6 +28,7 @@ export default function Home() {
 		setConnectedDevices,
 		writeCharacteristic,
 		readCharacteristic,
+		turnOn_light,
 	} = useBleManager();
 	const [module, setModule] = React.useState<ModuleHome[]>([]);
 	const [selectedModule, setSelectedModule] = React.useState<number | null>(
@@ -127,7 +128,7 @@ export default function Home() {
 			<View style={styles.cardcontent}>
 				<Text>Trainer Pad : {pad_no}</Text>
 				<View style={styles.blinkbutton}>
-					<TouchableOpacity onPress={() => blink(device)}>
+					<TouchableOpacity onPress={() => turnOn_light(device, "blue")}>
 						<Text style={tw`text-gray-700 `}>Blink</Text>
 					</TouchableOpacity>
 				</View>
