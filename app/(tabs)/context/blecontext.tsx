@@ -2,7 +2,7 @@ import { CHARACTERISTIC } from "../../../enum/characteristic";
 import { Module } from "../../../util/buttonType";
 import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { BleManager, Device } from "react-native-ble-plx";
+import { BleManager, Device, Subscription } from "react-native-ble-plx";
 
 type ModuleHome = Module | null;
 interface BleManagerContextType {
@@ -24,6 +24,10 @@ interface BleManagerContextType {
     serviceUUID: string,
     characteristicUUID: string
   ) => Promise<number | null>;
+  monitorCharacteristic: (
+    device: Device,
+    characteristicId: string
+  ) => Promise<Subscription | null>;
   // Add other functions as needed
 }
 
@@ -210,6 +214,24 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const monitorCharacteristic = async (
+    device: Device,
+    characteristicId: string
+  ) => {
+    const subscription = device.monitorCharacteristicForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      characteristicId,
+      (error, characteristic) => {
+        if (error) {
+          console.error("Failed to monitor characteristic: ", error);
+          return;
+        }
+        console.log("Received characteristic: ", characteristic);
+      }
+    );
+    return subscription;
+  };
+
   useEffect(() => {
     // Cleanup on unmount
     return () => {
@@ -229,6 +251,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         connectToDevice,
         writeCharacteristic,
         readCharacteristic,
+        monitorCharacteristic,
       }}
     >
       {children}
