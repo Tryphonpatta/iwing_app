@@ -1,4 +1,3 @@
-// pattern.tsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -9,17 +8,17 @@ import {
   Easing,
   FlatList,
 } from "react-native";
-import Field from "./field"; // Ensure the import path is correct
-import RunScreen from "../run"; // Import RunScreen
+import Field from "./field";
+import RunScreen from "../run";
 import InputSpinner from "react-native-input-spinner";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 const modes = [
-  { id: 1, icon: "walk" },
-  { id: 2, icon: "bicycle" },
+  { id: 1, icon: "walk" }, // Walk icon (default behavior)
+  { id: 2, icon: "bicycle" }, // Bicycle icon (new behavior)
   { id: 3, icon: "car" },
   { id: 4, icon: "train" },
-]; // Add other modes as needed
+];
 
 const PatternScreen = () => {
   const [R1, setR1] = useState(0);
@@ -38,6 +37,26 @@ const PatternScreen = () => {
       setShowField(true);
     } else {
       alert("Please enter at least one count to start.");
+    }
+  };
+
+  const [isBicycleMode, setIsBicycleMode] = useState(false);
+
+  const setModeValues = (modeId : number) => {
+    if (modeId === 2) {
+      // Bicycle mode: set all values to 1 and enable Bicycle mode sequence
+      setR1(1);
+      setR2(1);
+      setL1(1);
+      setL2(1);
+      setIsBicycleMode(true);
+    } else {
+      // Reset values for other modes and disable Bicycle mode sequence
+      setR1(0);
+      setR2(0);
+      setL1(0);
+      setL2(0);
+      setIsBicycleMode(false);
     }
   };
 
@@ -71,7 +90,7 @@ const PatternScreen = () => {
   }
 
   if (goField) {
-    return <Field R1={R1} R2={R2} L1={L1} L2={L2} />;
+    return <Field R1={R1} R2={R2} L1={L1} L2={L2} mode={selectedMode} />;
   }
 
   const renderModeIcon = ({ item }) => (
@@ -80,7 +99,10 @@ const PatternScreen = () => {
         styles.iconContainer,
         selectedMode === item.id && styles.selectedIconContainer,
       ]}
-      onPress={() => setSelectedMode(item.id)}
+      onPress={() => {
+        setSelectedMode(item.id);
+        setModeValues(item.id);
+      }}
     >
       <Ionicons
         name={item.icon}
@@ -124,6 +146,7 @@ const PatternScreen = () => {
           skin="clean"
           color="#2f855a"
           placeholder="R1"
+          editable={selectedMode !== 2}
         />
         <InputSpinner
           max={100}
@@ -135,6 +158,7 @@ const PatternScreen = () => {
           skin="clean"
           color="#2f855a"
           placeholder="R2"
+          editable={selectedMode !== 2}
         />
         <InputSpinner
           max={100}
@@ -146,6 +170,7 @@ const PatternScreen = () => {
           skin="clean"
           color="#2f855a"
           placeholder="L1"
+          editable={selectedMode !== 2}
         />
         <InputSpinner
           max={100}
@@ -157,6 +182,7 @@ const PatternScreen = () => {
           skin="clean"
           color="#2f855a"
           placeholder="L2"
+          editable={selectedMode !== 2}
         />
 
         {/* Start Button */}
@@ -221,7 +247,7 @@ const styles = StyleSheet.create({
     width: 100,
   },
   selectedIconContainer: {
-    backgroundColor: "#d9f7be", // Light green background for selected icon
+    backgroundColor: "#d9f7be",
     borderRadius: 50,
   },
   spinner: {

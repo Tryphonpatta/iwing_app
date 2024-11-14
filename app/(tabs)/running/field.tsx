@@ -10,6 +10,7 @@ import ResultScreen from "./result"; // Adjust the import path as needed
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { Device } from "react-native-ble-plx";
+import { hexToBase64 } from "@/util/encode";
 
 const { width, height } = Dimensions.get("window");
 
@@ -20,6 +21,7 @@ type FieldProps = {
   R2: string;
   L1: string;
   L2: string;
+  mode: number;
 };
 
 type Interaction = {
@@ -27,9 +29,14 @@ type Interaction = {
   time: number; // in seconds
 };
 
-const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
-  const { bleManager, readCharacteristic, module, monitorCharacteristic } =
-    useBleManager();
+const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
+  const {
+    bleManager,
+    readCharacteristic,
+    module,
+    monitorCharacteristic,
+    writeCharacteristic,
+  } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -69,13 +76,22 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
   useEffect(() => {
     let sequence: CircleKey[] = [];
-    for (let i = 0; i < L1Count; i++) sequence.push("L1");
-    for (let i = 0; i < L2Count; i++) sequence.push("L2");
-    for (let i = 0; i < R1Count; i++) sequence.push("R1");
-    for (let i = 0; i < R2Count; i++) sequence.push("R2");
 
-    setCircleSequence(shuffleArray(sequence));
-  }, []);
+    if (mode === 2) {
+      // Mode 2 is "Bicycle": Fixed sequence R1 -> L1 -> L2 -> R2
+      sequence = ["R1", "L1", "L2", "R2"];
+    } else {
+      // Default random sequence based on counts for other modes
+      for (let i = 0; i < L1Count; i++) sequence.push("L1");
+      for (let i = 0; i < L2Count; i++) sequence.push("L2");
+      for (let i = 0; i < R1Count; i++) sequence.push("R1");
+      for (let i = 0; i < R2Count; i++) sequence.push("R2");
+
+      sequence = shuffleArray(sequence);
+    }
+
+    setCircleSequence(sequence);
+  }, [mode, L1Count, L2Count, R1Count, R2Count]);
 
   const shuffleArray = (array: CircleKey[]) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -87,7 +103,18 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
 
   useEffect(() => {
     if (circleSequence.length === 0) return;
-
+    writeCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("01")
+    );
+    writeCharacteristic(
+      module[1]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("01")
+    );
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
 
@@ -107,25 +134,25 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
         ...prevState,
         currentGreen: nextCircle,
       }));
-    } else if (
-      currentIndex >= circleSequence.length &&
-      !gameState.centerActive
-    ) {
-      setShowResultScreen(true);
+    } else if (currentIndex >= circleSequence.length) {
+      handleStopAndShowResult();
     }
   }, [gameState.centerActive, currentIndex, circleSequence]);
 
   const isCenter = async () => {
-    const right = await readCharacteristic(
-      module[3]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    const left = await readCharacteristic(
-      module[2]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
+    const [right, left] = await Promise.all([
+      readCharacteristic(
+        module[3]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.IR_RX
+      ),
+      readCharacteristic(
+        module[2]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.IR_RX
+      ),
+    ]);
+
     return { left, right };
   };
 
@@ -138,7 +165,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
           handleReturnToCenter();
           break;
         }
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
@@ -199,7 +226,7 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
           hitActiveRef.current = false;
           return;
         }
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (error) {
       console.error("Failed to read characteristic:", error);
@@ -251,7 +278,24 @@ const Field = ({ R1, R2, L1, L2 }: FieldProps) => {
   };
 
   const handleStopAndShowResult = () => {
+    writeCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
+    writeCharacteristic(
+      module[1]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
+
     stopActiveRef.current = true; // Stop all async loops
+    setGameState((prevState) => ({
+      ...prevState,
+      centerActive: false, // Ensure centerActive is reset
+    }));
     setShowResultScreen(true);
   };
 
