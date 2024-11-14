@@ -12,6 +12,10 @@ import { useIconPosition } from "./IconPositionContext"; // Import custom hook f
 import { RouteProp, useRoute } from "@react-navigation/native"; // Import navigation hooks
 import { useBleManager } from "./context/blecontext"; // Import custom BLE manager context
 import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteristics enumeration
+import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
+import { useNavigation } from "@react-navigation/native";
+import { Result } from "@/app/(tabs)/result";
+
 function createInterval(callback: any, delay: number) {
 	let intervalId = setInterval(callback, delay);
 	let resolvePromise: any;
@@ -238,7 +242,6 @@ const StartGame = () => {
 		isPlayingRef.current = false; // ตั้งค่า ref ทันทีเพื่อให้ gameLogic รู้ว่าเกมกำลังเล่น
 
 		// Reset the user hit count at the start of the game
-		setUserHitCount(0);
 
 		// Total number of pads available
 		const totalPads = positions.length;
@@ -246,32 +249,6 @@ const StartGame = () => {
 
 	return (
 		<SafeAreaView style={styles.container}>
-			{/* Header text for the game */}
-			<Text style={styles.header}>Start Game</Text>
-
-			{/* Display all pads based on their positions */}
-			<View>
-				{positions.map((position, index) => (
-					<View
-						key={index} // Unique key for each pad
-						style={[
-							styles.iconContainer, // Base styles for icon container
-							{ left: position.x, top: position.y }, // Position the pad based on x and y coordinates
-						]}
-					>
-						{/* Display the pad icon with color based on its active state */}
-						<MaterialIcons
-							name="wb-twilight" // Icon name
-							size={60} // Icon size
-							color={activePadIndex === index ? "blue" : "black"} // Color changes if the pad is active
-						/>
-						{/* Display the pad number */}
-						<Text>Trainer Pad: {index}</Text>
-					</View>
-				))}
-			</View>
-
-			{/* Button to start the play_2 function */}
 			<TouchableOpacity
 				style={styles.playButton} // Styles for the play button
 				onPress={() => {
@@ -281,17 +258,52 @@ const StartGame = () => {
 						timeout * 1000, // Convert timeout to milliseconds
 						delaytime // Delay time is already in milliseconds
 					);
+					setIsPlaying(true); // ตั้งค่า isPlaying เป็น true เมื่อกดปุ่ม
 				}}
 			>
 				<Text style={styles.buttonText}>
 					{isPlaying ? "Playing..." : "Start Game 2"}
 				</Text>
 			</TouchableOpacity>
+			{isPlaying ? (
+				<>
+					{/* Header text for the game */}
+					<Text style={styles.header}>Start Game</Text>
 
-			{/* Display the current hit count */}
-			<View style={styles.hitCountContainer}>
-				<Text style={styles.hitCountText}>Hit Count: {userHitCount}</Text>
-			</View>
+					{/* Display all pads based on their positions */}
+					<View>
+						{positions.map((position, index) => (
+							<View
+								key={index} // Unique key for each pad
+								style={[
+									styles.iconContainer, // Base styles for icon container
+									{ left: position.x, top: position.y }, // Position the pad based on x and y coordinates
+								]}
+							>
+								{/* Display the pad icon with color based on its active state */}
+								<MaterialIcons
+									name="wb-twilight" // Icon name
+									size={60} // Icon size
+									color={activePadIndex === index ? "blue" : "black"} // Color changes if the pad is active
+								/>
+								{/* Display the pad number */}
+								<Text>Trainer Pad: {index}</Text>
+							</View>
+						))}
+					</View>
+
+					{/* Button to start the play_2 function */}
+
+					{/* Display the current hit count */}
+					<View style={styles.hitCountContainer}>
+						<Text style={styles.hitCountText}>Hit Count: {userHitCount}</Text>
+					</View>
+				</>
+			) : (
+				<Result prop={userHitCount} />
+			)}
+			<Text>Finish</Text>
+			{/* </TouchableOpacity> */}
 		</SafeAreaView>
 	);
 };
