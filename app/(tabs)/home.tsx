@@ -78,7 +78,39 @@ export default function Home() {
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
-
+  const test = async () => {
+    // const read = await readCharacteristic(
+    //   module[0]?.deviceId as string,
+    //   CHARACTERISTIC.IWING_TRAINERPAD,
+    //   CHARACTERISTIC.BUTTONS
+    // );
+    // console.log("read", read);
+    const devices = await bleManager.connectToDevice(
+      module[0]?.deviceId as string
+    );
+    await devices.discoverAllServicesAndCharacteristics();
+    // console.log("character wow", buttonCharacteristic);
+    const monitor = bleManager.monitorCharacteristicForDevice(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.BUTTONS.toLocaleLowerCase(),
+      (error, characteristic) => {
+        if (error) {
+          console.error(
+            "Failed to monitor characteristic:",
+            error,
+            error.iosErrorCode,
+            error.errorCode
+          );
+          return;
+        }
+        console.log("Received characteristic:", characteristic);
+      }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    monitor.remove();
+    console.log("Monitor removed");
+  };
   // export const isCenter = async () => {
   //   const right = readCharacteristic(
   //     module[3]?.deviceId as string,
@@ -344,11 +376,12 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                if (selectedModule && module[selectedModule - 1] != null) {
-                  disconnectDevice(
-                    module[selectedModule - 1]?.deviceId as string
-                  );
-                }
+                // if (selectedModule && module[selectedModule - 1] != null) {
+                //   disconnectDevice(
+                //     module[selectedModule - 1]?.deviceId as string
+                //   );
+                // }
+                test();
               }}
             >
               <Text
@@ -388,8 +421,8 @@ export default function Home() {
                   { backgroundColor: "red", marginRight: 8 },
                 ]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
-                  console.log(module);
-                  console.log(selectedModule);
+                  // console.log(module);
+                  // console.log(selectedModule);
                   if (selectedModule && module[selectedModule - 1] != null) {
                     blink(module[selectedModule - 1] as Module);
                   }
