@@ -15,18 +15,17 @@ import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 import { ModuleHome } from "./home";
 import { disconnectDevice } from "@/util/ble";
-const bleManager = new BleManager();
+// const bleManager = new BleManager();
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
   const {
-    // bleManager,
+    bleManager,
     connectToDevice,
     connectedDevices,
     module,
     setModule,
     disconnectDevice,
-    testDisconnect,
   } = useBleManager(); // BLE context values
   const [deviceList, setDeviceList] = useState<Device[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state

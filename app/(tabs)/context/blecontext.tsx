@@ -6,7 +6,7 @@ import { BleManager, Device, Subscription } from "react-native-ble-plx";
 
 type ModuleHome = Module | null;
 interface BleManagerContextType {
-  // bleManager: BleManager;
+  bleManager: BleManager;
   connectedDevices: Module[];
   module: ModuleHome[];
   setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
@@ -248,7 +248,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <BleManagerContext.Provider
       value={{
-        // bleManager,
+        bleManager,
         connectedDevices,
         module,
         setModule,
