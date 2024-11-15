@@ -218,7 +218,13 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     device: Device,
     characteristicId: string
   ) => {
-    const subscription = device.monitorCharacteristicForService(
+    // const isConnected = await bleManager.isDeviceConnected(device.id);
+    // console.log("isConnected: ", isConnected);
+    console.log(device.id);
+    const deviceId = device.id;
+    const devices = await bleManager.connectToDevice(deviceId);
+
+    const subscription = devices.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
       characteristicId,
       (error, characteristic) => {

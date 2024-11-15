@@ -9,6 +9,7 @@ import {
 import ResultScreen from "./result"; // Adjust the import path as needed
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
 import { CHARACTERISTIC } from "@/enum/characteristic";
+import { Device } from "react-native-ble-plx";
 import { hexToBase64 } from "@/util/encode";
 
 const { width, height } = Dimensions.get("window");
@@ -29,7 +30,13 @@ type Interaction = {
 };
 
 const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
-  const { readCharacteristic, module ,writeCharacteristic} = useBleManager();
+  const {
+    bleManager,
+    readCharacteristic,
+    module,
+    monitorCharacteristic,
+    writeCharacteristic,
+  } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -69,7 +76,7 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   useEffect(() => {
     let sequence: CircleKey[] = [];
-  
+
     if (mode === 2) {
       // Mode 2 is "Bicycle": Fixed sequence R1 -> L1 -> L2 -> R2
       sequence = ["R1", "L1", "L2", "R2"];
@@ -79,10 +86,10 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
       for (let i = 0; i < L2Count; i++) sequence.push("L2");
       for (let i = 0; i < R1Count; i++) sequence.push("R1");
       for (let i = 0; i < R2Count; i++) sequence.push("R2");
-  
+
       sequence = shuffleArray(sequence);
     }
-  
+
     setCircleSequence(sequence);
   }, [mode, L1Count, L2Count, R1Count, R2Count]);
 
@@ -96,8 +103,18 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   useEffect(() => {
     if (circleSequence.length === 0) return;
-    writeCharacteristic(module[0]?.deviceId as string, CHARACTERISTIC.IWING_TRAINERPAD,CHARACTERISTIC.IR_TX, hexToBase64("01"));
-    writeCharacteristic(module[1]?.deviceId as string, CHARACTERISTIC.IWING_TRAINERPAD,CHARACTERISTIC.IR_TX, hexToBase64("01"));
+    writeCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("01")
+    );
+    writeCharacteristic(
+      module[1]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("01")
+    );
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
 
@@ -123,14 +140,18 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   }, [gameState.centerActive, currentIndex, circleSequence]);
 
   const isCenter = async () => {
-    const [right,left] = await Promise.all([readCharacteristic(
-      module[3]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    ),readCharacteristic(
-      module[2]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX)]);
+    const [right, left] = await Promise.all([
+      readCharacteristic(
+        module[3]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.IR_RX
+      ),
+      readCharacteristic(
+        module[2]?.deviceId as string,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.IR_RX
+      ),
+    ]);
 
     return { left, right };
   };
@@ -215,7 +236,8 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   const isHit = async (id: number) => {
     try {
-      if (module[id]?.deviceId === undefined) throw new Error("DeviceId is NULL");
+      if (module[id]?.deviceId === undefined)
+        throw new Error("DeviceId is NULL");
       const hit = await readCharacteristic(
         module[id]?.deviceId as string,
         CHARACTERISTIC.IWING_TRAINERPAD,
@@ -250,21 +272,24 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
         [circle]: "red",
         Center: "yellow",
       }));
-  
-      // Only set `centerActive` to true if it's not the last circle
-      if (currentIndex < circleSequence.length - 1) {
-        setGameState((prevState) => ({ ...prevState, centerActive: true }));
-      } else {
-        setGameState((prevState) => ({ ...prevState, centerActive: false }));
-        handleStopAndShowResult();
-      }
+      setGameState((prevState) => ({ ...prevState, centerActive: true }));
       hitActiveRef.current = false;
     }
-  };  
+  };
 
   const handleStopAndShowResult = () => {
-    writeCharacteristic(module[0]?.deviceId as string, CHARACTERISTIC.IWING_TRAINERPAD,CHARACTERISTIC.IR_TX, hexToBase64("00"));
-    writeCharacteristic(module[1]?.deviceId as string, CHARACTERISTIC.IWING_TRAINERPAD,CHARACTERISTIC.IR_TX, hexToBase64("00"));
+    writeCharacteristic(
+      module[0]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
+    writeCharacteristic(
+      module[1]?.deviceId as string,
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("00")
+    );
 
     stopActiveRef.current = true; // Stop all async loops
     setGameState((prevState) => ({
@@ -287,23 +312,53 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   return (
     <View style={styles.containerField}>
       <View style={styles.circleContainer}>
-        <TouchableOpacity style={[styles.circle, { top: 20, left: 20, backgroundColor: circleColors.L1 }]} onPress={() => handleCirclePress("L1")}>
+        <TouchableOpacity
+          style={[
+            styles.circle,
+            { top: 20, left: 20, backgroundColor: circleColors.L1 },
+          ]}
+          onPress={() => handleCirclePress("L1")}
+        >
           <Text style={styles.text}>L1</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.circle, { top: 20, right: 20, backgroundColor: circleColors.R1 }]} onPress={() => handleCirclePress("R1")}>
+        <TouchableOpacity
+          style={[
+            styles.circle,
+            { top: 20, right: 20, backgroundColor: circleColors.R1 },
+          ]}
+          onPress={() => handleCirclePress("R1")}
+        >
           <Text style={styles.text}>R1</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.circle, { bottom: 20, left: 20, backgroundColor: circleColors.L2 }]} onPress={() => handleCirclePress("L2")}>
+        <TouchableOpacity
+          style={[
+            styles.circle,
+            { bottom: 20, left: 20, backgroundColor: circleColors.L2 },
+          ]}
+          onPress={() => handleCirclePress("L2")}
+        >
           <Text style={styles.text}>L2</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.circle, { bottom: 20, right: 20, backgroundColor: circleColors.R2 }]} onPress={() => handleCirclePress("R2")}>
+        <TouchableOpacity
+          style={[
+            styles.circle,
+            { bottom: 20, right: 20, backgroundColor: circleColors.R2 },
+          ]}
+          onPress={() => handleCirclePress("R2")}
+        >
           <Text style={styles.text}>R2</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.circle, { backgroundColor: circleColors.Center }]} onPress={handleCenterPress}>
+        <TouchableOpacity
+          style={[styles.circle, { backgroundColor: circleColors.Center }]}
+          onPress={handleCenterPress}
+        >
           <Text style={styles.text}>Center</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.stopButton} onPress={handleStopAndShowResult}>
+      <TouchableOpacity
+        style={styles.stopButton}
+        onPress={handleStopAndShowResult}
+      >
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
     </View>
