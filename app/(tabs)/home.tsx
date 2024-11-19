@@ -8,13 +8,14 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useBleManager } from "./context/blecontext";
 import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
+import { useBleManager } from "./context/blecontext";
+import { Device } from "react-native-ble-plx";
 
 export type ModuleHome = Module | null;
 
@@ -64,112 +65,62 @@ export default function Home() {
   const isCalibrateRef = React.useRef(isCalibrate);
 
   const {
-    bleManager,
-    connectedDevices,
-    module,
-    setModule,
-    setConnectedDevices,
+    connectToDevice,
+    allDevices,
+    connectedDevice,
+    buttonStatus,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
     writeCharacteristic,
-    readCharacteristic,
+    swapConnectedDevice,
     disconnectDevice,
   } = useBleManager();
+  const test = async () => {
+    const sub = await startStreamingData(
+      connectedDevice[0] as Device,
+      CHARACTERISTIC.BUTTONS
+    );
+  };
+  console.log(connectedDevice);
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
-  const test = async () => {
-    // const read = await readCharacteristic(
-    //   module[0]?.deviceId as string,
-    //   CHARACTERISTIC.IWING_TRAINERPAD,
-    //   CHARACTERISTIC.BUTTONS
-    // );
-    // console.log("read", read);
-    const devices = await bleManager.connectToDevice(
-      module[0]?.deviceId as string
-    );
-    await devices.discoverAllServicesAndCharacteristics();
-    // console.log("character wow", buttonCharacteristic);
-    const monitor = bleManager.monitorCharacteristicForDevice(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.BUTTONS.toLocaleLowerCase(),
-      (error, characteristic) => {
-        if (error) {
-          console.error(
-            "Failed to monitor characteristic:",
-            error,
-            error.iosErrorCode,
-            error.errorCode
-          );
-          return;
-        }
-        console.log("Received characteristic:", characteristic);
-      }
-    );
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    monitor.remove();
-    console.log("Monitor removed");
-  };
-  // export const isCenter = async () => {
-  //   const right = readCharacteristic(
-  //     module[3]?.deviceId as string,
-  //     CHARACTERISTIC.IWING_TRAINERPAD,
-  //     CHARACTERISTIC.IR_RX
-  //   );
-  //   const left = readCharacteristic(
-  //     module[0]?.deviceId as string,
-  //     CHARACTERISTIC.IWING_TRAINERPAD,
-  //     CHARACTERISTIC.IR_RX
-  //   );
-  //   return { left: left, right: right };
-  // };
 
-  const testMusic = async (index: number) => {
-    writeCharacteristic(
-      module[index]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.MUSIC,
-      hexToBase64("616161")
-    );
-  };
-
-  const blink = async (device: Module) => {
+  const blink = async (device: Device) => {
     console.log("Blinking");
     let redLight = true;
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
+    console.log(device);
     for (let i = 0; i < 10; i++) {
       await writeCharacteristic(
-        device.deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
+        device,
         CHARACTERISTIC.LED,
         redLight ? redColor : blueColor
       );
       redLight = !redLight;
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
-    writeCharacteristic(
-      device.deviceId,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.LED,
-      "AAAA"
-    );
+    // await writeCharacteristic(device, CHARACTERISTIC.LED, blueColor);
+    writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
   };
 
   const setThreshold = (val: number) => {
-    if (module.find((e) => e == null)) {
-      console.log("Module not found");
+    if (connectedDevice && connectedDevice.length < 4) {
+      console.log("Not enough devices connected");
       return;
     }
     for (let i = 0; i < 4; i++) {
-      writeCharacteristic(
-        module[i]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.VIB_THRES,
-        hexToBase64(decToBase64(val))
-      );
+      if (connectedDevice[i])
+        writeCharacteristic(
+          connectedDevice[i] as Device,
+          CHARACTERISTIC.VIB_THRES,
+          hexToBase64(decToBase64(val))
+        );
     }
     console.log("Threshold set to: ", val);
   };
@@ -188,31 +139,40 @@ export default function Home() {
   // };
 
   const calibrate = async (sender: number, receiver: number) => {
-    writeCharacteristic(
-      module[sender]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_TX,
-      hexToBase64("01")
-    );
-    writeCharacteristic(
-      module[receiver]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.MODE,
-      hexToBase64("01")
-    );
+    if (
+      (connectedDevice && !connectedDevice[sender]) ||
+      (connectedDevice && !connectedDevice[receiver])
+    ) {
+      console.log("Invalid module");
+      return;
+    }
+    if (
+      connectedDevice &&
+      connectedDevice[sender] &&
+      connectedDevice[receiver]
+    ) {
+      writeCharacteristic(
+        connectedDevice[sender],
+        CHARACTERISTIC.IR_TX,
+        hexToBase64("01")
+      );
+      writeCharacteristic(
+        connectedDevice[receiver],
+        CHARACTERISTIC.MODE,
+        hexToBase64("01")
+      );
+    }
     while (isCalibratingRef.current) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     console.log("Calibration done");
     writeCharacteristic(
-      module[sender]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[sender] as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
     writeCharacteristic(
-      module[receiver]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[receiver] as Device,
       CHARACTERISTIC.MODE,
       hexToBase64("00")
     );
@@ -222,27 +182,12 @@ export default function Home() {
     isCalibrateRef.current = isCalibrate;
   }, [isCalibrate]);
 
-  React.useEffect(() => {
-    const moduleTemp: ModuleHome[] = [];
-    for (let i = 0; i < connectedDevices.length; i++) {
-      moduleTemp.push(connectedDevices[i]);
-    }
-    for (let i = moduleTemp.length; i < 4; i++) {
-      moduleTemp.push(null);
-    }
-    setModule(moduleTemp);
-  }, [connectedDevices]);
   const toggleModal = (content: string) => {
     setModalContent(content);
     setIsModalVisible(!isModalVisible);
   };
   function swapModule(index1: number, index2: number) {
-    const moduleTemp = [...module];
-    const temp = moduleTemp[index1];
-    moduleTemp[index1] = moduleTemp[index2];
-    moduleTemp[index2] = temp;
-    setModule(moduleTemp);
-    console.log("swapped");
+    swapConnectedDevice(index1, index2);
   }
 
   return (
@@ -268,14 +213,14 @@ export default function Home() {
               style={[
                 styles.outlineContainer,
                 {
-                  borderColor: module[0] ? "green" : "#808080",
-                  backgroundColor: module[0]
+                  borderColor: connectedDevice[0] ? "green" : "#808080",
+                  backgroundColor: connectedDevice[0]
                     ? "rgba(0, 255, 0, 0.2)"
                     : "#BFBFBF",
                 },
               ]}
               onPress={() => {
-                if (module[0] != null) {
+                if (connectedDevice[0] != null) {
                   setSelectedModule(1);
                   toggleModal("Device 1 Content");
                 }
@@ -287,14 +232,14 @@ export default function Home() {
               style={[
                 styles.outlineContainer,
                 {
-                  borderColor: module[1] ? "green" : "#808080",
-                  backgroundColor: module[1]
+                  borderColor: connectedDevice[1] ? "green" : "#808080",
+                  backgroundColor: connectedDevice[1]
                     ? "rgba(0, 255, 0, 0.2)"
                     : "#BFBFBF",
                 },
               ]}
               onPress={() => {
-                if (module[1] != null) {
+                if (connectedDevice[1] != null) {
                   setSelectedModule(2);
                   toggleModal("Device 2 Content");
                 }
@@ -323,14 +268,14 @@ export default function Home() {
               style={[
                 styles.outlineContainer,
                 {
-                  borderColor: module[2] ? "green" : "#808080",
-                  backgroundColor: module[2]
+                  borderColor: connectedDevice[2] ? "green" : "#808080",
+                  backgroundColor: connectedDevice[2]
                     ? "rgba(0, 255, 0, 0.2)"
                     : "#BFBFBF",
                 },
               ]}
               onPress={() => {
-                if (module[2] != null) {
+                if (connectedDevice[2] != null) {
                   setSelectedModule(3);
                   toggleModal("Device 3 Content");
                 }
@@ -342,14 +287,14 @@ export default function Home() {
               style={[
                 styles.outlineContainer,
                 {
-                  borderColor: module[3] ? "green" : "#808080",
-                  backgroundColor: module[3]
+                  borderColor: connectedDevice[3] ? "green" : "#808080",
+                  backgroundColor: connectedDevice[3]
                     ? "rgba(0, 255, 0, 0.2)"
                     : "#BFBFBF",
                 },
               ]}
               onPress={() => {
-                if (module[3] != null) {
+                if (connectedDevice[3] != null) {
                   setSelectedModule(4);
                   toggleModal("Device 4 Content");
                 }
@@ -376,12 +321,14 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                // if (selectedModule && module[selectedModule - 1] != null) {
-                //   disconnectDevice(
-                //     module[selectedModule - 1]?.deviceId as string
-                //   );
-                // }
-                test();
+                if (
+                  selectedModule &&
+                  connectedDevice[selectedModule - 1] != null
+                ) {
+                  disconnectDevice(
+                    connectedDevice[selectedModule - 1] as Device
+                  );
+                }
               }}
             >
               <Text
@@ -423,8 +370,11 @@ export default function Home() {
                 onPress={() => {
                   // console.log(module);
                   // console.log(selectedModule);
-                  if (selectedModule && module[selectedModule - 1] != null) {
-                    blink(module[selectedModule - 1] as Module);
+                  if (
+                    selectedModule &&
+                    connectedDevice[selectedModule - 1] != null
+                  ) {
+                    blink(connectedDevice[selectedModule - 1] as Device);
                   }
                 }}
               >
@@ -445,8 +395,8 @@ export default function Home() {
                 onPress={() => {
                   if (
                     selectedModule &&
-                    module[selectedModule - 1] != null &&
-                    module[4 - selectedModule] &&
+                    connectedDevice[selectedModule - 1] != null &&
+                    connectedDevice[4 - selectedModule] &&
                     isCalibrating === false
                   ) {
                     setIsCalibrating(true);
@@ -470,8 +420,11 @@ export default function Home() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
-                onPress={() => {
-                  testMusic((selectedModule as number) - 1);
+                onPress={async () => {
+                  startStreamingData(
+                    connectedDevice[0] as Device,
+                    CHARACTERISTIC.BUTTONS
+                  );
                 }}
               >
                 <Text
@@ -515,7 +468,19 @@ export default function Home() {
         </View>
       </Modal>
       {/* Calibration Modal */}
-
+      <View style={{ width: "100%", alignItems: "flex-end" }}>
+        <TouchableOpacity
+          style={[
+            styles.closeButton,
+            { backgroundColor: "#cccccc", marginLeft: 4 },
+          ]}
+          onPress={() => {
+            console.log(connectedDevice);
+          }}
+        >
+          <Text style={styles.closeButtonText}>print</Text>
+        </TouchableOpacity>
+      </View>
       {/* Footer */}
       <View style={styles.footer}></View>
     </SafeAreaView>

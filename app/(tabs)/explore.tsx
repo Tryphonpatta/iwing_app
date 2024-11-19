@@ -17,48 +17,23 @@ import { useBleManager } from "./context/blecontext";
 
 export default function Explore() {
   const { module, setModule } = useModuleContext();
-  const { bleManager, connectedDevices, setConnectedDevices, connectToDevice } =
-    useBleManager();
+  const {
+    connectToDevice,
+    allDevices,
+    connectedDevice,
+    buttonStatus,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
+    writeCharacteristic,
+    swapConnectedDevice,
+  } = useBleManager();
   const [deviceList, setDeviceList] = useState<Device[]>([]);
   const [connectingDeviceList, setConnectingDeviceList] = useState<
     string | null
   >(null);
   const [scanning, setScanning] = useState<boolean>(false);
 
-  const startScan = async () => {
-    setDeviceList([]);
-    console.log("Scanning...");
-    setScanning(true);
-    bleManager.onStateChange((state) => {
-      if (state === State.PoweredOn) {
-        bleManager.startDeviceScan(
-          null,
-          null,
-          (error, device: Device | null) => {
-            // console.log(".");
-            if (error) {
-              console.log("Scan error:", error);
-              return;
-            }
-            if (device) {
-              setDeviceList((prev) => {
-                if (
-                  (!prev.find((e) => e.id == device.id) &&
-                    device.name != null) ||
-                  (device.serviceUUIDs &&
-                    device.serviceUUIDs[0].startsWith(prefix))
-                ) {
-                  prev.push(device);
-                  console.log(device.name, device.id);
-                }
-                return prev;
-              });
-            }
-          }
-        );
-      }
-    }, true);
-  };
   const HomeScreen = ({ devices }: { devices: Device[] }) => {
     return (
       <Layout
@@ -66,7 +41,7 @@ export default function Explore() {
       >
         <Text category="h1">HOME</Text>
         <List
-          data={devices}
+          data={allDevices}
           renderItem={({ item }) => (
             <Card key={item.id}>
               <View>
@@ -74,7 +49,7 @@ export default function Explore() {
                 <Text>{item.name ? item.name : "undefine"}</Text>
                 <Button
                   onPress={() => {
-                    connectToDevice(item.id);
+                    connectToDevice(item);
                   }}
                 >
                   connect
@@ -96,7 +71,7 @@ export default function Explore() {
         <HomeScreen devices={deviceList} />
         <Button
           onPress={() => {
-            startScan();
+            scanForPeripherals();
           }}
         >
           {scanning ? "Scanning..." : "Start Scan"}

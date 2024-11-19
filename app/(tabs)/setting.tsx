@@ -10,116 +10,72 @@ import {
 } from "react-native";
 import { BleManager, Device, State } from "react-native-ble-plx";
 import tw from "twrnc";
-import { useBleManager } from "./context/blecontext";
 import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 import { ModuleHome } from "./home";
 import { disconnectDevice } from "@/util/ble";
+import { useBleManager } from "./context/blecontext";
 // const bleManager = new BleManager();
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
   const {
-    bleManager,
     connectToDevice,
-    connectedDevices,
-    module,
-    setModule,
-    disconnectDevice,
+    allDevices,
+    connectedDevice,
+    buttonStatus,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
+    writeCharacteristic,
+    swapConnectedDevice,
   } = useBleManager(); // BLE context values
-  const [deviceList, setDeviceList] = useState<Device[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
 
   // Connect or disconnect the device and update its status immediately
-  const toggleConnection = async (deviceId: string) => {
-    if (!deviceId) return;
-    const isConnect = module.find((m) => m?.deviceId == deviceId);
+  const toggleConnection = async (device: Device) => {
+    if (!device) return;
+    const isConnect = connectedDevice.find((m) => m?.id == device.id);
     if (isConnect) {
       try {
         // Disconnect from the device
-        disconnectDevice(deviceId);
-        updateDeviceStatus(deviceId, false);
+        // disconnectDevice(deviceId);
+        // setDeviceList(deviceList.filter((d) => d.id !== deviceId));
       } catch (error) {
-        disconnectDevice(deviceId);
-        console.log("Failed to disconnect from device:", deviceId, error);
+        // disconnectDevice(deviceId);
+        // console.log("Failed to disconnect from device:", deviceId, error);
       }
     } else {
       try {
-        console.log("Connecting to device:", deviceId);
+        console.log("Connecting to device:", device.id);
         // Attempt to connect to the device
-        await connectToDevice(deviceId);
-        // console.log("Test disconnect");
-        // await testDisconnect(deviceId);
-        // Update the status only if the connection was successful
-        updateDeviceStatus(deviceId, true);
+        await connectToDevice(device);
       } catch (error) {
-        console.log("Failed to connect to device:", deviceId, error);
+        console.log("Failed to connect to device:", device.id, error);
         // Optionally, inform the user that the connection failed
       }
     }
   };
 
   // Update device status in the list based on its connection status
-  const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
-    setDeviceList((prevList: any) =>
-      prevList.map((d: any) =>
-        d.id === deviceId ? { ...d, isConnect: isConnect } : d
-      )
-    );
-  };
 
   const startScan = async () => {
-    setDeviceList([]); // Clear the list before starting a new scan
     console.log("Scanning...");
     setScanning(true);
 
-    bleManager.onStateChange((state) => {
-      if (state === State.PoweredOn) {
-        bleManager.startDeviceScan(null, null, (error, device) => {
-          if (error) {
-            console.log("Scan error:", error);
-            return;
-          }
-
-          if (device) {
-            setDeviceList((prev: any) => {
-              const deviceExists = prev.some((d: any) => d.id === device.id);
-
-              if (device.name === "Trainning_PAD" && !deviceExists) {
-                console.log("Device found:", device.id, device.name);
-
-                return [...prev, { ...device, isConnect: false }];
-              }
-              return prev;
-            });
-          }
-        });
-      }
-    }, true);
+    scanForPeripherals();
 
     setTimeout(() => {
-      bleManager.stopDeviceScan();
       setScanning(false);
       console.log("Scan stopped after 10 seconds.");
     }, 10000);
   };
 
-  useEffect(() => {
-    // Update device connection statuses when connectedDevices change
-    setDeviceList((prev: any) =>
-      prev.map((device: any) => ({
-        ...device,
-        isConnect: connectedDevices.some((d) => d.deviceId === device.id),
-      }))
-    );
-  }, [connectedDevices]);
-
   // Separate the devices into connected and disconnected groups
 
   const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
-    const isConnect = module.find((m) => m?.deviceId == device?.id);
+    const isConnect = connectedDevice.find((m) => m?.id == device?.id);
     // console.log(device);
-    console.log(isConnect);
     return (
       <View
         style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
@@ -152,7 +108,7 @@ const BLE = () => {
 
         <TouchableOpacity
           style={styles.blinkButton}
-          onPress={() => toggleConnection(device.id)}
+          onPress={() => toggleConnection(device)}
         >
           <Text style={tw`text-gray-700`}>
             {isConnect ? "Disconnect" : "Connect"}
@@ -182,9 +138,9 @@ const BLE = () => {
         </Text>
       </View>
       <FlatList
-        data={connectedDevices}
-        keyExtractor={(item) => item?.deviceId}
-        renderItem={({ item }) => <DeviceItem device={item.device} />}
+        data={connectedDevice.filter((d) => d != null)}
+        keyExtractor={(item) => item?.id as string}
+        renderItem={({ item }) => <DeviceItem device={item as Device} />}
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No connected devices</Text>
         }
@@ -198,8 +154,8 @@ const BLE = () => {
         </Text>
       </View>
       <FlatList
-        data={deviceList.filter(
-          (d) => d != null && !module.find((m) => m?.deviceId == d.id)
+        data={allDevices.filter(
+          (d) => d != null && !connectedDevice.find((m) => m?.id == d.id)
         )}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
