@@ -96,13 +96,13 @@ export default function Home() {
       CHARACTERISTIC.BUTTONS.toLocaleLowerCase(),
       (error, characteristic) => {
         if (error) {
-          console.error(
-            "Failed to monitor characteristic:",
-            error,
-            error.iosErrorCode,
-            error.errorCode
-          );
-          return;
+          // console.error(
+          //   "Failed to monitor characteristic:",
+          //   error,
+          //   error.iosErrorCode,
+          //   error.errorCode
+          // );
+          // return;
         }
         console.log("Received characteristic:", characteristic);
       }

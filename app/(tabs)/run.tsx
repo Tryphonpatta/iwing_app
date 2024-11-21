@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions } from "react-native";
-import ManualScreen from "./running/manual";
+// import ManualScreen from "./running/manual";
 import PatternScreen from "./running/pattern";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -15,7 +15,7 @@ const RunScreen = () => {
 	}, []);  // Reset selected mode when returning to this screen
 
 	if (selectedMode === "manual") {
-		return <ManualScreen />;
+		// return <ManualScreen />;
 	}
 
 	if (selectedMode === "pattern") {
@@ -25,13 +25,6 @@ const RunScreen = () => {
 	return (
 		<View style={styles.container}>
 			<Text style={styles.title}>Choose Your Mode</Text>
-
-			{/* <View style={styles.imageContainer}>
-				<Image
-					source={{ uri: "https://yourimageurl.com/modern-image.jpg" }}
-					style={styles.backgroundImage}
-				/>
-			</View> */}
 
 			<View style={styles.buttonContainer}>
 				<TouchableOpacity
@@ -104,7 +97,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#264653",
 	},
 	unselected: {
-		backgroundColor: "#e76f51",
+		backgroundColor: "#2f855a",
 	},
 	buttonText: {
 		fontSize: 16,

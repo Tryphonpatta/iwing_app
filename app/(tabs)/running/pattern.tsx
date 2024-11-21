@@ -7,6 +7,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Modal
 } from "react-native";
 import Field from "./field";
 import RunScreen from "../run";
@@ -14,10 +15,10 @@ import InputSpinner from "react-native-input-spinner";
 import { Ionicons } from "@expo/vector-icons";
 
 const modes = [
-  { id: 1, icon: "walk" }, // Walk icon (default behavior)
-  { id: 2, icon: "bicycle" }, // Bicycle icon (new behavior)
-  { id: 3, icon: "car" },
-  { id: 4, icon: "train" },
+  { id: 1, icon: "dice", description: "Random: The pattern is selected randomly each time." },
+  { id: 2, icon: "walk", description: "Sequence: The pattern follows a fixed sequence (R1 → L1 → L2 → R2)." },
+  { id: 3, icon: "stop-circle", description: "Stop Mode 1: Nothing." },
+  { id: 4, icon: "stop-circle", description: "Stop Mode 2: Nothing." },
 ];
 
 const PatternScreen = () => {
@@ -28,6 +29,7 @@ const PatternScreen = () => {
   const [goField, setShowField] = useState(false);
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [selectedMode, setSelectedMode] = useState(modes[0].id);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const shakeAnimation = useRef(new Animated.Value(0)).current;
 
@@ -60,31 +62,6 @@ const PatternScreen = () => {
     }
   };
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shakeAnimation, {
-          toValue: 5,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnimation, {
-          toValue: -5,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnimation, {
-          toValue: 0,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
   if (showRunScreen) {
     return <RunScreen />;
   }
@@ -109,6 +86,16 @@ const PatternScreen = () => {
         size={80}
         color={selectedMode === item.id ? "#2f855a" : "#ccc"}
       />
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: "bold",
+          color: selectedMode === item.id ? "#2f855a" : "#777",
+          marginTop: 5,
+        }}
+      >
+        {item.description.split(":")[0]}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -121,6 +108,17 @@ const PatternScreen = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Pattern Mode</Text>
       </View>
+      
+        {/* Info Button */}
+        <View style={{ alignItems: "flex-end", width: "97%", marginVertical: 10 }}>
+          <TouchableOpacity
+            style={{ flexDirection: "row", alignItems: "center" }}
+            onPress={() => setShowInfoModal(true)}
+          >
+            <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
+            <Text style={{ fontSize: 16, color: "#2f855a" }}>Info</Text>
+          </TouchableOpacity>
+        </View>
 
       <View style={styles.container}>
         <Text style={styles.selectText}>SELECT</Text>
@@ -134,6 +132,7 @@ const PatternScreen = () => {
             pagingEnabled
           />
         </View>
+
 
         {/* Input Spinners */}
         <InputSpinner
@@ -189,6 +188,32 @@ const PatternScreen = () => {
         <TouchableOpacity style={styles.startButton} onPress={handleStart}>
           <Text style={styles.startButtonText}>Start</Text>
         </TouchableOpacity>
+
+        {/* Info Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showInfoModal}
+          onRequestClose={() => setShowInfoModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Mode Explanations</Text>
+              {modes.map((mode) => (
+                <Text key={mode.id} style={styles.modalText}>
+                  <Text style={{ fontWeight: "bold" }}>{mode.description.split(":")[0]}: </Text>
+                  {mode.description.split(":")[1]}
+                </Text>
+              ))}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowInfoModal(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -228,17 +253,16 @@ const styles = StyleSheet.create({
   selectText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "red",
+    color: "#2f855a",
     marginBottom: 10,
   },
   modeSelector: {
     borderWidth: 2,
-    borderColor: "red",
+    borderColor: "#2f855a",
     padding: 10,
     marginBottom: 20,
     borderRadius: 10,
     width: "80%",
-    height: 120,
     alignItems: "center",
   },
   iconContainer: {
@@ -274,6 +298,37 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#fff",
     fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 10,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  closeButton: {
+    backgroundColor: "#2f855a",
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: "#fff",
+    textAlign: "center",
   },
 });
 
