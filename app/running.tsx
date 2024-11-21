@@ -13,13 +13,14 @@ import { Module } from "@/util/buttonType";
 import { MaterialIcons } from "@expo/vector-icons";
 import Draggable from "react-native-draggable";
 import { useIconPosition } from "./(tabs)/IconPositionContext";
+import { Device } from "react-native-ble-plx";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 function ShowPad(props: any) {
-  const { connectedDevices } = useBleManager();
+  const { connectedDevice } = useBleManager();
   const { positions, setPosition } = useIconPosition();
-  const [module, setModule] = React.useState<Module[]>([]);
+  const [Device, setDevice] = React.useState<Device[]>([]);
 
   useEffect(() => {
     console.log("ActivePadIndexRef updated:", props.activePadIndexRef);
@@ -29,7 +30,7 @@ function ShowPad(props: any) {
     device,
     pad_no,
   }: {
-    device: Module;
+    device: Device;
     pad_no: number;
   }) => (
     <Draggable
@@ -62,7 +63,7 @@ function ShowPad(props: any) {
     pad_no,
     activePadIndex,
   }: {
-    device: Module;
+    device: Device;
     pad_no: number;
     activePadIndex: number;
   }) => (
@@ -85,23 +86,20 @@ function ShowPad(props: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View>
-        {connectedDevices.length > 0 ? (
+        {connectedDevice.length > 0 ? (
           props.isPlaying ? (
-            connectedDevices.map((device, index) => (
+            connectedDevice &&
+            connectedDevice.map((device: any, index: number) => (
               <StillDevice
-                key={device.deviceId}
-                device={device}
+                key={(device as Device).id}
+                device={device as Device}
                 pad_no={index}
                 activePadIndex={props.activePadIndex}
               />
             ))
           ) : (
-            connectedDevices.map((device, index) => (
-              <DeviceDraggable
-                key={device.deviceId}
-                device={device}
-                pad_no={index}
-              />
+            connectedDevice.map((device: any, index: number) => (
+              <DeviceDraggable key={device.id} device={device} pad_no={index} />
             ))
           )
         ) : (

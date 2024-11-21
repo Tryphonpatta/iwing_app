@@ -18,7 +18,8 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
-  const { bleManager, connectToDevice, connectedDevices } = useBleManager(); // BLE context values
+  const bleManager = new BleManager();
+  const { connectToDevice, connectedDevice } = useBleManager(); // BLE context values
   const [deviceList, setDeviceList] = useState<DeviceCustom[]>([]); // List of BLE devices with custom type
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
 
@@ -36,7 +37,7 @@ const BLE = () => {
       try {
         console.log("Connecting to device:", device.id);
         // Attempt to connect to the device
-        await connectToDevice(device.id);
+        await connectToDevice(device);
         // Update the status only if the connection was successful
         updateDeviceStatus(device.id, true);
       } catch (error) {
@@ -94,10 +95,10 @@ const BLE = () => {
     setDeviceList((prev: any) =>
       prev.map((device: any) => ({
         ...device,
-        isConnect: connectedDevices.some((d) => d.deviceId === device.id),
+        isConnect: connectedDevice.some((d) => d.id === device.id),
       }))
     );
-  }, [connectedDevices]);
+  }, [connectedDevice]);
 
   // Separate the devices into connected and disconnected groups
   const connectedDevicesList = deviceList.filter((device) => device.isConnect);

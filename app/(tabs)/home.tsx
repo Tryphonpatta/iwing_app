@@ -15,16 +15,18 @@ import { SelectList } from "react-native-dropdown-select-list";
 import { base64toDec, base64toDecManu, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { BleManager, Device } from "react-native-ble-plx";
 
 // Define the type for the module state
-type ModuleHome = Module | null;
+type ConnectedDevice = Device | null;
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
-  const { bleManager, connectedDevices, writeCharacteristic, turnOn_light } =
+  const { connectedDevice, writeCharacteristic, turnOn_light } =
     useBleManager();
-  const [module, setModule] = React.useState<ModuleHome[]>([]);
+  const blemanager = new BleManager();
+  const [module, setModule] = React.useState<ConnectedDevice[]>([]);
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
@@ -32,23 +34,22 @@ export default function Home() {
   const isCalibratingRef = React.useRef(isCalibrating);
 
   React.useEffect(() => {
-    console.log("Connected devices: ", connectedDevices);
-    const moduleTemp: ModuleHome[] = [];
-    for (let i = 0; i < connectedDevices.length; i++) {
-      moduleTemp.push(connectedDevices[i]);
+    console.log("Connected devices: ", connectedDevice);
+    const moduleTemp: ConnectedDevice[] = [];
+    for (let i = 0; i < connectedDevice.length; i++) {
+      moduleTemp.push(connectedDevice[i] as Device);
     }
     console.log("Module: ", moduleTemp);
     setModule(moduleTemp);
-  }, [connectedDevices]);
-  const blink = async (device: Module) => {
+  }, [connectedDevice]);
+  const blink = async (device: Device) => {
     console.log("Blinking");
     let redLight = true;
     const redColor = "/wAB";
     const blueColor = "AAD/";
     for (let i = 0; i < 10; i++) {
       await writeCharacteristic(
-        device.deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
+        device,
         CHARACTERISTIC.LED,
         redLight ? redColor : blueColor
       );
@@ -56,19 +57,14 @@ export default function Home() {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     //turn off the led light
-    await writeCharacteristic(
-      device.deviceId,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.LED,
-      "AAAA"
-    );
+    await writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
   };
 
   const DeviceCard = ({
     device,
     pad_no,
   }: {
-    device: Module;
+    device: Device;
     pad_no: number;
   }) => (
     <View style={styles.cardcontainer}>
@@ -76,7 +72,11 @@ export default function Home() {
       <View style={styles.cardcontent}>
         <Text>Trainer Pad : {pad_no}</Text>
         <View style={styles.blinkbutton}>
-          <TouchableOpacity onPress={() => blink(connectedDevices[pad_no])}>
+          <TouchableOpacity
+            onPress={() =>
+              turnOn_light(connectedDevice[pad_no] as Device, "blue")
+            }
+          >
             <Text style={tw`text-gray-700 `}>Blink</Text>
           </TouchableOpacity>
         </View>
@@ -101,7 +101,7 @@ export default function Home() {
       </View>
       <FlatList
         data={module}
-        keyExtractor={(item, index) => (item ? item.deviceId : `null-${index}`)}
+        keyExtractor={(item, index) => (item ? item.id : `null-${index}`)}
         renderItem={({ item, index }) =>
           item && <DeviceCard device={item} pad_no={index} />
         }

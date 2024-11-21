@@ -73,8 +73,7 @@ const StartGame = () => {
   }, [isPlaying]);
 
   // Destructure BLE manager functions and connected devices from the context
-  const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
-    useBleManager();
+  const { connectedDevice, turnOn_light, turnOff_light } = useBleManager();
   let gameEndTime: number;
 
   // Define the type for route parameters received from the training page
@@ -242,27 +241,27 @@ const StartGame = () => {
     try {
       // ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
       console.log(
-        `active padingix->${activePadIndexRef}, length conntect->${connectedDevices.length}`
+        `active padingix->${activePadIndexRef}, length conntect->${connectedDevice.length}`
       );
 
       if (
-        connectedDevices.length === 0 ||
+        connectedDevice.length === 0 ||
         activePadIndexRef < 0 ||
-        activePadIndexRef >= connectedDevices.length
+        activePadIndexRef >= connectedDevice.length
       ) {
         console.log("No valid connected devices or invalid activePadIndex.");
         return -1;
       }
 
-      const device = connectedDevices[activePadIndexRef];
+      const device = connectedDevice[activePadIndexRef];
       // อ่านค่าปุ่มจากอุปกรณ์
       const press = await readCharacteristic(
-        device.deviceId,
+        device,
         CHARACTERISTIC.IWING_TRAINERPAD,
         CHARACTERISTIC.BUTTONS
       );
 
-      console.log(`Device ${device.deviceId} - press: ${press}`);
+      console.log(`Device ${device.id} - press: ${press}`);
       if (press === null) {
         return -1;
       } else {
@@ -282,7 +281,7 @@ const StartGame = () => {
     delay: number
   ) => {
     const activateRandomPad = () => {
-      const totalPads = connectedDevices.length;
+      const totalPads = connectedDevice.length;
       const randomIndex = Math.floor(Math.random() * totalPads);
       console.log(`Activated pad index: ${randomIndex}`);
       return randomIndex; // Return the selected index
@@ -297,7 +296,7 @@ const StartGame = () => {
       setIsPlaying(false);
       return;
     }
-    if (connectedDevices.length === 0) {
+    if (connectedDevice.length === 0) {
       setIsPlaying(false);
       return;
     }
@@ -335,12 +334,12 @@ const StartGame = () => {
       setActivePadIndex(activateRandomPad());
       activePadIndexRef.current = activateRandomPad();
       setActivePadIndex(activePadIndexRef.current);
-      const activedevice = connectedDevices[activePadIndexRef.current];
+      const activedevice = connectedDevice[activePadIndexRef.current];
       console.log(`current ${currenttime}, time prev ${activePadTime}`);
       if (activedevice && wait_hit === false) {
         await turnOn_light(activedevice, "blue");
         activePadTime = Date.now(); // Update time_prev immediately after turning on the light
-        console.log(`Light turned on for device ${activedevice.deviceId}`);
+        console.log(`Light turned on for device ${activedevice.id}`);
 
         const { clear, promise } = createInterval(async () => {
           if (wait_hit === true) return;
@@ -368,7 +367,7 @@ const StartGame = () => {
           ) {
             await turnOff_light(activedevice);
             setActivePadIndex(-1);
-            console.log(`Light turned off for device ${activedevice.deviceId}`);
+            console.log(`Light turned off for device ${activedevice.id}`);
             // activePadTime = Date.now(); // Update time_prev immediately after turning off the light
             wait_hit = true;
             setTimeout(() => {

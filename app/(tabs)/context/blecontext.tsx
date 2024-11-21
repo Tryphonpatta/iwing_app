@@ -1,342 +1,301 @@
-import { CHARACTERISTIC } from "../../../enum/characteristic";
-import { Module } from "../../../util/buttonType";
-import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { BleManager, Device } from "react-native-ble-plx";
+import { PermissionsAndroid, Platform } from "react-native";
+import {
+  BleError,
+  BleManager,
+  Characteristic,
+  Device,
+  Subscription,
+} from "react-native-ble-plx";
+import * as ExpoDevice from "expo-device";
+import { CHARACTERISTIC } from "@/enum/characteristic";
+import { base64toDec } from "@/util/encode";
 
-type ModuleHome = Module | null;
-interface BleManagerContextType {
-  bleManager: BleManager;
-  connectedDevices: Module[];
-  module: ModuleHome[];
-  setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
-  setConnectedDevices: React.Dispatch<React.SetStateAction<Module[]>>;
-  disconnectDevice: (deviceId: string) => Promise<void>;
-  connectToDevice: (deviceId: string) => void;
+// type Module = {
+//   batteryVoltage: number;
+//   batteryCharging: boolean;
+//   batteryFull: boolean;
+//   buttonPressed: boolean;
+//   vibration: boolean;
+//   IR_RX: boolean;
+//   mode: number;
+//   device: Device;
+// };
+
+type ConnectedDevice = Device | null;
+
+interface BleContextType {
+  allDevices: Device[];
+  connectedDevice: ConnectedDevice[];
+  buttonStatus: Boolean | null;
+  requestPermissions: () => Promise<boolean>;
+  scanForPeripherals: () => void;
+  connectToDevice: (device: Device) => Promise<void>;
+  startStreamingData: (device: Device, characteristic: string) => Promise<void>;
   writeCharacteristic: (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string,
+    device: Device,
+    characteristic: string,
     value: string
-  ) => void;
-  readCharacteristic: (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string
-  ) => Promise<number | null>;
-  turnOn_light: (device: Module, color: string) => void;
-  turnOff_light: (device: Module) => void;
-  // Add other functions as needed
+  ) => Promise<void>;
+  swapConnectedDevice: (i: number, j: number) => void;
+  disconnectDevice: (device: Device) => Promise<void>;
+  monitorCharacteristic: (
+    device: Device,
+    setFunction: (data: any) => void,
+    characteristic: string
+  ) => Promise<Subscription | undefined>;
+  turnOn_light: (device: Device, color: string) => Promise<void>;
+  turnOff_light: (device: Device) => Promise<void>;
 }
 
-const BleManagerContext = createContext<BleManagerContextType | undefined>(
-  undefined
-);
+const BleContext = createContext<BleContextType | undefined>(undefined);
 
-export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
+const bleManager = new BleManager();
+
+export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [module, setModule] = useState<ModuleHome[]>([]);
-  const [bleManager] = useState(new BleManager());
-  const [connectedDevices, setConnectedDevices] = useState<Module[]>([]);
+  const [allDevices, setAllDevices] = useState<Device[]>([]);
+  const [connectedDevice, setConnectedDevice] = useState<ConnectedDevice[]>([
+    null,
+    null,
+    null,
+    null,
+  ]);
+  const [buttonStatus, setButtonStatus] = useState<Boolean | null>(null);
 
-  const disconnectDevice = async (deviceId: string) => {
-    try {
-      console.log(`Checking if device ${deviceId} is connected...`);
-      const isConnected = await bleManager.isDeviceConnected(deviceId);
-      console.log(`Is device ${deviceId} connected: `, isConnected);
+  const requestAndroid31Permissions = async () => {
+    const permissions = [
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    ];
+    const results = await PermissionsAndroid.requestMultiple(permissions);
 
-      if (isConnected) {
-        console.log(`Attempting to disconnect from device: ${deviceId}`);
-
-        // Cancel the device connection
-        await bleManager.cancelDeviceConnection(deviceId);
-        console.log("Disconnected from device: ", deviceId);
-
-        // Remove the device from the connectedDevices array
-        setConnectedDevices((prev) =>
-          prev.filter((device) => device.deviceId !== deviceId)
-        );
-      } else {
-        console.log(`Device ${deviceId} is not connected.`);
-      }
-    } catch (error) {
-      console.error("Failed to disconnect from device: ", deviceId, error);
-    }
+    return Object.values(results).every((result) => result === "granted");
   };
 
-  const connectToDevice = async (deviceId: string) => {
-    try {
-      console.log(`Connecting to device: ${deviceId}`);
-      const isConnected = await bleManager.isDeviceConnected(deviceId);
-      if (isConnected) {
-        console.log(`Device ${deviceId} is already connected.`);
-        return;
-      }
-
-      const device = await bleManager.connectToDevice(deviceId);
-      console.log(`Connected to device: ${deviceId}`);
-
-      await device.discoverAllServicesAndCharacteristics();
-
-      const characteristicMap = new Map<string, number>();
-      const services = await device.services();
-      for (const service of services) {
-        const characteristics = await service.characteristics();
-
-        for (const characteristic of characteristics) {
-          if (!characteristic.isReadable) {
-            continue;
-          }
-          console.log("Characteristic UUID:", characteristic.uuid);
-          const value = await characteristic.read();
-          console.log("Values:", base64toDec(value.value as string));
-
-          // Store the value in the characteristicMap
-          characteristicMap.set(
-            characteristic.uuid.toUpperCase(),
-            base64toDec(value.value as string)
-          );
-        }
-      }
-
-      const existingDevice = connectedDevices.find(
-        (e) => e.deviceId === device.id
-      );
-      if (existingDevice) {
-        console.log("Device already exists in connectedDevices.");
-        const index = connectedDevices.findIndex(
-          (e) => e.deviceId === device.id
-        );
-        const updatedModule = connectedDevices[index];
-        updatedModule.batteryVoltage =
-          characteristicMap.get(CHARACTERISTIC.BATT_VOLTAGE) || 0;
-        setConnectedDevices((prev) => {
-          const newDevices = [...prev];
-          newDevices[index] = updatedModule;
-          return newDevices;
-        });
-      } else {
-        console.log("Adding new device to connectedDevices.");
-        const batteryVoltageValue = characteristicMap.get(
-          CHARACTERISTIC.BATT_VOLTAGE
-        );
-        setConnectedDevices((prev) => [
-          ...prev,
+  const requestPermissions = async () => {
+    if (Platform.OS === "android") {
+      if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
-            deviceId: deviceId,
-            batteryVoltage: batteryVoltageValue || 0,
-            bleManager: bleManager,
-            battFull: false,
-            battCharging: false,
-            IR_RX_status: false,
-            VIB_threshold: 0,
-            IR_TX_status: false,
-            music: "",
-            device: device, // Store the device object
-          },
-        ]);
+            title: "Location Permission",
+            message: "Bluetooth Low Energy requires Location",
+            buttonPositive: "OK",
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } else {
+        return await requestAndroid31Permissions();
       }
-    } catch (error) {
-      console.error(`Failed to connect to device: ${deviceId}`, error);
+    } else {
+      return true;
     }
   };
 
-  const writeCharacteristic = async (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string,
-    value: string
-  ) => {
+  const connectToDevice = async (device: Device) => {
     try {
-      console.log(
-        "Writing to characteristic: ",
-        characteristicUUID.toLowerCase()
-      );
-      console.log("Value: ", value);
-
-      // Retrieve the device from connectedDevices
-      const deviceEntry = connectedDevices.find(
-        (device) => device.deviceId === deviceId
-      );
-
-      if (!deviceEntry) {
-        console.error(`Device ${deviceId} not found in connected devices.`);
-        return;
-      }
-
-      const device = deviceEntry.device;
-
-      const isConnected = await device.isConnected();
-      if (!isConnected) {
-        console.log(`Device ${deviceId} is not connected. Reconnecting...`);
-        await device.connect();
-        await device.discoverAllServicesAndCharacteristics();
-      }
-
-      await device.writeCharacteristicWithResponseForService(
-        serviceUUID,
-        characteristicUUID.toLowerCase(),
-        value
-      );
-      console.log(`Successfully wrote to characteristic on device ${deviceId}`);
-    } catch (error) {
-      console.error(
-        `Failed to write to characteristic: ${characteristicUUID}`,
-        error
-      );
-    }
-  };
-
-  const readCharacteristic = async (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string
-  ) => {
-    try {
-      console.log("Reading from device: ", deviceId);
-      console.log(
-        "Reading from characteristic: ",
-        characteristicUUID.toLowerCase()
-      );
-
-      // Retrieve the device from connectedDevices
-      const deviceEntry = connectedDevices.find(
-        (device) => device.deviceId === deviceId
-      );
-
-      if (!deviceEntry) {
-        console.error(`Device ${deviceId} not found in connected devices.`);
-        return null;
-      }
-
-      const device = deviceEntry.device;
-
-      const isConnected = await device.isConnected();
-      if (!isConnected) {
-        console.log(`Device ${deviceId} is not connected. Reconnecting...`);
-        await device.connect();
-        await device.discoverAllServicesAndCharacteristics();
-      }
-
-      const characteristic = await device.readCharacteristicForService(
-        serviceUUID,
-        characteristicUUID
-      );
-      console.log("Characteristic value: ", characteristic.value);
-      return base64toDec(characteristic.value as string);
-    } catch (error) {
-      console.error(
-        `Failed to read from characteristic: ${characteristicUUID}`,
-        error
-      );
-      return null;
-    }
-  };
-  const blink = async (device: Module) => {
-    console.log("Blinking");
-    let redLight = true;
-    const redColor = "/wAB";
-    const blueColor = "AAD/";
-    for (let i = 0; i < 10; i++) {
-      await writeCharacteristic(
-        device.deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.LED,
-        redLight ? redColor : blueColor
-      );
-      redLight = !redLight;
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-    //turn off the led light
-    await writeCharacteristic(
-      device.deviceId,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.LED,
-      "AAAA"
-    );
-  };
-  // Function to turn on LED light
-  const turnOn_light = async (device: Module, color: string) => {
-    try {
-      // console.log(
-      // 	`Turning on ${device.deviceId} ${color} light for ${sec} seconds`
-      // );
-
-      // Define color codes
-      const redColor = "/wAB";
-      const blueColor = "AAD/";
-      const offColor = "AAAA";
-
-      // Choose color based on input
-      const onColor = color === "blue" ? blueColor : redColor;
-
-      await writeCharacteristic(
-        device.deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.LED,
-        onColor
-      );
-
-      // Wait for the specified duration
-      // await new Promise((resolve) => setTimeout(resolve, sec * 1000));
-    } catch (error) {
-      console.error(
-        `Error turning on light for device ${device.deviceId}:`,
-        error
-      );
-    }
-  };
-
-  const turnOff_light = async (device: Module) => {
-    try {
-      await writeCharacteristic(
-        device.deviceId,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.LED,
-        "AAAA"
-      );
-      console.log(`Turning off ${device.deviceId}`);
-    } catch (error) {
-      console.error(
-        `Error turning off light for device ${device.deviceId}:`,
-        error
-      );
+      const deviceConnection = await bleManager.connectToDevice(device.id);
+      await deviceConnection.discoverAllServicesAndCharacteristics();
+      const index = connectedDevice.findIndex((d) => d === null);
+      const tempDevices = connectedDevice;
+      tempDevices[index] = deviceConnection;
+      setConnectedDevice(tempDevices);
+      bleManager.stopDeviceScan();
+    } catch (e) {
+      console.log("FAILED TO CONNECT", e);
     }
   };
 
   useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      bleManager.destroy();
-    };
-  }, [bleManager]);
+    console.log("Connected Device Updated:", connectedDevice);
+  }, [connectedDevice]);
+
+  const isDuplicateDevice = (devices: Device[], nextDevice: Device) =>
+    devices.findIndex((device) => nextDevice.id === device.id) > -1;
+
+  const scanForPeripherals = () => {
+    console.log("scanning for peripherals");
+    bleManager.startDeviceScan([], null, (error, device) => {
+      if (error) {
+        console.log(error);
+      }
+      if (device && device.name === "Trainning_PAD") {
+        setAllDevices((prevState: Device[]) => {
+          if (!isDuplicateDevice(prevState, device)) {
+            console.log("ID: ", device.id);
+            console.log("Name: ", device.name);
+            console.log("-----------------------------");
+            return [...prevState, device];
+          }
+          return prevState;
+        });
+      }
+    });
+  };
+
+  const onDataUpdate = (
+    error: BleError | null,
+    characteristic: Characteristic | null
+  ) => {
+    if (error) {
+      console.log(error);
+      return;
+    } else if (!characteristic?.value) {
+      console.log("No Data was received");
+      return;
+    }
+    console.log(characteristic.value);
+    // const buffer = Buffer.from(characteristic.value, "base64");
+    // if (buffer.readUInt8(0)) {
+    //   console.log("*** Button pressed");
+    //   setButtonStatus(true);
+    // } else {
+    //   console.log("*** Button released");
+    //   setButtonStatus(false);
+    // }
+  };
+
+  const startStreamingData = async (device: Device, characteristic: string) => {
+    if (device) {
+      await device.discoverAllServicesAndCharacteristics();
+      const sub = device.monitorCharacteristicForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristic,
+        onDataUpdate
+      );
+    } else {
+      console.log("No Device Connected");
+    }
+  };
+
+  const writeCharacteristic = async (
+    device: Device,
+    characteristic: string,
+    value: string
+  ) => {
+    try {
+      if (device) {
+        await device.writeCharacteristicWithResponseForService(
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          characteristic,
+          value
+        );
+        console.log("Data written to characteristic");
+      } else {
+        console.log("No Device Connected");
+      }
+    } catch (e) {
+      console.log("Failed to write to characteristic", e);
+    }
+  };
+
+  const swapConnectedDevice = (i: number, j: number) => {
+    setConnectedDevice((prevDevices) => {
+      const newDevices = [...prevDevices];
+      const temp = newDevices[i];
+      newDevices[i] = newDevices[j];
+      newDevices[j] = temp;
+      return newDevices;
+    });
+  };
+
+  const disconnectDevice = async (device: Device) => {
+    try {
+      await device.cancelConnection();
+      console.log("Disconnected from device");
+      console.log(connectedDevice);
+      const tempDevices = connectedDevice;
+      const index = tempDevices.findIndex((d) => d?.id === device.id);
+      tempDevices[index] = null;
+      console.log(tempDevices);
+      setConnectedDevice(tempDevices);
+    } catch (e) {
+      console.log("Failed to disconnect from device", e);
+    }
+  };
+
+  const monitorCharacteristic = async (
+    device: Device,
+    setFunction: (data: any) => void,
+    characteristic: string
+  ) => {
+    try {
+      if (device && (await device.isConnected())) {
+        const sub = device.monitorCharacteristicForService(
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          CHARACTERISTIC.BUTTONS,
+          (error, characteristic) => {
+            if (error) {
+              console.log("Error monitoring characteristic", error);
+              return;
+            }
+            if (!characteristic?.value) {
+              console.log("No data received");
+              return;
+            }
+            setFunction(base64toDec(characteristic.value as string) === 1);
+          }
+        );
+
+        return sub;
+      }
+    } catch (e) {
+      console.log("Failed to monitor characteristic", e);
+    }
+  };
+
+  const turnOn_light = async (device: Device, color: string) => {
+    if (color === "red") {
+      color = "/wAB";
+    } else if (color === "blue") {
+      color = "AAD/";
+    }
+    try {
+      await writeCharacteristic(device, CHARACTERISTIC.LED, "color");
+      // Wait for the specified duration
+      // await new Promise((resolve) => setTimeout(resolve, sec * 1000));
+    } catch (error) {
+      console.error(`Error turning on light for device ${device.id}:`, error);
+    }
+  };
+  const turnOff_light = async (device: Device) => {
+    try {
+      writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
+    } catch (error) {
+      console.error(`Error turning off light for device ${device.id}:`, error);
+    }
+  };
 
   return (
-    <BleManagerContext.Provider
+    <BleContext.Provider
       value={{
-        bleManager,
-        connectedDevices,
-        module,
-        setModule,
-        setConnectedDevices,
-        disconnectDevice,
+        allDevices,
+        connectedDevice,
+        buttonStatus,
+        requestPermissions,
+        scanForPeripherals,
         connectToDevice,
+        startStreamingData,
         writeCharacteristic,
-        readCharacteristic,
-        turnOn_light,
+        swapConnectedDevice,
+        disconnectDevice,
+        monitorCharacteristic,
         turnOff_light,
+        turnOn_light,
       }}
     >
       {children}
-    </BleManagerContext.Provider>
+    </BleContext.Provider>
   );
 };
 
 export const useBleManager = () => {
-  const context = useContext(BleManagerContext);
-  if (context === undefined) {
-    throw new Error("useBleManager must be used within a BleManagerProvider");
+  const context = useContext(BleContext);
+  if (!context) {
+    throw new Error("useBle must be used within a BleProvider");
   }
   return context;
 };
