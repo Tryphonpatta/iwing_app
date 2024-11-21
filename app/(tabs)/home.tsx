@@ -376,12 +376,15 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                // if (selectedModule && module[selectedModule - 1] != null) {
+                // if (
+                //   selectedModule &&
+                //   connectedDevice[selectedModule - 1] != null
+                // ) {
                 //   disconnectDevice(
-                //     module[selectedModule - 1]?.deviceId as string
+                //     connectedDevice[selectedModule - 1] as Device
                 //   );
                 // }
-                test();
+                startStreamingData(connectedDevice[selectedModule as number - 1] as Device, CHARACTERISTIC.BUTTONS)
               }}
             >
               <Text

@@ -2,28 +2,39 @@ import { CHARACTERISTIC } from "../../../enum/characteristic";
 import { Module } from "../../../util/buttonType";
 import { base64toDec } from "../../../util/encode";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { BleManager, Device, Subscription } from "react-native-ble-plx";
+import { PermissionsAndroid, Platform } from "react-native";
+import {
+  BleError,
+  BleManager,
+  Characteristic,
+  Device,
+  Subscription,
+} from "react-native-ble-plx";
+import * as ExpoDevice from "expo-device";
+import { CHARACTERISTIC } from "@/enum/characteristic";
 
-type ModuleHome = Module | null;
-interface BleManagerContextType {
-  bleManager: BleManager;
-  connectedDevices: Module[];
-  module: ModuleHome[];
-  setModule: React.Dispatch<React.SetStateAction<ModuleHome[]>>;
-  setConnectedDevices: React.Dispatch<React.SetStateAction<Module[]>>;
-  disconnectDevice: (deviceId: string) => Promise<void>;
-  connectToDevice: (deviceId: string) => void;
+type ConnectedDevice = Device | null;
+
+interface BleContextType {
+  allDevices: Device[];
+  connectedDevice: ConnectedDevice[];
+  buttonStatus: Boolean | null;
+  requestPermissions: () => Promise<boolean>;
+  scanForPeripherals: () => void;
+  connectToDevice: (device: Device) => Promise<void>;
+  startStreamingData: (device: Device, characteristic: string) => Promise<void>;
   writeCharacteristic: (
     deviceId: string,
     serviceUUID: string,
     characteristicUUID: string,
     value: string
-  ) => void;
+  ) => Promise<void>;
   readCharacteristic: (
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string
+    device: Device,
+    characteristic: string
   ) => Promise<number | null>;
+  swapConnectedDevice: (i: number, j: number) => void;
+  disconnectDevice: (device: Device) => Promise<void>;
   monitorCharacteristic: (
     device: Device,
     characteristicId: string
@@ -148,9 +159,32 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         return prev.filter(Boolean);
       });
       return;
-    } catch (error) {
-      console.error(`Failed to connect to device: ${deviceId}`, error);
-      return null;
+    } else if (!characteristic?.value) {
+      console.log("No Data was received");
+      return;
+    }
+    console.log(characteristic.value)
+    // const buffer = Buffer.from(characteristic.value, "base64");
+    // if (buffer.readUInt8(0)) {
+    //   console.log("*** Button pressed");
+    //   setButtonStatus(true);
+    // } else {
+    //   console.log("*** Button released");
+    //   setButtonStatus(false);
+    // }
+  };
+
+  const startStreamingData = async (device: Device, characteristic: string) => {
+    if (device) {
+      await device.discoverAllServicesAndCharacteristics();
+
+      const sub = device.monitorCharacteristicForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristic,
+        onDataUpdate
+      );
+    } else {
+      console.log("No Device Connected");
     }
   };
 
@@ -161,27 +195,58 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
+      if (device) {
+        device.writeCharacteristicWithResponseForService(
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          characteristic,
+          value
+        );
+        console.log("Data written to characteristic");
+      } else {
+        console.log("No Device Connected");
+      }
+    } catch (e) {
+      console.log("Failed to write to characteristic", e);
+    }
+  };
+
+  const readCharacteristic = async (
+    deviceId: Device,
+    characteristicUUID: string
+  ) => {
+    try {
+      console.log("Reading from device: ", deviceId);
       console.log(
-        "Writing to characteristic: ",
+        "Reading from characteristic: ",
         characteristicUUID.toLowerCase()
       );
-      console.log("Value: ", value);
-      const device = await bleManager.connectToDevice(deviceId);
+      const device = await bleManager.connectToDevice(deviceId.id);
       await device.discoverAllServicesAndCharacteristics();
-
+      console.log("sender ", deviceId);
       console.log("Connected to device: ", deviceId);
-
-      await device.writeCharacteristicWithResponseForService(
-        serviceUUID,
-        characteristicUUID.toLowerCase(),
-        value
+      const value = await device.readCharacteristicForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristicUUID
       );
+      console.log("value: ", value.value);
+      return base64toDec(value.value as string);
     } catch (error) {
       console.error(
-        `Failed to write to characteristic: ${characteristicUUID}`,
+        `Failed to read from characteristic: ${characteristicUUID}`,
         error
       );
+      return null;
     }
+  };
+
+  const swapConnectedDevice = (i: number, j: number) => {
+    setConnectedDevice((prevDevices) => {
+      const newDevices = [...prevDevices];
+      const temp = newDevices[i];
+      newDevices[i] = newDevices[j];
+      newDevices[j] = temp;
+      return newDevices;
+    });
   };
 
   const readCharacteristic = async (
@@ -257,6 +322,8 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         connectToDevice,
         writeCharacteristic,
         readCharacteristic,
+        swapConnectedDevice,
+        disconnectDevice,
         monitorCharacteristic,
       }}
     >
