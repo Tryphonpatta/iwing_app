@@ -15,7 +15,7 @@ import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 import { ModuleHome } from "./home";
 import { disconnectDevice } from "@/util/ble";
-
+// const bleManager = new BleManager();
 // BLE component for scanning and managing device connections
 type DeviceCustom = Device & { isConnect: boolean };
 const BLE = () => {
@@ -37,7 +37,7 @@ const BLE = () => {
     if (isConnect) {
       try {
         // Disconnect from the device
-        await bleManager.cancelDeviceConnection(deviceId);
+        disconnectDevice(deviceId);
         updateDeviceStatus(deviceId, false);
       } catch (error) {
         disconnectDevice(deviceId);
@@ -48,6 +48,8 @@ const BLE = () => {
         console.log("Connecting to device:", deviceId);
         // Attempt to connect to the device
         await connectToDevice(deviceId);
+        // console.log("Test disconnect");
+        // await testDisconnect(deviceId);
         // Update the status only if the connection was successful
         updateDeviceStatus(deviceId, true);
       } catch (error) {

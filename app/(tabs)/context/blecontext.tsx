@@ -1,7 +1,7 @@
 import { CHARACTERISTIC } from "../../../enum/characteristic";
 import { Module } from "../../../util/buttonType";
 import { base64toDec } from "../../../util/encode";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { BleManager, Device, Subscription } from "react-native-ble-plx";
 
 type ModuleHome = Module | null;
@@ -35,11 +35,12 @@ const BleManagerContext = createContext<BleManagerContextType | undefined>(
   undefined
 );
 
+const bleManager = (new BleManager());
+
 export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [module, setModule] = useState<ModuleHome[]>([]);
-  const [bleManager] = useState(new BleManager());
   const [connectedDevices, setConnectedDevices] = useState<Module[]>([]);
 
   const disconnectDevice = async (deviceId: string) => {
@@ -71,7 +72,6 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     // } else {
     // }
   };
-
   const connectToDevice = async (deviceId: string) => {
     try {
       console.log(`Connecting to device: ${deviceId}`);
@@ -237,7 +237,7 @@ export const BleManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       bleManager.destroy();
     };
-  }, [bleManager]);
+  }, []);
 
   return (
     <BleManagerContext.Provider
