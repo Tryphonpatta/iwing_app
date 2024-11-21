@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from "react"; // Import necessary React hooks
 import {
-	StyleSheet,
-	Text,
-	View,
-	SafeAreaView,
-	TouchableOpacity,
-	Module,
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+  TouchableOpacity,
+  Module,
+  Modal,
 } from "react-native"; // Import React Native components
+import tw from "twrnc";
 import { MaterialIcons } from "@expo/vector-icons"; // Import Material Icons for visual representation
 import { useIconPosition } from "./IconPositionContext"; // Import custom hook for icon positions
 import { RouteProp, useRoute } from "@react-navigation/native"; // Import navigation hooks
@@ -14,332 +16,528 @@ import { useBleManager } from "./context/blecontext"; // Import custom BLE manag
 import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteristics enumeration
 import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
 import { useNavigation } from "@react-navigation/native";
-import { Result } from "@/app/(tabs)/result";
+// import { Result } from "@/app/(tabs)/result";
+import ShowPad from "../running";
 
 function createInterval(callback: any, delay: number) {
-	let intervalId = setInterval(callback, delay);
-	let resolvePromise: any;
+  let intervalId = setInterval(callback, delay);
+  let resolvePromise: any;
 
-	const promise = new Promise((resolve) => {
-		resolvePromise = resolve;
-	});
+  const promise = new Promise((resolve) => {
+    resolvePromise = resolve;
+  });
 
-	const clear = () => {
-		clearInterval(intervalId);
-		resolvePromise();
-	};
+  const clear = () => {
+    clearInterval(intervalId);
+    resolvePromise();
+  };
 
-	return { intervalId, clear, promise };
+  return { intervalId, clear, promise };
 }
 // Define the StartGame functional component
 const StartGame = () => {
-	// Destructure positions from the IconPosition context
-	const { positions } = useIconPosition();
+  // Destructure positions from the IconPosition context
+  // const { positions } = useIconPosition();
 
-	// State to track the currently active pad index; -1 means no active pad
-	const [activePadIndex, setActivePadIndex] = useState(-1);
+  // State to track the currently active pad index; -1 means no active pad
+  const [activePadIndex, setActivePadIndex] = useState(-1);
 
-	//
-	const activePadIndexRef = useRef<number>(activePadIndex);
+  //
+  const activePadIndexRef = useRef<number>(activePadIndex);
+  // setActivePadIndex(-1);
+  // State to track if the game is currently playing
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showResult, setShowresult] = useState(false);
 
-	// State to track if the game is currently playing
-	const [isPlaying, setIsPlaying] = useState(false);
+  // Ref to store the interval ID for hit detection to allow clearing it later
+  const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Ref to store the interval ID for hit detection to allow clearing it later
-	const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref to store the interval ID for pad activation to allow clearing it later
+  const padActivationIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Ref to store the interval ID for pad activation to allow clearing it later
-	const padActivationIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref to keep track of the latest hit count to avoid stale closures
+  const hitCountRef = useRef(0);
 
-	// Ref to keep track of the latest hit count to avoid stale closures
-	const hitCountRef = useRef(0);
+  // Ref to keep track of the latest isPlaying state
+  const isPlayingRef = useRef(isPlaying);
+  // Example positions data for pads
+  const positions = [
+    { x: 50, y: 100 },
+    { x: 150, y: 200 },
+    { x: 250, y: 300 },
+  ];
 
-	// Ref to keep track of the latest isPlaying state
-	const isPlayingRef = useRef(isPlaying);
+  // Update isPlayingRef whenever isPlaying state changes
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
-	// Update isPlayingRef whenever isPlaying state changes
-	useEffect(() => {
-		isPlayingRef.current = isPlaying;
-	}, [isPlaying]);
+  // Destructure BLE manager functions and connected devices from the context
+  const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
+    useBleManager();
+  let gameEndTime: number;
 
-	// Destructure BLE manager functions and connected devices from the context
-	const { connectedDevices, turnOn_light, turnOff_light, readCharacteristic } =
-		useBleManager();
+  // Define the type for route parameters received from the training page
+  type StartScreenParams = {
+    lightOut: string;
+    hitCount: number;
+    timeout: number;
+    lightDelay: string;
+    delaytime: number;
+    duration: string;
+    hitduration: number;
+    minDuration: number;
+    secDuration: number;
+  };
 
-	// Define the type for route parameters received from the training page
-	type StartScreenParams = {
-		lightOut: string;
-		hitCount: number;
-		timeout: number;
-		lightDelay: string;
-		delaytime: number;
-		duration: string;
-		hitduration: number;
-		minDuration: number;
-		secDuration: number;
-	};
+  // Retrieve the route and its parameters using the useRoute hook
+  const route = useRoute<RouteProp<{ start: StartScreenParams }, "start">>();
+  const [pressButton, setPressButton] = useState(false);
 
-	// Retrieve the route and its parameters using the useRoute hook
-	const route = useRoute<RouteProp<{ start: StartScreenParams }, "start">>();
+  // Destructure parameters with default values in case they are undefined
+  const {
+    lightOut = null,
+    hitCount = 0,
+    timeout = 0,
+    lightDelay = null,
+    delaytime = -1,
+    duration = null,
+    hitduration = 0,
+    minDuration = 0,
+    secDuration = 0,
+  } = route.params || {};
+  // Example positions data for pads
+  let currenttime: number, starttime: number;
 
-	// Destructure parameters with default values in case they are undefined
-	const {
-		lightOut = "",
-		hitCount = 0,
-		timeout = 0,
-		lightDelay = "",
-		delaytime = 0,
-		duration = "",
-		hitduration = 0,
-		minDuration = 0,
-		secDuration = 0,
-	} = route.params || {};
+  // State to track the number of hits by the user
+  const [userHitCount, setUserHitCount] = useState(0);
 
-	// State to track the number of hits by the user
-	const [userHitCount, setUserHitCount] = useState(0);
+  // Update hitCountRef whenever userHitCount state changes
+  useEffect(() => {
+    hitCountRef.current = userHitCount;
+  }, [userHitCount]);
 
-	// Update hitCountRef whenever userHitCount state changes
-	useEffect(() => {
-		hitCountRef.current = userHitCount;
-	}, [userHitCount]);
+  // useEffect hook to log the userHitCount whenever it updates
+  useEffect(() => {
+    console.log(`Hit Count updated: ${userHitCount}`);
+  }, [userHitCount]);
 
-	// useEffect hook to log the userHitCount whenever it updates
-	useEffect(() => {
-		console.log(`Hit Count updated: ${userHitCount}`);
-	}, [userHitCount]);
+  const isHitMode = lightOut === "Hit" || lightOut === "Hit or Timeout";
+  const isTimeMode = lightOut === "Timeout" || lightOut === "Hit or Timeout";
+  const isHitModeDur = duration === "Hit" || duration === "Hit or Timeout";
+  const isTimeModeDur = duration === "Timeout" || duration === "Hit or Timeout";
 
-	// Function to detect hits by the user with proper handling of lightOut modes
-	const detectHits = async (activePadIndexRef: number): Promise<number> => {
-		try {
-			// ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
-			console.log(
-				`active padingix->${activePadIndexRef}, length conntect->${connectedDevices.length}`
-			);
+  const Result = ({
+    isHitMode,
+    isTimeMode,
+    isHitModeDur,
+    isTimeModeDur,
+    onClose,
+  }: {
+    isHitMode: boolean;
+    isTimeMode: boolean;
+    isHitModeDur: boolean;
+    isTimeModeDur: boolean;
+    onClose: () => void;
+  }) => (
+    <Modal animationType="slide" transparent={true} visible={showResult}>
+      <View style={styles.overlay}>
+        <View style={styles.detailBox}>
+          <Text style={styles.sectionTitle}>Training Detail</Text>
+          <Text style={styles.separator}>---------------</Text>
 
-			if (
-				connectedDevices.length === 0 ||
-				activePadIndexRef < 0 ||
-				activePadIndexRef >= connectedDevices.length
-			) {
-				console.log("No valid connected devices or invalid activePadIndex.");
-				return -1;
-			}
+          <View style={styles.col}>
+            <Text style={styles.label}>Lights Out</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>• Mode </Text>
+              <Text style={styles.output}>{lightOut}</Text>
+            </View>
+            {isTimeMode && (
+              <View style={styles.row}>
+                <Text style={styles.label}>• Time out </Text>
+                <Text style={styles.output}>{timeout}</Text>
+              </View>
+            )}
+            {isHitMode && (
+              <View style={styles.row}>
+                <Text style={styles.label}>•Hit count</Text>
+                <Text style={styles.output}>{hitCount || "N/A"} times</Text>
+              </View>
+            )}
+          </View>
 
-			const device = connectedDevices[activePadIndexRef];
-			// อ่านค่าปุ่มจากอุปกรณ์
-			const press = await readCharacteristic(
-				device.deviceId,
-				CHARACTERISTIC.IWING_TRAINERPAD,
-				CHARACTERISTIC.BUTTONS
-			);
+          <View style={styles.row}>
+            <Text style={styles.label}>Light Delay Time</Text>
+            <Text style={styles.output}>{delaytime || 0} seconds</Text>
+          </View>
 
-			console.log(`Device ${device.deviceId} - press: ${press}`);
-			if (press === null) {
-				return -1;
-			} else {
-				return press;
-			}
-			return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
-		} catch (error) {
-			console.error("Error in detectHits:", error);
-			return 1;
-		}
-	};
+          <View style={styles.col}>
+            <Text style={styles.label}>Duration</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>• Mode</Text>
+              <Text style={styles.output}>{duration || "N/A"}</Text>
+            </View>
+            {isTimeModeDur && (
+              <View style={styles.row}>
+                <Text style={styles.label}>• Time out</Text>
+                <Text style={styles.output}>
+                  {minDuration * 60 + secDuration || "N/A"} seconds
+                </Text>
+              </View>
+            )}
+            {isHitModeDur && (
+              <View style={styles.row}>
+                <Text style={styles.label}>• Hit count</Text>
+                <Text style={styles.output}>{hitduration || "N/A"} times</Text>
+              </View>
+            )}
+          </View>
 
-	// Function to start the game with additional modes and conditions
-	const play_2 = async (duration: number, interval: number, delay: number) => {
-		const activateRandomPad = () => {
-			// Deactivate any currently active pad
-			// setActivePadIndex(-1);
-			const totalPads = connectedDevices.length;
+          <Text style={styles.sectionTitle}>Measurement</Text>
+          <Text style={styles.separator}>---------------</Text>
 
-			// Select a random pad index
+          <View style={styles.row}>
+            <Text style={styles.label}>Hit Count</Text>
+            <Text style={styles.output}>{userHitCount || "N/A"} times</Text>
+          </View>
 
-			const randomIndex = Math.floor(Math.random() * totalPads);
-			// setActivePadIndex(randomIndex); // Set the new active pad index
-			console.log(`Activated pad index: ${randomIndex},${totalPads}`);
-			// setActivePadIndex(randomIndex);
-			// activePadIndexRef.current = randomIndex;
-			return randomIndex; // Return the selected index
-		};
+          {/* <View style={styles.row}>
+            <Text style={styles.label}>Total Time</Text>
+            <Text style={styles.output}>
+              {(gameEndTime - starttime) / 1000} seconds
+            </Text>
+          </View>
 
-		// random
-		const starttime = Date.now(); // Current time in milliseconds
-		let currentime = Date.now();
-		let hittemp = 0;
-		let wait_hit = false;
-		isPlayingRef.current = true;
-		while (hitCountRef.current < hitduration) {
-			console.log(`${hitCountRef.current},${hitduration} `);
+          <View style={styles.row}>
+            <Text style={styles.label}>Time Remain</Text>
+            <Text style={styles.output}>
+              {(minDuration * 60 + secDuration - (gameEndTime - starttime)) /
+                1000}{" "}
+              seconds
+            </Text>
+          </View> */}
 
-			if (wait_hit === true) {
-				await new Promise((resolve) => setTimeout(resolve, 500));
-				continue;
-			}
-			let currentime = Date.now();
-			// setActivePadIndex(activateRandomPad());
-			// activateRandomPad();
-			activePadIndexRef.current = await activateRandomPad();
-			const activedevice = connectedDevices[activePadIndexRef.current];
-			// console.log("is turning on");
-			console.log(`${activedevice.deviceId}`);
-			//await turnOn_light(activedevice, "red");
-			// console.log(`open light`);
+          <View style={styles.row}>
+            {isHitMode && (
+              <View style={styles.row}>
+                <Text style={styles.label}>• Hit Percentage</Text>
+                <Text style={styles.output}>
+                  {(userHitCount / hitduration) * 100 || "N/A"} %
+                </Text>
+              </View>
+            )}
+          </View>
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-			if (activedevice && wait_hit == false) {
-				// เปิดไฟ
-				await turnOn_light(activedevice, "blue");
-				// console.log(`Light turned on for device ${activedevice.deviceId}`);
+          <TouchableOpacity style={styles.button} onPress={onClose}>
+            <Text style={styles.buttonText}>Finish</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
-				// ตรวจจับการกดในช่วงเวลาที่กำหนด
-				const { clear, promise } = createInterval(async () => {
-					// if (!isPlayingRef.current) {
-					// 	console.log("game is ended");
-					// 	clearInterval(hitInterval); // หยุดการตรวจจับหากเกมหยุดเล่น
-					// 	return;
-					// }
-					// console.log("before hit detect");
-					// console.log(`active padref -> ${activePadIndexRef.current}`);
+  const handleCloseResult = () => setShowresult(false);
+  // Function to detect hits by the user with proper handling of lightOut modes
+  const detectHits = async (activePadIndexRef: number): Promise<number> => {
+    try {
+      // ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
+      console.log(
+        `active padingix->${activePadIndexRef}, length conntect->${connectedDevices.length}`
+      );
 
-					if (wait_hit === true) return;
+      if (
+        connectedDevices.length === 0 ||
+        activePadIndexRef < 0 ||
+        activePadIndexRef >= connectedDevices.length
+      ) {
+        console.log("No valid connected devices or invalid activePadIndex.");
+        return -1;
+      }
 
-					const hitDetected = await detectHits(activePadIndexRef.current);
-					console.log(`hit detect low -> ${hitDetected}`);
+      const device = connectedDevices[activePadIndexRef];
+      // อ่านค่าปุ่มจากอุปกรณ์
+      const press = await readCharacteristic(
+        device.deviceId,
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.BUTTONS
+      );
 
-					if (hitDetected === 0 && wait_hit == false) {
-						console.log("this his detect kod law");
-						// พบการกด
-						hittemp++;
-						setUserHitCount((prevCount) => prevCount + 1);
-						console.log(`Hit detected. hittemp: ${hittemp}`);
-						// ปิดไฟเมื่อกดถึงจำนวนที่กำหนด
-						if (lightOut === "Hit" && hittemp >= hitCount) {
-							console.log(
-								"==============================================================="
-							);
-							await turnOff_light(activedevice);
-							wait_hit = true;
-							setTimeout(() => {
-								wait_hit = false;
-							}, 1000);
-							hittemp = 0; // รีเซ็ต hittemp
-							clear(); // หยุดตรวจจับการกด
-							console.log(
-								`Light turned off for device ${activedevice.deviceId} after ${hittemp} hits`
-							);
-						}
-					}
-				}, 500);
-				await promise;
-			}
-		}
+      console.log(`Device ${device.deviceId} - press: ${press}`);
+      if (press === null) {
+        return -1;
+      } else {
+        return press;
+      }
+      return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
+    } catch (error) {
+      console.error("Error in detectHits:", error);
+      return 1;
+    }
+  };
 
-		console.error(`game end`);
+  // Function to start the game with additional modes and conditions
+  const play_2 = async (
+    timeduration: number,
+    interval: number,
+    delay: number
+  ) => {
+    const activateRandomPad = () => {
+      const totalPads = connectedDevices.length;
+      const randomIndex = Math.floor(Math.random() * totalPads);
+      console.log(`Activated pad index: ${randomIndex}`);
+      return randomIndex; // Return the selected index
+    };
+    if (
+      lightOut === "" ||
+      duration === "" ||
+      delaytime < 0 ||
+      duration === ""
+    ) {
+      console.log("mode not selected yet.");
+      setIsPlaying(false);
+      return;
+    }
+    if (connectedDevices.length === 0) {
+      setIsPlaying(false);
+      return;
+    }
+    setIsPlaying(true);
+    setPressButton(true);
 
-		// Set the game state to playing
-		setIsPlaying(false);
-		isPlayingRef.current = false; // ตั้งค่า ref ทันทีเพื่อให้ gameLogic รู้ว่าเกมกำลังเล่น
+    setUserHitCount(0);
+    starttime = Date.now(); // Start time for the game
+    let hittemp = 0;
+    let wait_hit = false;
+    isPlayingRef.current = true;
+    let activePadTime = starttime; // Initialize time_prev to the start time
 
-		// Reset the user hit count at the start of the game
+    while (true) {
+      currenttime = Date.now();
 
-		// Total number of pads available
-		const totalPads = positions.length;
-	};
+      // Exit conditions for the game loop
+      if (
+        (duration === "Hit" || duration === "Hit or Timeout") &&
+        hitCountRef.current >= hitduration
+      ) {
+        break;
+      } else if (
+        (duration === "Timeout" || duration === "Hit or Timeout") &&
+        currenttime - starttime >= timeduration
+      ) {
+        break;
+      }
 
-	return (
-		<SafeAreaView style={styles.container}>
-			<TouchableOpacity
-				style={styles.playButton} // Styles for the play button
-				onPress={() => {
-					console.log("Start Game button pressed.");
-					play_2(
-						(minDuration * 60 + secDuration) * 1000, // Calculate duration in milliseconds
-						timeout * 1000, // Convert timeout to milliseconds
-						delaytime // Delay time is already in milliseconds
-					);
-					setIsPlaying(true); // ตั้งค่า isPlaying เป็น true เมื่อกดปุ่ม
-				}}
-			>
-				<Text style={styles.buttonText}>
-					{isPlaying ? "Playing..." : "Start Game 2"}
-				</Text>
-			</TouchableOpacity>
-			{isPlaying ? (
-				<>
-					{/* Header text for the game */}
-					<Text style={styles.header}>Start Game</Text>
+      if (wait_hit === true) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        continue;
+      }
 
-					{/* Display all pads based on their positions */}
-					<View>
-						{positions.map((position, index) => (
-							<View
-								key={index} // Unique key for each pad
-								style={[
-									styles.iconContainer, // Base styles for icon container
-									{ left: position.x, top: position.y }, // Position the pad based on x and y coordinates
-								]}
-							>
-								{/* Display the pad icon with color based on its active state */}
-								<MaterialIcons
-									name="wb-twilight" // Icon name
-									size={60} // Icon size
-									color={activePadIndex === index ? "blue" : "black"} // Color changes if the pad is active
-								/>
-								{/* Display the pad number */}
-								<Text>Trainer Pad: {index}</Text>
-							</View>
-						))}
-					</View>
+      setActivePadIndex(activateRandomPad());
+      activePadIndexRef.current = activateRandomPad();
+      setActivePadIndex(activePadIndexRef.current);
+      const activedevice = connectedDevices[activePadIndexRef.current];
+      console.log(`current ${currenttime}, time prev ${activePadTime}`);
+      if (activedevice && wait_hit === false) {
+        await turnOn_light(activedevice, "blue");
+        activePadTime = Date.now(); // Update time_prev immediately after turning on the light
+        console.log(`Light turned on for device ${activedevice.deviceId}`);
 
-					{/* Button to start the play_2 function */}
+        const { clear, promise } = createInterval(async () => {
+          if (wait_hit === true) return;
 
-					{/* Display the current hit count */}
-					<View style={styles.hitCountContainer}>
-						<Text style={styles.hitCountText}>Hit Count: {userHitCount}</Text>
-					</View>
-				</>
-			) : (
-				<Result prop={userHitCount} />
-			)}
-			<Text>Finish</Text>
-			{/* </TouchableOpacity> */}
-		</SafeAreaView>
-	);
+          const hitDetected = await detectHits(activePadIndexRef.current);
+          console.log(`Hit detected: ${hitDetected}`);
+
+          if (hitDetected === 0 && wait_hit === false) {
+            hittemp++;
+            setUserHitCount((prevCount) => prevCount + 1);
+            console.log(`Hit count: ${hittemp}`);
+
+            // Turn off the light if conditions are met
+            console.log(
+              `activePadTime${activePadTime} Date.now()${Date.now()} diff ${
+                Date.now() - activePadTime
+              } interval ${interval} lightOut ${lightOut} `
+            );
+          }
+          if (
+            ((lightOut === "Hit" || lightOut === "Hit or Timeout") &&
+              hittemp >= hitCount) ||
+            ((lightOut === "Timeout" || lightOut === "Hit or Timeout") &&
+              Date.now() - activePadTime >= interval)
+          ) {
+            await turnOff_light(activedevice);
+            setActivePadIndex(-1);
+            console.log(`Light turned off for device ${activedevice.deviceId}`);
+            // activePadTime = Date.now(); // Update time_prev immediately after turning off the light
+            wait_hit = true;
+            setTimeout(() => {
+              wait_hit = false;
+            }, delay);
+            hittemp = 0; // Reset hittemp
+            clear(); // Stop the interval
+          }
+
+          // Timeout condition to turn off the light
+        }, 100);
+
+        await promise;
+      }
+    }
+    gameEndTime = Date.now();
+    console.log("Game ended");
+    console.log(`Game duration: ${gameEndTime} ${starttime} ms`);
+    console.error(`Game ended`);
+    // End time for the game
+    isPlayingRef.current = false; // Update ref to indicate game has ended
+    setShowresult(true);
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setPressButton(false);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text
+        style={[
+          tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
+          { backgroundColor: "#419E68", fontSize: 36 },
+        ]}
+      >
+        Test
+      </Text>
+      <TouchableOpacity
+        style={styles.playButton} // Styles for the play button
+        onPress={() => {
+          console.log("Start Game button pressed.");
+          play_2(
+            (minDuration * 60 + secDuration) * 1000, // Calculate duration in milliseconds
+            timeout * 1000, // Convert timeout to milliseconds
+            delaytime * 1000 // Delay time is already in milliseconds
+          ); // ตั้งค่า isPlaying เป็น true เมื่อกดปุ่ม
+          // setIsPlaying(true);
+          setShowresult(false);
+        }}
+      >
+        <Text style={styles.buttonText}>
+          {pressButton ? "Playing..." : "Start Game 2"}
+        </Text>
+      </TouchableOpacity>
+      <View style={styles.hitCountContainer}>
+        <Text style={styles.hitCountText}>Hit Count: {userHitCount}</Text>
+      </View>
+
+      {/* Display all pads based on their positions */}
+      <ShowPad isPlaying={isPlaying} activePadIndex={activePadIndex}></ShowPad>
+
+      {/* Display the current hit count */}
+
+      {showResult && (
+        <Result
+          isHitMode={isHitMode}
+          isTimeMode={isTimeMode}
+          isHitModeDur={isHitModeDur}
+          isTimeModeDur={isTimeModeDur}
+          onClose={handleCloseResult}
+        />
+      )}
+      {/* </TouchableOpacity> */}
+    </SafeAreaView>
+  );
 };
 
 // Define the styles for the component
+// Define the styles for the component
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#e1f4f3" }, // Container style with background color
-	header: {
-		textAlign: "center", // Center align the text
-		fontSize: 24, // Font size
-		fontWeight: "bold", // Bold font weight
-		marginVertical: 20, // Vertical margin
-	},
-	iconContainer: { position: "absolute", alignItems: "center" }, // Absolute positioning for icons
-	playButton: {
-		backgroundColor: "#2f95dc", // Button background color
-		paddingVertical: 12, // Vertical padding
-		paddingHorizontal: 20, // Horizontal padding
-		borderRadius: 10, // Rounded corners
-		alignSelf: "center", // Center the button horizontally
-		marginTop: 20, // Top margin
-	},
-	buttonText: {
-		color: "white", // Text color
-		fontWeight: "bold", // Bold font weight
-		fontSize: 16, // Font size
-	},
-	hitCountContainer: {
-		marginTop: 30, // Top margin
-		alignItems: "center", // Center align the hit count
-	},
-	hitCountText: {
-		fontSize: 20, // Font size for hit count
-		fontWeight: "bold", // Bold font weight
-		color: "#333", // Text color
-	},
+  container: { flex: 1, backgroundColor: "#e1f4f3" }, // Container style with background color
+  header: {
+    textAlign: "center", // Center align the text
+    fontSize: 24, // Font size
+    fontWeight: "bold", // Bold font weight
+    marginVertical: 20, // Vertical margin
+  },
+  iconContainer: { position: "absolute", alignItems: "center" }, // Absolute positioning for icons
+  playButton: {
+    backgroundColor: "#2f95dc", // Button background color
+    paddingVertical: 12, // Vertical padding
+    paddingHorizontal: 20, // Horizontal padding
+    borderRadius: 10, // Rounded corners
+    alignSelf: "center", // Center the button horizontally
+    marginTop: 20, // Top margin
+  },
+  result_container: {
+    flex: 1,
+    backgroundColor: "#E6F7F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailBox: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 16,
+    width: "80%",
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontWeight: "bold",
+    fontSize: 16,
+    marginVertical: 8,
+  },
+  separator: {
+    fontSize: 12,
+    color: "#000000",
+    marginBottom: 12,
+  },
+  col: {
+    flexDirection: "column",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingVertical: 4,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingVertical: 4,
+  },
+  label: {
+    fontSize: 14,
+    color: "#000000",
+  },
+  output: {
+    fontSize: 14,
+    color: "#2E7D32",
+  },
+  buttonText: {
+    color: "white", // Text color
+    fontWeight: "bold", // Bold font weight
+    fontSize: 16, // Font size
+  },
+  hitCountContainer: {
+    marginTop: 30, // Top margin
+    alignItems: "center", // Center align the hit count
+  },
+  hitCountText: {
+    fontSize: 20, // Font size for hit count
+    fontWeight: "bold", // Bold font weight
+    color: "#333", // Text color
+    marginTop: 5,
+  },
+  button: {
+    backgroundColor: "#4A4A4A",
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 10,
+    alignItems: "center",
+    width: "70%",
+  },
 });
 
 export default StartGame; // Export the StartGame component
