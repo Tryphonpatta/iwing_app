@@ -71,7 +71,9 @@ const BLE = () => {
       console.log("Scan stopped after 10 seconds.");
     }, 10000);
   };
-
+  useEffect(() => {
+    console.log("state", connectedDevice);
+  }, [connectedDevice]);
   // Separate the devices into connected and disconnected groups
 
   const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
@@ -109,7 +111,10 @@ const BLE = () => {
 
         <TouchableOpacity
           style={styles.blinkButton}
-          onPress={() => toggleConnection(device)}
+          onPress={async () => {
+            await toggleConnection(device);
+            console.log("statestate", connectedDevice);
+          }}
         >
           <Text style={tw`text-gray-700`}>
             {isConnect ? "Disconnect" : "Connect"}
