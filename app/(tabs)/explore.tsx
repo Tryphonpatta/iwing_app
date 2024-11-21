@@ -11,7 +11,6 @@ import {
 import { BleManager, Device, State } from "react-native-ble-plx";
 import { PermissionsAndroid, Platform, View } from "react-native";
 import { CHARACTERISTIC, prefix } from "../../enum/characteristic";
-import { connectingDevice } from "../../util/ble";
 import { useModuleContext } from "./context/context";
 import { useBleManager } from "./context/blecontext";
 

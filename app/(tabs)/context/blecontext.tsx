@@ -9,6 +9,18 @@ import {
 } from "react-native-ble-plx";
 import * as ExpoDevice from "expo-device";
 import { CHARACTERISTIC } from "@/enum/characteristic";
+import { base64toDec } from "@/util/encode";
+
+// type Module = {
+//   batteryVoltage: number;
+//   batteryCharging: boolean;
+//   batteryFull: boolean;
+//   buttonPressed: boolean;
+//   vibration: boolean;
+//   IR_RX: boolean;
+//   mode: number;
+//   device: Device;
+// };
 
 type ConnectedDevice = Device | null;
 
@@ -29,6 +41,7 @@ interface BleContextType {
   disconnectDevice: (device: Device) => Promise<void>;
   monitorCharacteristic: (
     device: Device,
+    setFunction: (data: any) => void,
     characteristic: string
   ) => Promise<Subscription | undefined>;
 }
@@ -83,17 +96,11 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   const connectToDevice = async (device: Device) => {
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
-      setConnectedDevice((prevDevices) => {
-        const newDevices = [...prevDevices];
-        for (let i = 0; i < newDevices.length; i++) {
-          if (!newDevices[i]) {
-            newDevices[i] = deviceConnection;
-            break;
-          }
-        }
-        return newDevices;
-      });
       await deviceConnection.discoverAllServicesAndCharacteristics();
+      const index = connectedDevice.findIndex((d) => d === null);
+      const tempDevices = connectedDevice;
+      tempDevices[index] = deviceConnection;
+      setConnectedDevice(tempDevices);
       bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
@@ -138,21 +145,20 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("No Data was received");
       return;
     }
-
-    const buffer = Buffer.from(characteristic.value, "base64");
-    if (buffer.readUInt8(0)) {
-      console.log("*** Button pressed");
-      setButtonStatus(true);
-    } else {
-      console.log("*** Button released");
-      setButtonStatus(false);
-    }
+    console.log(characteristic.value);
+    // const buffer = Buffer.from(characteristic.value, "base64");
+    // if (buffer.readUInt8(0)) {
+    //   console.log("*** Button pressed");
+    //   setButtonStatus(true);
+    // } else {
+    //   console.log("*** Button released");
+    //   setButtonStatus(false);
+    // }
   };
 
   const startStreamingData = async (device: Device, characteristic: string) => {
     if (device) {
       await device.discoverAllServicesAndCharacteristics();
-
       const sub = device.monitorCharacteristicForService(
         CHARACTERISTIC.IWING_TRAINERPAD,
         characteristic,
@@ -170,7 +176,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       if (device) {
-        device.writeCharacteristicWithResponseForService(
+        await device.writeCharacteristicWithResponseForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
@@ -198,9 +204,11 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await device.cancelConnection();
       console.log("Disconnected from device");
+      console.log(connectedDevice);
       const tempDevices = connectedDevice;
       const index = tempDevices.findIndex((d) => d?.id === device.id);
       tempDevices[index] = null;
+      console.log(tempDevices);
       setConnectedDevice(tempDevices);
     } catch (e) {
       console.log("Failed to disconnect from device", e);
@@ -209,15 +217,27 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const monitorCharacteristic = async (
     device: Device,
+    setFunction: (data: any) => void,
     characteristic: string
   ) => {
     try {
-      if (device) {
+      if (device && (await device.isConnected())) {
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
-          characteristic,
-          onDataUpdate
+          CHARACTERISTIC.BUTTONS,
+          (error, characteristic) => {
+            if (error) {
+              console.log("Error monitoring characteristic", error);
+              return;
+            }
+            if (!characteristic?.value) {
+              console.log("No data received");
+              return;
+            }
+            setFunction(base64toDec(characteristic.value as string) === 1);
+          }
         );
+
         return sub;
       }
     } catch (e) {

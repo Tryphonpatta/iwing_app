@@ -31,11 +31,17 @@ type Interaction = {
 
 const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   const {
-    bleManager,
-    readCharacteristic,
-    module,
-    monitorCharacteristic,
+    connectToDevice,
+    allDevices,
+    connectedDevice,
+    buttonStatus,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
     writeCharacteristic,
+    swapConnectedDevice,
+    disconnectDevice,
+    monitorCharacteristic,
   } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
@@ -52,6 +58,12 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
+  const [right, setRight] = useState(0);
+  const [left, setLeft] = useState(0);
+  const [hitL1, setHitL1] = useState(0);
+  const [hitL2, setHitL2] = useState(0);
+  const [hitR1, setHitR1] = useState(0);
+  const [hitR2, setHitR2] = useState(0);
 
   // References to manage async loops
   const centerActiveRef = useRef(gameState.centerActive);
@@ -104,16 +116,34 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   useEffect(() => {
     if (circleSequence.length === 0) return;
     writeCharacteristic(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[0] as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
     writeCharacteristic(
-      module[1]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[1] as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
+    );
+    const subHitL1 = monitorCharacteristic(
+      connectedDevice[0] as Device,
+      setHitL1,
+      CHARACTERISTIC.VIBRATION
+    );
+    const subHitL2 = monitorCharacteristic(
+      connectedDevice[1] as Device,
+      setHitL2,
+      CHARACTERISTIC.VIBRATION
+    );
+    const subHitR1 = monitorCharacteristic(
+      connectedDevice[3] as Device,
+      setHitR1,
+      CHARACTERISTIC.VIBRATION
+    );
+    const subHitR2 = monitorCharacteristic(
+      connectedDevice[2] as Device,
+      setHitR2,
+      CHARACTERISTIC.VIBRATION
     );
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
@@ -140,15 +170,15 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   }, [gameState.centerActive, currentIndex, circleSequence]);
 
   const isCenter = async () => {
-    const [right, left] = await Promise.all([
-      readCharacteristic(
-        module[3]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
+    const [subRight, subLeft] = await Promise.all([
+      monitorCharacteristic(
+        connectedDevice[3] as Device,
+        setRight,
         CHARACTERISTIC.IR_RX
       ),
-      readCharacteristic(
-        module[2]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
+      monitorCharacteristic(
+        connectedDevice[2] as Device,
+        setLeft,
         CHARACTERISTIC.IR_RX
       ),
     ]);
@@ -218,7 +248,7 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   const checkHit = async (id: number) => {
     try {
       while (hitActiveRef.current && !stopActiveRef.current) {
-        if (!module[id]?.deviceId) throw new Error("DeviceId is NULL");
+        if (!connectedDevice[id]) throw new Error("DeviceId is NULL");
         const hitStatus = await isHit(id);
 
         if (hitStatus) {
@@ -236,14 +266,12 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   const isHit = async (id: number) => {
     try {
-      if (module[id]?.deviceId === undefined)
+      if (connectedDevice[id] === undefined)
         throw new Error("DeviceId is NULL");
-      const hit = await readCharacteristic(
-        module[id]?.deviceId as string,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.VIBRATION
-      );
-      return hit ? hit == 255 : false;
+      if (id == 0) return hitL1 ? hitL1 == 255 : 0;
+      if (id == 2) return hitL2 ? hitL2 == 255 : 0;
+      if (id == 1) return hitR1 ? hitR1 == 255 : 0;
+      if (id == 3) return hitR2 ? hitR2 == 255 : 0;
     } catch (e) {
       console.error("Error reading hit characteristic:", e);
       return false;
@@ -279,14 +307,12 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   const handleStopAndShowResult = () => {
     writeCharacteristic(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[0] as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
     writeCharacteristic(
-      module[1]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[1] as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );

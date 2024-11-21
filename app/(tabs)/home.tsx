@@ -63,6 +63,7 @@ export default function Home() {
   const [modalContent, setModalContent] = React.useState("");
   const [isCalibrate, setIsCalibrate] = React.useState(false);
   const isCalibrateRef = React.useRef(isCalibrate);
+  const [irrx, setIrrx] = React.useState(0);
 
   const {
     connectToDevice,
@@ -75,6 +76,7 @@ export default function Home() {
     writeCharacteristic,
     swapConnectedDevice,
     disconnectDevice,
+    monitorCharacteristic,
   } = useBleManager();
   const test = async () => {
     const sub = await startStreamingData(
@@ -321,14 +323,23 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                if (
-                  selectedModule &&
-                  connectedDevice[selectedModule - 1] != null
-                ) {
-                  disconnectDevice(
-                    connectedDevice[selectedModule - 1] as Device
-                  );
-                }
+                // if (
+                //   selectedModule &&
+                //   connectedDevice[selectedModule - 1] != null
+                // ) {
+                //   disconnectDevice(
+                //     connectedDevice[selectedModule - 1] as Device
+                //   );
+                // }
+                // startStreamingData(
+                //   connectedDevice[(selectedModule as number) - 1] as Device,
+                //   CHARACTERISTIC.BUTTONS
+                // );
+                const sub = monitorCharacteristic(
+                  connectedDevice[(selectedModule as number) - 1] as Device,
+                  setIrrx,
+                  CHARACTERISTIC.BUTTONS
+                );
               }}
             >
               <Text
@@ -337,7 +348,7 @@ export default function Home() {
                   { color: "#fff", fontWeight: "bold" },
                 ]}
               >
-                disconnect
+                {`disconnect ${irrx}`}
               </Text>
             </TouchableOpacity>
             <SelectList
@@ -422,7 +433,7 @@ export default function Home() {
                 style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
                 onPress={async () => {
                   startStreamingData(
-                    connectedDevice[0] as Device,
+                    connectedDevice[(selectedModule as number) - 1] as Device,
                     CHARACTERISTIC.BUTTONS
                   );
                 }}

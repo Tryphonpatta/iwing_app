@@ -42,7 +42,7 @@ const PatternScreen = () => {
 
   const [isBicycleMode, setIsBicycleMode] = useState(false);
 
-  const setModeValues = (modeId : number) => {
+  const setModeValues = (modeId: number) => {
     if (modeId === 2) {
       // Bicycle mode: set all values to 1 and enable Bicycle mode sequence
       setR1(1);

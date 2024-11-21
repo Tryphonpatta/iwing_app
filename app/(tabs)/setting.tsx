@@ -13,7 +13,6 @@ import tw from "twrnc";
 import { prefix } from "@/enum/characteristic";
 import { base64toDec, base64toDecManu } from "@/util/encode";
 import { ModuleHome } from "./home";
-import { disconnectDevice } from "@/util/ble";
 import { useBleManager } from "./context/blecontext";
 // const bleManager = new BleManager();
 // BLE component for scanning and managing device connections
@@ -29,6 +28,7 @@ const BLE = () => {
     startStreamingData,
     writeCharacteristic,
     swapConnectedDevice,
+    disconnectDevice,
   } = useBleManager(); // BLE context values
   const [scanning, setScanning] = useState<boolean>(false); // Scanning state
 
@@ -41,6 +41,7 @@ const BLE = () => {
         // Disconnect from the device
         // disconnectDevice(deviceId);
         // setDeviceList(deviceList.filter((d) => d.id !== deviceId));
+        disconnectDevice(device);
       } catch (error) {
         // disconnectDevice(deviceId);
         // console.log("Failed to disconnect from device:", deviceId, error);
