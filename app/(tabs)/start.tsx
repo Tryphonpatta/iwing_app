@@ -26,11 +26,6 @@ function createInterval(callback: any, delay: number) {
     resolvePromise = resolve;
   });
 
-  const clear = () => {
-    clearInterval(intervalId);
-    resolvePromise();
-  };
-
   return { intervalId, clear, promise };
 }
 // Define the StartGame functional component
@@ -294,154 +289,45 @@ const StartGame = () => {
       console.log(`Activated pad index: ${randomIndex}`);
       return randomIndex; // Return the selected index
     };
-
-    if (
-      lightOut === "" ||
-      duration === "" ||
-      delaytime < 0 ||
-      duration === ""
-    ) {
-      console.log("mode not selected yet.");
-      setIsPlaying(false);
-      return;
-    }
-    if (connectedDevice.length === 0) {
-      setIsPlaying(false);
-      return;
-    }
-    setIsPlaying(true);
-    setPressButton(true);
-
-    setUserHitCount(0);
-    starttime = Date.now(); // Start time for the game
-    let hittemp = 0;
-    let wait_hit = false;
-    isPlayingRef.current = true;
-    let activePadTime = starttime; // Initialize time_prev to the start time
-
-    while (true) {
-      currenttime = Date.now();
-
-      // Exit conditions for the game loop
-      console.log("exit from loop");
-      if (
-        (duration === "Hit" || duration === "Hit or Timeout") &&
-        userHitCount >= hitduration
-      ) {
-        console.log("break");
-        break;
-      } else if (
-        (duration === "Timeout" || duration === "Hit or Timeout") &&
-        currenttime - starttime >= timeduration
-      ) {
-        console.log("break");
-        break;
+    let hit = 0;
+    console.log(hitduration);
+    while (hit < hitduration) {
+      const index = activateRandomPad();
+      if (!connectedDevice[index]) {
+        console.log("device is null");
+        continue;
       }
-
-      // if (wait_hit === true) {
-      //   await new Promise((resolve) => setTimeout(resolve, 500));
-      //   continue;
-      // }
-      console.log("randoming");
-      const activeRandomIndex = activateRandomPad();
-      console.log("index --- ", activeRandomIndex);
-      setActivePadIndex(activeRandomIndex);
-      activePadIndexRef.current = activeRandomIndex;
-      setActivePadIndex(activePadIndexRef.current);
-      const activedevice = connectedDevice[activePadIndexRef.current];
-      console.log(`activePadIndexRef.current ${activePadIndexRef.current}`);
-
-      console.log(connectedDevice[activePadIndexRef.current] as Device);
-
+      //turn on
+      await writeCharacteristic(
+        connectedDevice[index],
+        CHARACTERISTIC.LED,
+        "AAD/"
+      );
+      console.log("writed");
       const isHitSub = await monitorCharacteristicRef(
-        connectedDevice[activeRandomIndex] as Device,
+        connectedDevice[index],
         isHitRef,
         CHARACTERISTIC.BUTTONS
       );
-      console.log(`isHitSub ${isHitSub}`);
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-      // console.log(`waited ${wait_hit}`);
-      // console.log(`activeDevice ${activedevice}`);
-
-      //set active pad index
-
-      if (wait_hit === false) {
-        console.log("golf");
-        await writeCharacteristic(
-          activedevice as Device,
-          CHARACTERISTIC.LED,
-          "AAD/"
-        );
-        console.log("pad");
-        activePadTime = Date.now();
-        console.log(`hhhhhhhhhhhhhhhh${wait_hit}`);
-
-        while (wait_hit == false) {
-          console.log(`in loop++++++++++++++++++++0=+++++${isHitRef.current}`);
-          // Update time_prev immediately after turning on the light
-          // console.log(`Light turned on for device ${activedevice.id}`);
-          if (isHitRef.current == 0) {
-            // console.log("Hit detected");
-            hittemp++;
-            setUserHitCount((prevCount) => prevCount + 1);
-            console.log(`++++++++++++++++++++++${userHitCount}`);
-            // console.log(`Hit count: ${hittemp}`);
-
-            // Turn off the light if conditions are met
-            // console.log(
-            //   `activePadTime${activePadTime} Date.now()${Date.now()} diff ${
-            //     Date.now() - activePadTime
-            //   } interval ${interval} lightOut ${lightOut} `
-            // );
-          }
-          if (
-            ((lightOut === "Hit" || lightOut === "Hit or Timeout") &&
-              hittemp >= hitCount) ||
-            ((lightOut === "Timeout" || lightOut === "Hit or Timeout") &&
-              Date.now() - activePadTime >= interval)
-          ) {
-            await writeCharacteristic(
-              activedevice as Device,
-              CHARACTERISTIC.LED,
-              "AAAA"
-            );
-            setActivePadIndex(-1);
-            if (isHitSub) {
-              isHitSub.remove();
-              console.log("remove sub");
-            }
-            // console.log(`Light turned off for device ${activedevice.id}`);
-            // activePadTime = Date.now(); // Update time_prev immediately after turning off the light
-            wait_hit = true;
-            setTimeout(() => {
-              wait_hit = false;
-            }, delay);
-            hittemp = 0; // Reset hittemp
-            // Stop the interval
-            console.log("wait hit", wait_hit);
-            await new Promise((resolve) => setTimeout(resolve, 200));
-            hittemp = 0; // Reset hittemp
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        }
-
-        // Timeout condition to turn off the light
-        // while (1) {
-        //   await new Promise((resolve) => setTimeout(resolve, 100));
-        // }
+      console.log("monitored");
+      let buttonHit = 0;
+      while (buttonHit < hitCount) {
+        while (isHitRef.current) {}
+        while (!isHitRef.current) {}
+        buttonHit += 1;
+        hit += 1;
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        console.log("loop for hit");
       }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await writeCharacteristic(
+        connectedDevice[index],
+        CHARACTERISTIC.LED,
+        "AAAA"
+      );
+      isHitSub?.remove();
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
-    gameEndTime = Date.now();
-    console.log("Game ended");
-    console.log(`Game duration: ${gameEndTime} ${starttime} ms`);
-    console.error(`Game ended`);
-    // End time for the game
-    isPlayingRef.current = false; // Update ref to indicate game has ended
-    setShowresult(true);
-    isPlayingRef.current = false;
-    setIsPlaying(false);
-    setPressButton(false);
   };
 
   return (

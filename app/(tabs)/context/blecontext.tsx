@@ -106,7 +106,6 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       const tempDevices = connectedDevice;
       tempDevices[index] = deviceConnection;
       setConnectedDevice(tempDevices);
-
       bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
@@ -265,7 +264,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
             setFunction(base64toDec(characteristic.value as string) === 1);
           }
         );
-
+        console.log("monitored");
         return sub;
       }
     } catch (e) {
@@ -280,7 +279,6 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log("monitor ", device.id);
       if (device) {
-        console.log("Monitoring characteristic...))))))).....");
         await device.discoverAllServicesAndCharacteristics();
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
