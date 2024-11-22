@@ -44,6 +44,11 @@ interface BleContextType {
     setFunction: (data: any) => void,
     characteristic: string
   ) => Promise<Subscription | undefined>;
+  monitorCharacteristicRef: (
+    device: Device,
+    value: any,
+    characteristic: string
+  ) => Promise<Subscription | undefined>;
 }
 
 const BleContext = createContext<BleContextType | undefined>(undefined);
@@ -101,6 +106,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       const tempDevices = connectedDevice;
       tempDevices[index] = deviceConnection;
       setConnectedDevice(tempDevices);
+
       bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
@@ -177,8 +183,14 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log(`device: ${device}`);
       if (device) {
-        await bleManager.writeCharacteristicWithResponseForDevice(
-          device.id,
+        // await bleManager.writeCharacteristicWithoutResponseForDevice(
+        //   device.id,
+        //   CHARACTERISTIC.IWING_TRAINERPAD,
+        //   characteristic,
+        //   value
+        // );
+        console.log("Writing to characteristic");
+        await device.writeCharacteristicWithResponseForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
@@ -228,22 +240,28 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     characteristic: string
   ) => {
     try {
-      if (device && (await device.isConnected())) {
+      console.log("monitor ", device.id);
+      if (device) {
         console.log("Monitoring characteristic...))))))).....");
+        await device.discoverAllServicesAndCharacteristics();
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
-          CHARACTERISTIC.BUTTONS,
+          characteristic,
           (error, characteristic) => {
             console.log("Hello");
             if (error) {
               console.log("Error monitoring characteristic", error);
+              console.log(JSON.stringify(error));
               return;
             }
             if (!characteristic?.value) {
               console.log("No data received");
               return;
             }
-            console.log("Characteristic value: ", characteristic.value);
+            console.log(
+              "Characteristic value: ",
+              base64toDec(characteristic.value as string)
+            );
             setFunction(base64toDec(characteristic.value as string) === 1);
           }
         );
@@ -254,7 +272,45 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Failed to monitor characteristic", e);
     }
   };
+  const monitorCharacteristicRef = async (
+    device: Device,
+    value: any,
+    characteristic: string
+  ) => {
+    try {
+      console.log("monitor ", device.id);
+      if (device) {
+        console.log("Monitoring characteristic...))))))).....");
+        await device.discoverAllServicesAndCharacteristics();
+        const sub = device.monitorCharacteristicForService(
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          characteristic,
+          (error, characteristic) => {
+            console.log("Hello", device);
+            if (error) {
+              console.log("Error monitoring characteristic", error);
+              console.log(JSON.stringify(error));
+              return;
+            }
+            if (!characteristic?.value) {
+              console.log("No data received");
+              return;
+            }
+            console.log(
+              "Characteristic value: ",
+              base64toDec(characteristic.value as string)
+            );
+            value.current = base64toDec(characteristic.value as string);
+            console.log(value.current);
+          }
+        );
 
+        return sub;
+      }
+    } catch (e) {
+      console.log("Failed to monitor characteristic", e);
+    }
+  };
   return (
     <BleContext.Provider
       value={{
@@ -269,6 +325,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         swapConnectedDevice,
         disconnectDevice,
         monitorCharacteristic,
+        monitorCharacteristicRef,
       }}
     >
       {children}

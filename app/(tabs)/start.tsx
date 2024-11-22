@@ -9,13 +9,11 @@ import {
   Modal,
 } from "react-native"; // Import React Native components
 import tw from "twrnc";
-import { MaterialIcons } from "@expo/vector-icons"; // Import Material Icons for visual representation
-import { useIconPosition } from "./IconPositionContext"; // Import custom hook for icon positions
+
 import { RouteProp, useRoute } from "@react-navigation/native"; // Import navigation hooks
 import { useBleManager } from "./context/blecontext"; // Import custom BLE manager context
 import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteristics enumeration
-import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
-import { useNavigation } from "@react-navigation/native";
+
 // import { Result } from "@/app/(tabs)/result";
 import ShowPad from "../running";
 import { Device } from "react-native-ble-plx";
@@ -48,6 +46,7 @@ const StartGame = () => {
   // setActivePadIndex(-1);
   // State to track if the game is currently playing
   const [isHit, setIshit] = useState(1);
+  const isHitRef = useRef(isHit);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showResult, setShowresult] = useState(false);
 
@@ -75,8 +74,12 @@ const StartGame = () => {
   }, [isPlaying]);
 
   // Destructure BLE manager functions and connected devices from the context
-  const { connectedDevice, writeCharacteristic, monitorCharacteristic } =
-    useBleManager();
+  const {
+    connectedDevice,
+    writeCharacteristic,
+    monitorCharacteristic,
+    monitorCharacteristicRef,
+  } = useBleManager();
   let gameEndTime: number;
 
   // Define the type for route parameters received from the training page
@@ -320,57 +323,76 @@ const StartGame = () => {
       currenttime = Date.now();
 
       // Exit conditions for the game loop
+      console.log("exit from loop");
       if (
         (duration === "Hit" || duration === "Hit or Timeout") &&
-        hitCountRef.current >= hitduration
+        userHitCount >= hitduration
       ) {
+        console.log("break");
         break;
       } else if (
         (duration === "Timeout" || duration === "Hit or Timeout") &&
         currenttime - starttime >= timeduration
       ) {
+        console.log("break");
         break;
       }
 
-      if (wait_hit === true) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        continue;
-      }
-
-      const isHitSub = await monitorCharacteristic(
-        connectedDevice[activePadIndexRef.current] as Device,
-        setIshit,
-        CHARACTERISTIC.BUTTONS
-      );
-      console.log(`isHitSub ${isHitSub}`);
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-
-      //set active pad index
+      // if (wait_hit === true) {
+      //   await new Promise((resolve) => setTimeout(resolve, 500));
+      //   continue;
+      // }
+      console.log("randoming");
       const activeRandomIndex = activateRandomPad();
+      console.log("index --- ", activeRandomIndex);
       setActivePadIndex(activeRandomIndex);
       activePadIndexRef.current = activeRandomIndex;
       setActivePadIndex(activePadIndexRef.current);
-
       const activedevice = connectedDevice[activePadIndexRef.current];
-      console.log(`current ${currenttime}, time prev ${activePadTime}`);
+      console.log(`activePadIndexRef.current ${activePadIndexRef.current}`);
 
-      if (activedevice && wait_hit === false) {
-        await writeCharacteristic(activedevice, CHARACTERISTIC.LED, "AAD/");
-        while (wait_hit === false) {
-          activePadTime = Date.now(); // Update time_prev immediately after turning on the light
+      console.log(connectedDevice[activePadIndexRef.current] as Device);
+
+      const isHitSub = await monitorCharacteristicRef(
+        connectedDevice[activeRandomIndex] as Device,
+        isHitRef,
+        CHARACTERISTIC.BUTTONS
+      );
+      console.log(`isHitSub ${isHitSub}`);
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+      // console.log(`waited ${wait_hit}`);
+      // console.log(`activeDevice ${activedevice}`);
+
+      //set active pad index
+
+      if (wait_hit === false) {
+        console.log("golf");
+        await writeCharacteristic(
+          activedevice as Device,
+          CHARACTERISTIC.LED,
+          "AAD/"
+        );
+        console.log("pad");
+        activePadTime = Date.now();
+        console.log(`hhhhhhhhhhhhhhhh${wait_hit}`);
+
+        while (wait_hit == false) {
+          console.log(`in loop++++++++++++++++++++0=+++++${isHitRef.current}`);
+          // Update time_prev immediately after turning on the light
           // console.log(`Light turned on for device ${activedevice.id}`);
-          if (isHit === 0) {
-            console.log("Hit detected");
+          if (isHitRef.current == 0) {
+            // console.log("Hit detected");
             hittemp++;
             setUserHitCount((prevCount) => prevCount + 1);
-            console.log(`Hit count: ${hittemp}`);
+            console.log(`++++++++++++++++++++++${userHitCount}`);
+            // console.log(`Hit count: ${hittemp}`);
 
             // Turn off the light if conditions are met
-            console.log(
-              `activePadTime${activePadTime} Date.now()${Date.now()} diff ${
-                Date.now() - activePadTime
-              } interval ${interval} lightOut ${lightOut} `
-            );
+            // console.log(
+            //   `activePadTime${activePadTime} Date.now()${Date.now()} diff ${
+            //     Date.now() - activePadTime
+            //   } interval ${interval} lightOut ${lightOut} `
+            // );
           }
           if (
             ((lightOut === "Hit" || lightOut === "Hit or Timeout") &&
@@ -378,20 +400,36 @@ const StartGame = () => {
             ((lightOut === "Timeout" || lightOut === "Hit or Timeout") &&
               Date.now() - activePadTime >= interval)
           ) {
-            await writeCharacteristic(activedevice, CHARACTERISTIC.LED, "AAAA");
+            await writeCharacteristic(
+              activedevice as Device,
+              CHARACTERISTIC.LED,
+              "AAAA"
+            );
             setActivePadIndex(-1);
-            isHitSub?.remove();
-            console.log(`Light turned off for device ${activedevice.id}`);
+            if (isHitSub) {
+              isHitSub.remove();
+              console.log("remove sub");
+            }
+            // console.log(`Light turned off for device ${activedevice.id}`);
             // activePadTime = Date.now(); // Update time_prev immediately after turning off the light
             wait_hit = true;
             setTimeout(() => {
               wait_hit = false;
             }, delay);
             hittemp = 0; // Reset hittemp
+            // Stop the interval
+            console.log("wait hit", wait_hit);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            hittemp = 0; // Reset hittemp
+            break;
           }
+          await new Promise((resolve) => setTimeout(resolve, 250));
         }
 
         // Timeout condition to turn off the light
+        // while (1) {
+        //   await new Promise((resolve) => setTimeout(resolve, 100));
+        // }
       }
     }
     gameEndTime = Date.now();
@@ -430,7 +468,7 @@ const StartGame = () => {
         }}
       >
         <Text style={styles.buttonText}>
-          {pressButton ? "Playing..." : "Start Game 2"}
+          {pressButton ? `Playing...${isHitRef.current}` : "Start Game 2"}
         </Text>
       </TouchableOpacity>
       <View style={styles.hitCountContainer}>
