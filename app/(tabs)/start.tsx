@@ -281,6 +281,7 @@ const StartGame = () => {
     interval: number,
     delay: number
   ) => {
+    if (isPlaying) return;
     const activateRandomPad = () => {
       const totalPads = connectedDevice.filter(
         (device) => device !== null
@@ -290,36 +291,45 @@ const StartGame = () => {
       return randomIndex; // Return the selected index
     };
     let hit = 0;
-    console.log(hitduration);
+    console.log("hit duration", hitduration);
     while (hit < hitduration) {
       const index = activateRandomPad();
       if (!connectedDevice[index]) {
         console.log("device is null");
         continue;
       }
+      console.log("index", index);
       //turn on
       await writeCharacteristic(
         connectedDevice[index],
         CHARACTERISTIC.LED,
         "AAD/"
       );
-      console.log("writed");
+      console.log("write");
       const isHitSub = await monitorCharacteristicRef(
         connectedDevice[index],
         isHitRef,
         CHARACTERISTIC.BUTTONS
       );
-      console.log("monitored");
+
+      console.log("monitored", hitCount);
       let buttonHit = 0;
       while (buttonHit < hitCount) {
-        while (isHitRef.current) {}
-        while (!isHitRef.current) {}
+        console.log("button Hit", buttonHit);
+        while (isHitRef.current) {
+          // console.log("loop for hit", isHitRef.current);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+        while (!isHitRef.current) {
+          // console.log("loop for hit", isHitRef.current);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
         buttonHit += 1;
         hit += 1;
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        console.log("loop for hit");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        console.log("loop for hit", buttonHit);
       }
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       await writeCharacteristic(
         connectedDevice[index],
         CHARACTERISTIC.LED,
@@ -328,6 +338,8 @@ const StartGame = () => {
       isHitSub?.remove();
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
+    setIsPlaying(false);
+    setShowresult(true);
   };
 
   return (

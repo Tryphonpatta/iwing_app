@@ -64,6 +64,11 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     null,
     null,
     null,
+    null,
+    null,
+    null,
+    null,
+    null,
   ]);
   const [buttonStatus, setButtonStatus] = useState<Boolean | null>(null);
 
@@ -106,7 +111,29 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       const tempDevices = connectedDevice;
       tempDevices[index] = deviceConnection;
       setConnectedDevice(tempDevices);
-      bleManager.stopDeviceScan();
+      const sub = deviceConnection.monitorCharacteristicForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        CHARACTERISTIC.BUTTONS,
+        (error, characteristic) => {
+          if (error) {
+            console.log("Error monitoring characteristic", error);
+            console.log(JSON.stringify(error));
+            return;
+          }
+          if (!characteristic?.value) {
+            console.log("No data received");
+            return;
+          }
+          console.log(
+            "Characteristic value: ",
+            base64toDec(characteristic.value as string)
+          );
+          // setButtonStatus(base64toDec(characteristic.value as string) === 1);
+        }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      sub.remove();
+      // bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -180,7 +207,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
-      console.log(`device: ${device}`);
+      console.log(`write device: ${device.id}`);
       if (device) {
         // await bleManager.writeCharacteristicWithoutResponseForDevice(
         //   device.id,
@@ -189,16 +216,16 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         //   value
         // );
         console.log("Writing to characteristic");
+        // await device.writeCharacteristicWithoutResponseForService(
+        //   CHARACTERISTIC.IWING_TRAINERPAD,
+        //   characteristic,
+        //   value
+        // );
         await device.writeCharacteristicWithResponseForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
         );
-        // await device.writeCharacteristicWithResponseForService(
-        //   CHARACTERISTIC.IWING_TRAINERPAD,
-        //   characteristic,
-        //   value
-        // );
         console.log("Data written to characteristic");
       } else {
         console.log("No Device Connected");
@@ -247,7 +274,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           (error, characteristic) => {
-            console.log("Hello");
+            // console.log("Hello");
             if (error) {
               console.log("Error monitoring characteristic", error);
               console.log(JSON.stringify(error));
@@ -279,12 +306,13 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       console.log("monitor ", device.id);
       if (device) {
-        await device.discoverAllServicesAndCharacteristics();
+        // await device.discoverAllServicesAndCharacteristics();
+        console.log("discovered");
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
-          characteristic,
+          CHARACTERISTIC.BUTTONS,
           (error, characteristic) => {
-            console.log("Hello", device);
+            // console.log("Hello", device);
             if (error) {
               console.log("Error monitoring characteristic", error);
               console.log(JSON.stringify(error));
@@ -294,15 +322,15 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
               console.log("No data received");
               return;
             }
-            console.log(
-              "Characteristic value: ",
-              base64toDec(characteristic.value as string)
-            );
+            // console.log(
+            //   "Characteristic value: ",
+            //   base64toDec(characteristic.value as string)
+            // );
             value.current = base64toDec(characteristic.value as string);
-            console.log(value.current);
+            // console.log(value.current);
           }
         );
-
+        console.log("monitored");
         return sub;
       }
     } catch (e) {
