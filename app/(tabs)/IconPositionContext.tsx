@@ -12,7 +12,15 @@ const IconPositionContext = createContext<IconPositionContextType | undefined>(
 );
 
 export const IconPositionProvider = ({ children }: { children: ReactNode }) => {
-  const [positions, setPositions] = useState<Position[]>([]);
+  const initialPositions: Position[] = Array.from(
+    { length: 9 },
+    (_, index) => ({
+      x: 50 * (index + 1),
+      y: 100 * (index + 1),
+    })
+  );
+
+  const [positions, setPositions] = useState<Position[]>(initialPositions);
 
   const setPosition = (index: number, position: Position) => {
     setPositions((prev) => {

@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/n
 import { useNavigation } from "@react-navigation/native";
 // import { Result } from "@/app/(tabs)/result";
 import ShowPad from "../running";
+import { Device } from "react-native-ble-plx";
 
 function createInterval(callback: any, delay: number) {
   let intervalId = setInterval(callback, delay);
@@ -46,6 +47,7 @@ const StartGame = () => {
   const activePadIndexRef = useRef<number>(activePadIndex);
   // setActivePadIndex(-1);
   // State to track if the game is currently playing
+  const [isHit, setIshit] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showResult, setShowresult] = useState(false);
 
@@ -73,7 +75,8 @@ const StartGame = () => {
   }, [isPlaying]);
 
   // Destructure BLE manager functions and connected devices from the context
-  const { connectedDevice, turnOn_light, turnOff_light } = useBleManager();
+  const { connectedDevice, writeCharacteristic, monitorCharacteristic } =
+    useBleManager();
   let gameEndTime: number;
 
   // Define the type for route parameters received from the training page
@@ -237,42 +240,42 @@ const StartGame = () => {
 
   const handleCloseResult = () => setShowresult(false);
   // Function to detect hits by the user with proper handling of lightOut modes
-  const detectHits = async (activePadIndexRef: number): Promise<number> => {
-    try {
-      // ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
-      console.log(
-        `active padingix->${activePadIndexRef}, length conntect->${connectedDevice.length}`
-      );
+  // const detectHits = async (activePadIndexRef: number): Promise<number> => {
+  //   try {
+  //     // ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
+  //     console.log(
+  //       `active padingix->${activePadIndexRef}, length conntect->${connectedDevice.length}`
+  //     );
 
-      if (
-        connectedDevice.length === 0 ||
-        activePadIndexRef < 0 ||
-        activePadIndexRef >= connectedDevice.length
-      ) {
-        console.log("No valid connected devices or invalid activePadIndex.");
-        return -1;
-      }
+  //     if (
+  //       connectedDevice.length === 0 ||
+  //       activePadIndexRef < 0 ||
+  //       activePadIndexRef >= connectedDevice.length
+  //     ) {
+  //       console.log("No valid connected devices or invalid activePadIndex.");
+  //       return -1;
+  //     }
 
-      const device = connectedDevice[activePadIndexRef];
-      // อ่านค่าปุ่มจากอุปกรณ์
-      const press = await readCharacteristic(
-        device,
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.BUTTONS
-      );
+  //     const device = connectedDevice[activePadIndexRef] as Device;
+  //     // อ่านค่าปุ่มจากอุปกรณ์
+  //     const press = await monitorCharacteristic(
+  //       device,
+  //       setIshit,
+  //       CHARACTERISTIC.BUTTONS
+  //     );
 
-      console.log(`Device ${device.id} - press: ${press}`);
-      if (press === null) {
-        return -1;
-      } else {
-        return press;
-      }
-      return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
-    } catch (error) {
-      console.error("Error in detectHits:", error);
-      return 1;
-    }
-  };
+  //     console.log(`Device ${device?.id} - press: ${isHit}`);
+  //     if (isHit === null) {
+  //       return -1;
+  //     } else {
+  //       return isHit;
+  //     }
+  //     return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
+  //   } catch (error) {
+  //     console.error("Error in detectHits:", error);
+  //     return 1;
+  //   }
+  // };
 
   // Function to start the game with additional modes and conditions
   const play_2 = async (
@@ -281,11 +284,14 @@ const StartGame = () => {
     delay: number
   ) => {
     const activateRandomPad = () => {
-      const totalPads = connectedDevice.length;
+      const totalPads = connectedDevice.filter(
+        (device) => device !== null
+      ).length;
       const randomIndex = Math.floor(Math.random() * totalPads);
       console.log(`Activated pad index: ${randomIndex}`);
       return randomIndex; // Return the selected index
     };
+
     if (
       lightOut === "" ||
       duration === "" ||
@@ -331,23 +337,30 @@ const StartGame = () => {
         continue;
       }
 
-      setActivePadIndex(activateRandomPad());
-      activePadIndexRef.current = activateRandomPad();
+      const isHitSub = await monitorCharacteristic(
+        connectedDevice[activePadIndexRef.current] as Device,
+        setIshit,
+        CHARACTERISTIC.BUTTONS
+      );
+      console.log(`isHitSub ${isHitSub}`);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      //set active pad index
+      const activeRandomIndex = activateRandomPad();
+      setActivePadIndex(activeRandomIndex);
+      activePadIndexRef.current = activeRandomIndex;
       setActivePadIndex(activePadIndexRef.current);
+
       const activedevice = connectedDevice[activePadIndexRef.current];
       console.log(`current ${currenttime}, time prev ${activePadTime}`);
+
       if (activedevice && wait_hit === false) {
-        await turnOn_light(activedevice, "blue");
-        activePadTime = Date.now(); // Update time_prev immediately after turning on the light
-        console.log(`Light turned on for device ${activedevice.id}`);
-
-        const { clear, promise } = createInterval(async () => {
-          if (wait_hit === true) return;
-
-          const hitDetected = await detectHits(activePadIndexRef.current);
-          console.log(`Hit detected: ${hitDetected}`);
-
-          if (hitDetected === 0 && wait_hit === false) {
+        await writeCharacteristic(activedevice, CHARACTERISTIC.LED, "AAD/");
+        while (wait_hit === false) {
+          activePadTime = Date.now(); // Update time_prev immediately after turning on the light
+          // console.log(`Light turned on for device ${activedevice.id}`);
+          if (isHit === 0) {
+            console.log("Hit detected");
             hittemp++;
             setUserHitCount((prevCount) => prevCount + 1);
             console.log(`Hit count: ${hittemp}`);
@@ -365,8 +378,9 @@ const StartGame = () => {
             ((lightOut === "Timeout" || lightOut === "Hit or Timeout") &&
               Date.now() - activePadTime >= interval)
           ) {
-            await turnOff_light(activedevice);
+            await writeCharacteristic(activedevice, CHARACTERISTIC.LED, "AAAA");
             setActivePadIndex(-1);
+            isHitSub?.remove();
             console.log(`Light turned off for device ${activedevice.id}`);
             // activePadTime = Date.now(); // Update time_prev immediately after turning off the light
             wait_hit = true;
@@ -374,13 +388,10 @@ const StartGame = () => {
               wait_hit = false;
             }, delay);
             hittemp = 0; // Reset hittemp
-            clear(); // Stop the interval
           }
+        }
 
-          // Timeout condition to turn off the light
-        }, 100);
-
-        await promise;
+        // Timeout condition to turn off the light
       }
     }
     gameEndTime = Date.now();

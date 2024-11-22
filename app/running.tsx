@@ -20,7 +20,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 function ShowPad(props: any) {
   const { connectedDevice } = useBleManager();
   const { positions, setPosition } = useIconPosition();
-  const [Device, setDevice] = React.useState<Device[]>([]);
+  const [module, setModule] = React.useState<Module[]>([]);
 
   useEffect(() => {
     console.log("ActivePadIndexRef updated:", props.activePadIndexRef);
@@ -88,19 +88,26 @@ function ShowPad(props: any) {
       <View>
         {connectedDevice.length > 0 ? (
           props.isPlaying ? (
-            connectedDevice &&
-            connectedDevice.map((device: any, index: number) => (
-              <StillDevice
-                key={(device as Device).id}
-                device={device as Device}
-                pad_no={index}
-                activePadIndex={props.activePadIndex}
-              />
-            ))
+            connectedDevice
+              .filter((device) => device !== null)
+              .map((device, index) => (
+                <StillDevice
+                  key={device.id}
+                  device={device as Device}
+                  pad_no={index}
+                  activePadIndex={props.activePadIndex}
+                />
+              ))
           ) : (
-            connectedDevice.map((device: any, index: number) => (
-              <DeviceDraggable key={device.id} device={device} pad_no={index} />
-            ))
+            connectedDevice
+              .filter((device) => device !== null)
+              .map((device, index) => (
+                <DeviceDraggable
+                  key={device?.id}
+                  device={device as Device}
+                  pad_no={index}
+                />
+              ))
           )
         ) : (
           <Text style={[tw`text-center text-black my-4 mt-8 shadow-lg`]}>

@@ -44,8 +44,6 @@ interface BleContextType {
     setFunction: (data: any) => void,
     characteristic: string
   ) => Promise<Subscription | undefined>;
-  turnOn_light: (device: Device, color: string) => Promise<void>;
-  turnOff_light: (device: Device) => Promise<void>;
 }
 
 const BleContext = createContext<BleContextType | undefined>(undefined);
@@ -177,12 +175,19 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
+      console.log(`device: ${device}`);
       if (device) {
-        await device.writeCharacteristicWithResponseForService(
+        await bleManager.writeCharacteristicWithResponseForDevice(
+          device.id,
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
         );
+        // await device.writeCharacteristicWithResponseForService(
+        //   CHARACTERISTIC.IWING_TRAINERPAD,
+        //   characteristic,
+        //   value
+        // );
         console.log("Data written to characteristic");
       } else {
         console.log("No Device Connected");
@@ -224,10 +229,12 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       if (device && (await device.isConnected())) {
+        console.log("Monitoring characteristic...))))))).....");
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           CHARACTERISTIC.BUTTONS,
           (error, characteristic) => {
+            console.log("Hello");
             if (error) {
               console.log("Error monitoring characteristic", error);
               return;
@@ -236,6 +243,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
               console.log("No data received");
               return;
             }
+            console.log("Characteristic value: ", characteristic.value);
             setFunction(base64toDec(characteristic.value as string) === 1);
           }
         );
@@ -244,28 +252,6 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (e) {
       console.log("Failed to monitor characteristic", e);
-    }
-  };
-
-  const turnOn_light = async (device: Device, color: string) => {
-    if (color === "red") {
-      color = "/wAB";
-    } else if (color === "blue") {
-      color = "AAD/";
-    }
-    try {
-      await writeCharacteristic(device, CHARACTERISTIC.LED, "color");
-      // Wait for the specified duration
-      // await new Promise((resolve) => setTimeout(resolve, sec * 1000));
-    } catch (error) {
-      console.error(`Error turning on light for device ${device.id}:`, error);
-    }
-  };
-  const turnOff_light = async (device: Device) => {
-    try {
-      writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
-    } catch (error) {
-      console.error(`Error turning off light for device ${device.id}:`, error);
     }
   };
 
@@ -283,8 +269,6 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         swapConnectedDevice,
         disconnectDevice,
         monitorCharacteristic,
-        turnOff_light,
-        turnOn_light,
       }}
     >
       {children}

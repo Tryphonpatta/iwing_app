@@ -1,13 +1,13 @@
 import React from "react";
 import { ModuleContextProvider } from "./context/context";
-import { BleManagerProvider } from "./context/blecontext";
+import { BleProvider } from "./context/blecontext";
 import { Tabs } from "expo-router";
 import { FontAwesome5, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { IconPositionProvider } from "./IconPositionContext";
 
 export default function TabLayout() {
   return (
-    <BleManagerProvider>
+    <BleProvider>
       <IconPositionProvider>
         <ModuleContextProvider>
           <Tabs
@@ -45,7 +45,7 @@ export default function TabLayout() {
                 ),
               }}
             />
-            
+
             <Tabs.Screen
               name="start"
               options={{
@@ -62,6 +62,6 @@ export default function TabLayout() {
           </Tabs>
         </ModuleContextProvider>
       </IconPositionProvider>
-    </BleManagerProvider>
+    </BleProvider>
   );
 }

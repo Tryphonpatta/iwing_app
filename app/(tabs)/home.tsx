@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBleManager } from "./context/blecontext";
-import { Module } from "@/util/buttonType";
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { base64toDec, base64toDecManu, hexToBase64 } from "@/util/encode";
@@ -23,16 +22,15 @@ type ConnectedDevice = Device | null;
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
   const [modalContent, setModalContent] = React.useState("");
-  const { connectedDevice, writeCharacteristic, turnOn_light } =
-    useBleManager();
-  const blemanager = new BleManager();
+  const { connectedDevice, writeCharacteristic } = useBleManager();
+  // const blemanager = new BleManager();
   const [module, setModule] = React.useState<ConnectedDevice[]>([]);
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
-
+  console.log("Connected devices at start: ", connectedDevice);
   React.useEffect(() => {
     console.log("Connected devices: ", connectedDevice);
     const moduleTemp: ConnectedDevice[] = [];
@@ -42,6 +40,7 @@ export default function Home() {
     console.log("Module: ", moduleTemp);
     setModule(moduleTemp);
   }, [connectedDevice]);
+  console.log(connectedDevice);
   const blink = async (device: Device) => {
     console.log("Blinking");
     let redLight = true;
@@ -72,11 +71,7 @@ export default function Home() {
       <View style={styles.cardcontent}>
         <Text>Trainer Pad : {pad_no}</Text>
         <View style={styles.blinkbutton}>
-          <TouchableOpacity
-            onPress={() =>
-              turnOn_light(connectedDevice[pad_no] as Device, "blue")
-            }
-          >
+          <TouchableOpacity onPress={async () => await blink(device)}>
             <Text style={tw`text-gray-700 `}>Blink</Text>
           </TouchableOpacity>
         </View>
@@ -100,7 +95,7 @@ export default function Home() {
         </Text>
       </View>
       <FlatList
-        data={module}
+        data={connectedDevice.filter((d) => d != null)}
         keyExtractor={(item, index) => (item ? item.id : `null-${index}`)}
         renderItem={({ item, index }) =>
           item && <DeviceCard device={item} pad_no={index} />
