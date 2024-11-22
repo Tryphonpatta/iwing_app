@@ -89,9 +89,13 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   useEffect(() => {
     let sequence: CircleKey[] = [];
 
-    if (mode === 2) {
-      // Mode 2 is "Bicycle": Fixed sequence R1 -> L1 -> L2 -> R2
-      sequence = ["R1", "L1", "L2", "R2"];
+    if (mode === 1) {
+      // Mode ขวา: R1 R2 L2 L1
+      sequence = ["R1", "R2", "L2", "L1"];
+    }
+    else if (mode === 2){
+      // Mode ซ้าย: L1 L2 R2 R1
+      sequence = ["L1", "L2", "R2", "R1"];
     } else {
       // Default random sequence based on counts for other modes
       for (let i = 0; i < L1Count; i++) sequence.push("L1");

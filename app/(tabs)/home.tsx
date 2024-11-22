@@ -19,44 +19,44 @@ import { Device } from "react-native-ble-plx";
 
 export type ModuleHome = Module | null;
 
-export const isCenter = async (
-  module: ModuleHome[],
-  readCharacteristic: Function
-) => {
-  // if (module[3] == null || module[2] == null) {
-  //   console.log("Module not found");
-  //   return { left: -1, right: -1 };
-  // }
-  const right = await readCharacteristic(
-    module[3]?.deviceId as string,
-    CHARACTERISTIC.IWING_TRAINERPAD,
-    CHARACTERISTIC.IR_RX
-  );
-  const left = await readCharacteristic(
-    module[2]?.deviceId as string,
-    CHARACTERISTIC.IWING_TRAINERPAD,
-    CHARACTERISTIC.IR_RX
-  );
-  return { left, right };
-};
+// export const isCenter = async (
+//   module: ModuleHome[],
+//   readCharacteristic: Function
+// ) => {
+//   // if (module[3] == null || module[2] == null) {
+//   //   console.log("Module not found");
+//   //   return { left: -1, right: -1 };
+//   // }
+//   const right = await readCharacteristic(
+//     module[3]?.deviceId as string,
+//     CHARACTERISTIC.IWING_TRAINERPAD,
+//     CHARACTERISTIC.IR_RX
+//   );
+//   const left = await readCharacteristic(
+//     module[2]?.deviceId as string,
+//     CHARACTERISTIC.IWING_TRAINERPAD,
+//     CHARACTERISTIC.IR_RX
+//   );
+//   return { left, right };
+// };
 
-export const isHit = async (
-  module: ModuleHome[],
-  readCharacteristic: Function,
-  id: number
-) => {
-  try {
-    const hit = await readCharacteristic(
-      module[id]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    console.log(hit);
-    return hit ? hit == 255 : false;
-  } catch (e) {
-    console.log("Error: ", e);
-  }
-};
+// export const isHit = async (
+//   module: ModuleHome[],
+//   readCharacteristic: Function,
+//   id: number
+// ) => {
+//   try {
+//     const hit = await readCharacteristic(
+//       module[id]?.deviceId as string,
+//       CHARACTERISTIC.IWING_TRAINERPAD,
+//       CHARACTERISTIC.IR_RX
+//     );
+//     console.log(hit);
+//     return hit ? hit == 255 : false;
+//   } catch (e) {
+//     console.log("Error: ", e);
+//   }
+// };
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
