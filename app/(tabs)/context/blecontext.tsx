@@ -180,7 +180,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   ) => {
     try {
       if (device) {
-        await device.writeCharacteristicWithResponseForService(
+        await device.writeCharacteristicWithoutResponseForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
