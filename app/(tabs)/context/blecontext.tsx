@@ -97,9 +97,13 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
       await deviceConnection.discoverAllServicesAndCharacteristics();
-      const index = connectedDevice.findIndex((d) => d === null);
+      if (!(await deviceConnection.isConnected())) throw new Error("errorrrr");
       const tempDevices = connectedDevice;
-      tempDevices[index] = deviceConnection;
+      for (let index = 0; index < 4; index++)
+        if (tempDevices[index] == null) {
+          tempDevices[index] = deviceConnection;
+          break;
+        }
       setConnectedDevice(tempDevices);
       bleManager.stopDeviceScan();
     } catch (e) {
