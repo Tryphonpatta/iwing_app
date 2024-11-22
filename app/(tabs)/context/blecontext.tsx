@@ -22,11 +22,27 @@ import { base64toDec } from "@/util/encode";
 //   device: Device;
 // };
 
-type ConnectedDevice = Device | null;
+export class ConnectedDevice {
+  constructor(device: Device) {
+    this.device = device;
+    this.writeCharacteristic = async (
+      characteristic: string,
+      value: string
+    ) => {
+      await device.writeCharacteristicWithResponseForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristic,
+        value
+      );
+    };
+  }
+  device: Device;
+  writeCharacteristic: (characteristic: string, value: string) => Promise<void>;
+}
 
 interface BleContextType {
   allDevices: Device[];
-  connectedDevice: ConnectedDevice[];
+  connectedDevice: (ConnectedDevice | null)[];
   buttonStatus: Boolean | null;
   requestPermissions: () => Promise<boolean>;
   scanForPeripherals: () => void;
@@ -59,17 +75,9 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [allDevices, setAllDevices] = useState<Device[]>([]);
-  const [connectedDevice, setConnectedDevice] = useState<ConnectedDevice[]>([
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-  ]);
+  const [connectedDevice, setConnectedDevice] = useState<
+    (ConnectedDevice | null)[]
+  >([null, null, null, null, null, null, null, null, null]);
   const [buttonStatus, setButtonStatus] = useState<Boolean | null>(null);
 
   const requestAndroid31Permissions = async () => {
@@ -109,30 +117,40 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       await deviceConnection.discoverAllServicesAndCharacteristics();
       const index = connectedDevice.findIndex((d) => d === null);
       const tempDevices = connectedDevice;
-      tempDevices[index] = deviceConnection;
-      setConnectedDevice(tempDevices);
-      const sub = deviceConnection.monitorCharacteristicForService(
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        CHARACTERISTIC.BUTTONS,
-        (error, characteristic) => {
-          if (error) {
-            console.log("Error monitoring characteristic", error);
-            console.log(JSON.stringify(error));
-            return;
-          }
-          if (!characteristic?.value) {
-            console.log("No data received");
-            return;
-          }
-          console.log(
-            "Characteristic value: ",
-            base64toDec(characteristic.value as string)
+      tempDevices[index] = {
+        device: deviceConnection,
+        writeCharacteristic: async (characteristic: string, value: string) => {
+          await deviceConnection.writeCharacteristicWithResponseForService(
+            CHARACTERISTIC.IWING_TRAINERPAD,
+            characteristic,
+            value
           );
-          // setButtonStatus(base64toDec(characteristic.value as string) === 1);
-        }
-      );
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      sub.remove();
+        },
+      } as ConnectedDevice;
+      // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
+      setConnectedDevice(tempDevices);
+      // const sub = deviceConnection.monitorCharacteristicForService(
+      //   CHARACTERISTIC.IWING_TRAINERPAD,
+      //   CHARACTERISTIC.BUTTONS,
+      //   (error, characteristic) => {
+      //     if (error) {
+      //       console.log("Error monitoring characteristic", error);
+      //       console.log(JSON.stringify(error));
+      //       return;
+      //     }
+      //     if (!characteristic?.value) {
+      //       console.log("No data received");
+      //       return;
+      //     }
+      //     console.log(
+      //       "Characteristic value: ",
+      //       base64toDec(characteristic.value as string)
+      //     );
+      //     // setButtonStatus(base64toDec(characteristic.value as string) === 1);
+      //   }
+      // );
+      // await new Promise((resolve) => setTimeout(resolve, 10000));
+      // sub.remove();
       // bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
@@ -251,7 +269,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Disconnected from device");
       console.log(connectedDevice);
       const tempDevices = connectedDevice;
-      const index = tempDevices.findIndex((d) => d?.id === device.id);
+      const index = tempDevices.findIndex((d) => d?.device.id === device.id);
       tempDevices[index] = null;
       console.log(tempDevices);
       setConnectedDevice(tempDevices);

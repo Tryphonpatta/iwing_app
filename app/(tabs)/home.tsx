@@ -35,7 +35,7 @@ export default function Home() {
     console.log("Connected devices: ", connectedDevice);
     const moduleTemp: ConnectedDevice[] = [];
     for (let i = 0; i < connectedDevice.length; i++) {
-      moduleTemp.push(connectedDevice[i] as Device);
+      moduleTemp.push(connectedDevice[i]?.device as Device);
     }
     console.log("Module: ", moduleTemp);
     setModule(moduleTemp);
@@ -96,9 +96,11 @@ export default function Home() {
       </View>
       <FlatList
         data={connectedDevice.filter((d) => d != null)}
-        keyExtractor={(item, index) => (item ? item.id : `null-${index}`)}
+        keyExtractor={(item, index) =>
+          item ? item.device.id : `null-${index}`
+        }
         renderItem={({ item, index }) =>
-          item && <DeviceCard device={item} pad_no={index} />
+          item && <DeviceCard device={item.device} pad_no={index} />
         }
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}>No connected devices</Text>

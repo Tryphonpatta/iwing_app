@@ -42,6 +42,7 @@ const StartGame = () => {
   // State to track if the game is currently playing
   const [isHit, setIshit] = useState(1);
   const isHitRef = useRef(isHit);
+  const isHitObjRef = useRef([1, 1, 1, 1, 1, 1, 1, 1, 1]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showResult, setShowresult] = useState(false);
 
@@ -300,14 +301,15 @@ const StartGame = () => {
       }
       console.log("index", index);
       //turn on
-      await writeCharacteristic(
-        connectedDevice[index],
-        CHARACTERISTIC.LED,
-        "AAD/"
-      );
+      // await writeCharacteristic(
+      //   connectedDevice[index].device,
+      //   CHARACTERISTIC.LED,
+      //   "AAD/"
+      // );
+      connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
       console.log("write");
       const isHitSub = await monitorCharacteristicRef(
-        connectedDevice[index],
+        connectedDevice[index].device,
         isHitRef,
         CHARACTERISTIC.BUTTONS
       );
@@ -330,11 +332,12 @@ const StartGame = () => {
         console.log("loop for hit", buttonHit);
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
-      await writeCharacteristic(
-        connectedDevice[index],
-        CHARACTERISTIC.LED,
-        "AAAA"
-      );
+      // await writeCharacteristic(
+      //   connectedDevice[index].device,
+      //   CHARACTERISTIC.LED,
+      //   "AAAA"
+      // );
+      connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
       isHitSub?.remove();
       await new Promise((resolve) => setTimeout(resolve, 300));
     }

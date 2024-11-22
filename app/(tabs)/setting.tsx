@@ -29,7 +29,7 @@ const BLE = () => {
   // Connect or disconnect the device and update its status immediately
   const toggleConnection = async (device: Device) => {
     if (!device) return;
-    const isConnect = connectedDevice.find((m) => m?.id == device.id);
+    const isConnect = connectedDevice.find((m) => m?.device.id == device.id);
     if (isConnect) {
       try {
         // Add device ID to connecting devices (for disconnecting state)
@@ -80,7 +80,7 @@ const BLE = () => {
   };
 
   const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
-    const isConnect = connectedDevice.find((m) => m?.id == device?.id);
+    const isConnect = connectedDevice.find((m) => m?.device.id == device?.id);
     const isConnectingOrDisconnecting = connectingDevicesRef.current.has(
       device.id
     );
@@ -165,8 +165,8 @@ const BLE = () => {
       </View>
       <FlatList
         data={connectedDevice.filter((d) => d != null)}
-        keyExtractor={(item) => item?.id as string}
-        renderItem={({ item }) => <DeviceItem device={item as Device} />}
+        keyExtractor={(item) => item?.device.id as string}
+        renderItem={({ item }) => <DeviceItem device={item.device as Device} />}
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No connected devices</Text>
         }
@@ -180,7 +180,7 @@ const BLE = () => {
       </View>
       <FlatList
         data={allDevices.filter(
-          (d) => d != null && !connectedDevice.find((m) => m?.id == d.id)
+          (d) => d != null && !connectedDevice.find((m) => m?.device.id == d.id)
         )}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
