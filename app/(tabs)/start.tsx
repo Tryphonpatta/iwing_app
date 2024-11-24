@@ -108,7 +108,6 @@ const StartGame = () => {
     secDuration = 0,
   } = route.params || {};
   // Example positions data for pads
-  let currenttime: number, starttime: number;
 
   // State to track the number of hits by the user
   const [userHitCount, setUserHitCount] = useState(0);
@@ -292,9 +291,17 @@ const StartGame = () => {
       return randomIndex; // Return the selected index
     };
     let hit = 0;
-    console.log("hit duration", hitduration);
-    while (hit < hitduration) {
+    let startTime: number = Date.now();
+
+    while (
+      (hit < hitduration &&
+        (duration === "Hit" || duration === "Hit or Timeout")) ||
+      (Date.now() < startTime + (minDuration * 60 + secDuration) * 1000 &&
+        (duration === "Timeout" || duration === "Hit or Timeout"))
+    ) {
       const index = activateRandomPad();
+      //set setActivePadIndex to re render pad ui
+
       if (!connectedDevice[index]) {
         console.log("device is null");
         continue;
@@ -306,7 +313,11 @@ const StartGame = () => {
       //   CHARACTERISTIC.LED,
       //   "AAD/"
       // );
+      setActivePadIndex(index);
+      const activePadtime = Date.now();
       connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
+
+      console.log("active pad turn on :", activePadIndex);
       console.log("write");
       const isHitSub = await monitorCharacteristicRef(
         connectedDevice[index].device,
@@ -316,8 +327,13 @@ const StartGame = () => {
 
       console.log("monitored", hitCount);
       let buttonHit = 0;
-      while (buttonHit < hitCount) {
+      console.log("Tme diff1:", Date.now() - activePadtime);
+      while (
+        buttonHit < hitCount &&
+        (lightOut === "Hit" || lightOut === "Hit or Timout")
+      ) {
         console.log("button Hit", buttonHit);
+
         while (isHitRef.current) {
           // console.log("loop for hit", isHitRef.current);
           await new Promise((resolve) => setTimeout(resolve, 300));
@@ -331,16 +347,36 @@ const StartGame = () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         console.log("loop for hit", buttonHit);
       }
+
+      //case timeout
+      while (
+        Date.now() < activePadtime + timeout * 1000 &&
+        (lightOut === "Timeout" || lightOut === "Hit or Timout")
+      ) {
+        console.log("time Diff", Date.now() - activePadtime);
+        if (!isHitRef.current) {
+          hit++;
+          console.log("buttonhit", hit);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 100));
       // await writeCharacteristic(
       //   connectedDevice[index].device,
       //   CHARACTERISTIC.LED,
       //   "AAAA"
       // );
+      setActivePadIndex(-1);
       connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
+
+      await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      console.log("active pad after turn off", activePadIndex);
       isHitSub?.remove();
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // setActivePadIndex(-1);
+      // await new Promise((resolve) => setTimeout(resolve, 300));
     }
+
     setIsPlaying(false);
     setShowresult(true);
   };
