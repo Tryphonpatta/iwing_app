@@ -18,7 +18,8 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "This app needs access to Bluetooth.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to connect to devices."
-      }
+      },
+      "runtimeVersion": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +31,10 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
-      "package": "com.golfpattadon.test"
+      "package": "com.golfpattadon.test",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -46,8 +50,14 @@
     },
     "extra": {
       "eas": {
-        "projectId": "bdc0e8ca-e08c-4875-977f-f200994df620"
+        "projectId": "d6179133-2742-449f-bb35-4b304f5d74f4"
+      },
+      "router": {
+        "origin": false
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d6179133-2742-449f-bb35-4b304f5d74f4"
     }
   }
 }
