@@ -8,7 +8,10 @@ import {
 	Modal,
 } from "react-native";
 
+import { useRouter } from "expo-router";
+
 const FullResult = (props: any, { navigation }: { navigation: any }) => {
+	const router = useRouter();
 	return (
 		<SafeAreaView style={styles.container}>
 			<Modal
@@ -56,7 +59,8 @@ const FullResult = (props: any, { navigation }: { navigation: any }) => {
 
 						<TouchableOpacity
 							style={styles.button}
-							onPress={() => navigation.goBack()} // กลับไปยังหน้า Start
+							onPress={() => router.back()} // กลับไปยังหน้า Start
+							onPress={() => {}}
 						>
 							<Text style={styles.buttonText}>Go Back to Start</Text>
 						</TouchableOpacity>

@@ -44,6 +44,24 @@ function ShowPad(props: any) {
 		const dy = y1 - y2;
 		return Math.sqrt(dx * dx + dy * dy);
 	};
+	// const fixPostion = {
+	// 	// padindex 0 (L1)
+	// 	0: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.1 },
+	// 	// padindex 1 (R1)
+	// 	1: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.1 },
+	// 	// padindex 2 (L2)
+	// 	2: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.3 },
+	// 	// padindex 3 (R2)
+	// 	3: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.3 },
+	// 	// padindex 4 (L3)
+	// 	4: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.5 },
+	// 	// padindex 5 (R3)
+	// 	5: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.5 },
+	// 	// padindex 6 (L4)
+	// 	6: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.7 },
+	// 	// padindex 7 (R4)
+	// 	7: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.7 },
+	// };
 
 	const DeviceDraggable = ({
 		device,
@@ -95,25 +113,6 @@ function ShowPad(props: any) {
 		</Draggable>
 	);
 
-	const fixPostion = {
-		// padindex 0 (L1)
-		0: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.1 },
-		// padindex 1 (R1)
-		1: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.1 },
-		// padindex 2 (L2)
-		2: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.3 },
-		// padindex 3 (R2)
-		3: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.3 },
-		// padindex 4 (L3)
-		4: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.5 },
-		// padindex 5 (R3)
-		5: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.5 },
-		// padindex 6 (L4)
-		6: { x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.7 },
-		// padindex 7 (R4)
-		7: { x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.7 },
-	};
-
 	const StillDevice = ({
 		device,
 		pad_no,
@@ -127,7 +126,7 @@ function ShowPad(props: any) {
 			key={pad_no}
 			style={[
 				styles.iconContainer,
-				{ left: fixPostion[pad_no]?.x, top: fixPostion[pad_no]?.y },
+				{ left: positions[pad_no]?.x, top: positions[pad_no]?.y },
 			]}
 		>
 			<MaterialIcons
@@ -166,7 +165,7 @@ function ShowPad(props: any) {
 							.filter((device) => device !== null)
 							.map((device, index) => (
 								<StillDevice
-									key={device.id}
+									key={device?.id}
 									device={device as unknown as Device}
 									pad_no={index}
 									activePadIndex={props.activePadIndex}

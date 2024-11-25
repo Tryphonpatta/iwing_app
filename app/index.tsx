@@ -10,10 +10,10 @@ const index = () => {
 	return (
 		<Pressable
 			onPress={() => router.push("/home")}
-			style={className`bg-green-500 flex-1 justify-center items-center`}
+			style={className`bg-gray-700 flex-1 justify-center items-center`}
 		>
 			<Image
-				source={require("../assets/images/badlogo.png")}
+				source={require("../assets/images/buttonkub.png")}
 				style={className`w-70 h-70`}
 			/>
 			<Text style={className`text-6xl font-bold text-white`}>KU</Text>

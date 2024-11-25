@@ -13,16 +13,26 @@ const IconPositionContext = createContext<IconPositionContextType | undefined>(
 );
 
 export const IconPositionProvider = ({ children }: { children: ReactNode }) => {
-	const initialPositions: Position[] = Array.from(
-		{ length: 9 },
-		(_, index) => ({
-			x: 50 + index * 30,
-			y: 100 + index * 30,
-		})
-	);
-
 	const SCREEN_WIDTH = Dimensions.get("window").width;
-	const SCREEN_HEIGHT = Dimensions.get("window").height - 250;
+	const SCREEN_HEIGHT = Dimensions.get("window").height * 0.6; // -250 เพื่อทำให้ไม่ตกลงไปด้านล่าง
+	// const initialPositions: Position[] = Array.from(
+
+	// 	{ length: 9 },
+	// 	(_, index) => ({
+	// 		x: 50 + index * 30,
+	// 		y: 100 + index * 30,
+	// 	})
+	// );
+	const initialPositions: Position[] = [
+		{ x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.1 }, // padindex 0 (L1)
+		{ x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.1 }, // padindex 1 (R1)
+		{ x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.3 }, // padindex 2 (L2)
+		{ x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.3 }, // padindex 3 (R2)
+		{ x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.5 }, // padindex 4 (L3)
+		{ x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.5 }, // padindex 5 (R3)
+		{ x: SCREEN_WIDTH * 0.1, y: SCREEN_HEIGHT * 0.7 }, // padindex 6 (L4)
+		{ x: SCREEN_WIDTH * 0.7, y: SCREEN_HEIGHT * 0.7 }, // padindex 7 (R4)
+	];
 
 	const [positions, setPositions] = useState<Position[]>(initialPositions);
 

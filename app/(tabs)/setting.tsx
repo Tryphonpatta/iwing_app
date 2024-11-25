@@ -12,6 +12,7 @@ import { BleManager, Device } from "react-native-ble-plx";
 import tw from "twrnc";
 import { base64toDecManu } from "@/util/encode";
 import { useBleManager } from "./context/blecontext";
+import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
 
 const BLE = () => {
   const {
@@ -88,10 +89,11 @@ const BLE = () => {
       <View
         style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
       >
-        <Image
-          source={require("../../assets/images/device.png")}
+        <MaterialIcons name="wb-twilight" size={65} color="black" />
+        {/* <Image
+          source={require("../../assets/images/icon.png")}
           style={tw`w-20 h-20`}
-        />
+        /> */}
 
         <View style={tw`ml-4`}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
