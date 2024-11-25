@@ -358,9 +358,12 @@ const StartGame = () => {
 				duration === "Timeout") ||
 			(Date.now() < startTime + (minDuration * 60 + secDuration) * 1000 &&
 				hit < hitduration &&
-				lightOut === "Hit or Timeout" &&
-				// add stop game function
-				!stopGameRef)
+				duration === "Hit or Timeout")
+			// lightOut === "Hit or Timeout")
+
+			// &&
+			// add stop game function
+			// !stopGameRef
 		) {
 			const index = activateRandomPad();
 			//set setActivePadIndex to re render pad ui
