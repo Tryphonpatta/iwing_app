@@ -346,7 +346,9 @@ const StartGame = () => {
 		};
 		let hit = 0;
 		hitCountRef.current = 0;
+		stopGameRef.current = false;
 		setUserHitCount(0);
+		setPressButton(true);
 		startTimeRef.current = Date.now();
 		let startTime: number = Date.now();
 
@@ -358,7 +360,7 @@ const StartGame = () => {
 				hit < hitduration &&
 				lightOut === "Hit or Timeout" &&
 				// add stop game function
-				!stopGameRef.current)
+				!stopGameRef)
 		) {
 			const index = activateRandomPad();
 			//set setActivePadIndex to re render pad ui
@@ -454,6 +456,7 @@ const StartGame = () => {
 		// end
 		setUserHitCount(hit);
 		gameEndTimeRef.current = Date.now();
+		setPressButton(false);
 		setIsPlaying(false);
 		setShowresult(true);
 	};
@@ -495,6 +498,7 @@ const StartGame = () => {
 								await blink(deviceObj.device);
 							}
 						});
+						setPressButton(false);
 					} else {
 						stopGameRef.current = false; // รีเซ็ตสัญญาณหยุดเกม
 						setIsPlaying(true);
@@ -509,7 +513,8 @@ const StartGame = () => {
 				}}
 			>
 				<Text style={styles.buttonText}>
-					{pressButton ? `Playing...${isHitRef.current}` : "Start Game 2"}
+					{/* {pressButton ? `Playing...${isHitRef.current}` : "Start Game"} */}
+					{pressButton ? `force stop` : "Start Game"}
 				</Text>
 			</TouchableOpacity>
 			<View style={styles.hitCountContainer}>
@@ -610,6 +615,12 @@ const styles = StyleSheet.create({
 	},
 	buttonText: {
 		color: "white", // Text color
+		fontWeight: "bold", // Bold font weight
+		fontSize: 16, // Font size
+	},
+	buttonText2: {
+		color: "red", // Text color
+		// marginTop: ,
 		fontWeight: "bold", // Bold font weight
 		fontSize: 16, // Font size
 	},
