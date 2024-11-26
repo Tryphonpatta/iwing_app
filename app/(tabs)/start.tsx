@@ -233,7 +233,7 @@ const StartGame = () => {
 					<Text style={styles.separator}>---------------</Text>
 
 					<View style={styles.row}>
-						<Text style={styles.label}>All time</Text>
+						<Text style={styles.label}>Total time</Text>
 						<Text style={styles.output}>
 							{gameEndTimeRef.current && startTimeRef.current
 								? (
@@ -346,7 +346,7 @@ const StartGame = () => {
 		};
 		let hit = 0;
 		hitCountRef.current = 0;
-		stopGameRef.current = false;
+		// stopGameRef.current = false;
 		setUserHitCount(0);
 		setPressButton(true);
 		startTimeRef.current = Date.now();
@@ -401,16 +401,16 @@ const StartGame = () => {
 
 				while (isHitRef.current) {
 					// console.log("loop for hit", isHitRef.current);
-					await new Promise((resolve) => setTimeout(resolve, 300));
+					await new Promise((resolve) => setTimeout(resolve, 10));
 				}
 				while (!isHitRef.current) {
 					// console.log("loop for hit", isHitRef.current);
-					await new Promise((resolve) => setTimeout(resolve, 100));
+					await new Promise((resolve) => setTimeout(resolve, 10));
 				}
 				buttonHit += 1;
 				hit += 1;
 				setUserHitCount((prev) => prev + 1);
-				await new Promise((resolve) => setTimeout(resolve, 100));
+				await new Promise((resolve) => setTimeout(resolve, 10));
 				console.log("loop for hit", buttonHit);
 			}
 
@@ -422,7 +422,9 @@ const StartGame = () => {
 				console.log("time Diff", Date.now() - activePadtime);
 				if (!isHitRef.current) {
 					hit++;
+					setUserHitCount((prev) => prev + 1);
 					console.log("buttonhit", hit);
+
 				}
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
@@ -458,7 +460,7 @@ const StartGame = () => {
 		}
 		// end
 		setUserHitCount(hit);
-		gameEndTimeRef.current = Date.now();
+		// gameEndTimeRef.current = Date.now();
 		setPressButton(false);
 		setIsPlaying(false);
 		setShowresult(true);
@@ -516,16 +518,16 @@ const StartGame = () => {
 				}}
 			>
 				<Text style={styles.buttonText}>
-					{/* {pressButton ? `Playing...${isHitRef.current}` : "Start Game"} */}
-					{pressButton ? `force stop` : "Start Game"}
+					{pressButton ? `Playing...` : "Start Game"}
+					{/* {pressButton ? `force stop` : "Start Game"} */}
 				</Text>
 			</TouchableOpacity>
 			<View style={styles.hitCountContainer}>
 				<Text style={styles.hitCountText}>
 					{/* ระบบสำรอง */}
-					{/* Hit Count: {hitCountRef.current} {"\n"} */}
+					Hit Count: {hitCountRef.current} {"\n"}
 					{/* ระบบหลัก */}
-					Hit Count: {userHitCount} {"\n"}
+					{/* Hit Count: {userHitCount} {"\n"} */}
 				</Text>
 			</View>
 
