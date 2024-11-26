@@ -23,21 +23,60 @@ import { base64toDec } from "@/util/encode";
 // };
 
 export class ConnectedDevice {
+  device: Device;
+  button: boolean = true;
+
   constructor(device: Device) {
     this.device = device;
-    this.writeCharacteristic = async (
-      characteristic: string,
-      value: string
-    ) => {
-      await device.writeCharacteristicWithResponseForService(
-        CHARACTERISTIC.IWING_TRAINERPAD,
-        characteristic,
-        value
-      );
-    };
   }
-  device: Device;
-  writeCharacteristic: (characteristic: string, value: string) => Promise<void>;
+
+  async writeCharacteristic(
+    characteristic: string,
+    value: string
+  ): Promise<void> {
+    console.log("writing to characteristic");
+    await this.device.writeCharacteristicWithResponseForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      characteristic,
+      value
+    );
+  }
+
+  async readCharacteristic(
+    characteristic: string
+  ): Promise<number | undefined> {
+    const char = await this.device.readCharacteristicForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      characteristic
+    );
+    if (!char.value) {
+      console.log("No data received");
+      return;
+    }
+    return base64toDec(char.value as string);
+  }
+
+  async monitorButton(): Promise<void> {
+    this.device.monitorCharacteristicForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.BUTTONS,
+      (error, characteristic) => {
+        if (error) {
+          console.log("Error monitoring characteristic", error);
+          return;
+        }
+        if (!characteristic?.value) {
+          console.log("No data received");
+          return;
+        }
+        // console.log(
+        //   "Characteristic value: ",
+        //   base64toDec(characteristic.value as string)
+        // );
+        this.button = base64toDec(characteristic.value as string) === 1;
+      }
+    );
+  }
 }
 
 interface BleContextType {
@@ -117,17 +156,9 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       await deviceConnection.discoverAllServicesAndCharacteristics();
       const index = connectedDevice.findIndex((d) => d === null);
       const tempDevices = connectedDevice;
-      tempDevices[index] = {
-        device: deviceConnection,
-        writeCharacteristic: async (characteristic: string, value: string) => {
-          await deviceConnection.writeCharacteristicWithResponseForService(
-            CHARACTERISTIC.IWING_TRAINERPAD,
-            characteristic,
-            value
-          );
-        },
-      } as ConnectedDevice;
+      tempDevices[index] = new ConnectedDevice(deviceConnection);
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
+      tempDevices[index]?.monitorButton();
       setConnectedDevice(tempDevices);
       // const sub = deviceConnection.monitorCharacteristicForService(
       //   CHARACTERISTIC.IWING_TRAINERPAD,
