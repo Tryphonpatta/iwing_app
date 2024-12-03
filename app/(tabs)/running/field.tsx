@@ -36,7 +36,7 @@ type Interaction = {
 };
 
 const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
-  const { module, writeCharacteristic } = useBleManager();
+  const { connectedDevice, writeCharacteristic } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -119,8 +119,8 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   }, []);
 
   const startCenterMonitoring = () => {
-    const leftDevice = module[2]?.device;
-    const rightDevice = module[3]?.device;
+    const leftDevice = connectedDevice[2]?.device;
+    const rightDevice = connectedDevice[3]?.device;
 
     if (!leftDevice || !rightDevice) {
       console.error("Left or right device not connected.");
@@ -128,48 +128,49 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
     }
 
     // Subscribe to left device
-    const leftSubscription = leftDevice.monitorCharacteristicForService(
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX,
-      (error: BleError | null, characteristic: Characteristic | null) => {
-        if (error) {
-          console.error("Left device monitoring error:", error);
-          return;
-        }
-        const value = base64toDec(characteristic?.value ?? "");
-        if (value === 0) {
-          handleReturnToCenter();
-        }
-      }
-    );
+    // const leftSubscription = leftDevice.monitorCharacteristicForService(
+    //   CHARACTERISTIC.IWING_TRAINERPAD,
+    //   CHARACTERISTIC.IR_RX,
+    //   (error: BleError | null, characteristic: Characteristic | null) => {
+    //     if (error) {
+    //       console.error("Left device monitoring error:", error);
+    //       return;
+    //     }
+    //     const value = base64toDec(characteristic?.value ?? "");
+    //     if (value === 0) {
+    //       handleReturnToCenter();
+    //     }
+    //   }
+    // );
 
-    // Subscribe to right device
-    const rightSubscription = rightDevice.monitorCharacteristicForService(
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX,
-      (error: BleError | null, characteristic: Characteristic | null) => {
-        if (error) {
-          console.error("Right device monitoring error:", error);
-          return;
-        }
-        const value = base64toDec(characteristic?.value ?? "");
-        if (value === 0) {
-          handleReturnToCenter();
-        }
-      }
-    );
-
+    // // Subscribe to right device
+    // const rightSubscription = rightDevice.monitorCharacteristicForService(
+    //   CHARACTERISTIC.IWING_TRAINERPAD,
+    //   CHARACTERISTIC.IR_RX,
+    //   (error: BleError | null, characteristic: Characteristic | null) => {
+    //     if (error) {
+    //       console.error("Right device monitoring error:", error);
+    //       return;
+    //     }
+    //     const value = base64toDec(characteristic?.value ?? "");
+    //     if (value === 0) {
+    //       handleReturnToCenter();
+    //     }
+    //   }
+    // );
+    if (connectedDevice[4]?.vibration) {
+      handleReturnToCenter();
+    }
     // Combine subscriptions
-    centerSubscriptionRef.current = {
-      remove: () => {
-        leftSubscription?.remove();
-        rightSubscription?.remove();
-      },
-    } as Subscription;
+    // centerSubscriptionRef.current = {
+    //   remove: () => {
+    //     leftSubscription?.remove();
+    //     rightSubscription?.remove();
+    //   },
+    // } as Subscription;
   };
 
   const stopCenterMonitoring = () => {
-    centerSubscriptionRef.current?.remove();
     centerSubscriptionRef.current = null;
   };
 
@@ -178,35 +179,32 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
     if (!circle) return;
 
     const id =
-      circle === "R1"
-        ? 1
-        : circle === "R2"
-        ? 3
-        : circle === "L1"
-        ? 0
-        : 2;
+      circle === "R1" ? 1 : circle === "R2" ? 3 : circle === "L1" ? 0 : 2;
 
-    const device = module[id]?.device;
+    const device = connectedDevice[id]?.device;
 
     if (!device) {
       console.error("Device not connected for hit monitoring.");
       return;
     }
+    if (connectedDevice[id]?.vibration) {
+      handleHitDetected();
+    }
 
-    hitSubscriptionRef.current = device.monitorCharacteristicForService(
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.VIBRATION,
-      (error: BleError | null, characteristic: Characteristic | null) => {
-        if (error) {
-          console.error("Hit monitoring error:", error);
-          return;
-        }
-        const value = base64toDec(characteristic?.value ?? "");
-        if (value === 255) {
-          handleHitDetected();
-        }
-      }
-    );
+    // hitSubscriptionRef.current = device.monitorCharacteristicForService(
+    //   CHARACTERISTIC.IWING_TRAINERPAD,
+    //   CHARACTERISTIC.VIBRATION,
+    //   (error: BleError | null, characteristic: Characteristic | null) => {
+    //     if (error) {
+    //       console.error("Hit monitoring error:", error);
+    //       return;
+    //     }
+    //     const value = base64toDec(characteristic?.value ?? "");
+    //     if (value === 255) {
+    //       handleHitDetected();
+    //     }
+    //   }
+    // );
   };
 
   const stopHitMonitoring = () => {
@@ -216,18 +214,16 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   useEffect(() => {
     if (circleSequence.length === 0) return;
-    writeCharacteristic(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_TX,
-      hexToBase64("01")
-    );
-    writeCharacteristic(
-      module[1]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_TX,
-      hexToBase64("01")
-    );
+    // writeCharacteristic(
+    //   connectedDevice[0]?.device as Device,
+    //   CHARACTERISTIC.IR_TX,
+    //   hexToBase64("01")
+    // );
+    // writeCharacteristic(
+    //   connectedDevice[1]?.device as Device,
+    //   CHARACTERISTIC.IR_TX,
+    //   hexToBase64("01")
+    // );
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
 
@@ -312,20 +308,18 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
         handleStopAndShowResult();
       }
       // Stop hit monitoring
-      stopHitMonitoring();
+      // stopHitMonitoring();
     }
   };
 
   const handleStopAndShowResult = () => {
     writeCharacteristic(
-      module[0]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[0]?.device as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
     writeCharacteristic(
-      module[1]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
+      connectedDevice[1]?.device as Device,
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );

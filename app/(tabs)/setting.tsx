@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,126 +8,92 @@ import {
   FlatList,
   Button,
 } from "react-native";
-import { BleManager, Device, State } from "react-native-ble-plx";
+import { BleManager, Device } from "react-native-ble-plx";
 import tw from "twrnc";
+import { base64toDecManu } from "@/util/encode";
 import { useBleManager } from "./context/blecontext";
-import { prefix } from "@/enum/characteristic";
-import { base64toDec, base64toDecManu } from "@/util/encode";
-import { ModuleHome } from "./home";
-import { disconnectDevice } from "@/util/ble";
-// const bleManager = new BleManager();
-// BLE component for scanning and managing device connections
-type DeviceCustom = Device & { isConnect: boolean };
+import MaterialIcons from "@expo/vector-icons/build/MaterialIcons";
+
 const BLE = () => {
   const {
-    bleManager,
     connectToDevice,
-    connectedDevices,
-    module,
-    setModule,
+    allDevices,
+    connectedDevice,
+    scanForPeripherals,
     disconnectDevice,
-  } = useBleManager(); // BLE context values
-  const [deviceList, setDeviceList] = useState<Device[]>([]); // List of BLE devices with custom type
-  const [scanning, setScanning] = useState<boolean>(false); // Scanning state
+  } = useBleManager();
+
+  const [scanning, setScanning] = useState<boolean>(false);
+  const connectingDevicesRef = useRef<Set<string>>(new Set());
+  const [, forceUpdate] = useState(0);
 
   // Connect or disconnect the device and update its status immediately
-  const toggleConnection = async (deviceId: string) => {
-    if (!deviceId) return;
-    const isConnect = module.find((m) => m?.deviceId == deviceId);
+  const toggleConnection = async (device: Device) => {
+    if (!device) return;
+    const isConnect = connectedDevice.find((m) => m?.device.id == device.id);
     if (isConnect) {
       try {
-        // Disconnect from the device
-        disconnectDevice(deviceId);
-        updateDeviceStatus(deviceId, false);
+        // Add device ID to connecting devices (for disconnecting state)
+        connectingDevicesRef.current.add(device.id);
+        forceUpdate((n) => n + 1);
+
+        await disconnectDevice(device);
+
+        // Remove device ID from connecting devices
+        connectingDevicesRef.current.delete(device.id);
+        forceUpdate((n) => n + 1);
       } catch (error) {
-        disconnectDevice(deviceId);
-        console.log("Failed to disconnect from device:", deviceId, error);
+        console.log("Failed to disconnect from device:", device.id, error);
+        // Remove device ID from connecting devices
+        connectingDevicesRef.current.delete(device.id);
+        forceUpdate((n) => n + 1);
       }
     } else {
       try {
-        console.log("Connecting to device:", deviceId);
+        console.log("Connecting to device:", device.id);
+        // Add device ID to connecting devices
+        connectingDevicesRef.current.add(device.id);
+        forceUpdate((n) => n + 1);
         // Attempt to connect to the device
-        await connectToDevice(deviceId);
-        // console.log("Test disconnect");
-        // await testDisconnect(deviceId);
-        // Update the status only if the connection was successful
-        updateDeviceStatus(deviceId, true);
+        await connectToDevice(device);
+        // Remove device ID from connecting devices
+        connectingDevicesRef.current.delete(device.id);
+        forceUpdate((n) => n + 1);
       } catch (error) {
-        console.log("Failed to connect to device:", deviceId, error);
-        // Optionally, inform the user that the connection failed
+        console.log("Failed to connect to device:", device.id, error);
+        // Remove device ID from connecting devices
+        connectingDevicesRef.current.delete(device.id);
+        forceUpdate((n) => n + 1);
       }
     }
   };
 
-  // Update device status in the list based on its connection status
-  const updateDeviceStatus = (deviceId: string, isConnect: boolean) => {
-    setDeviceList((prevList: any) =>
-      prevList.map((d: any) =>
-        d.id === deviceId ? { ...d, isConnect: isConnect } : d
-      )
-    );
-  };
-
   const startScan = async () => {
-    setDeviceList([]); // Clear the list before starting a new scan
     console.log("Scanning...");
     setScanning(true);
 
-    bleManager.onStateChange((state) => {
-      if (state === State.PoweredOn) {
-        bleManager.startDeviceScan(null, null, (error, device) => {
-          if (error) {
-            console.log("Scan error:", error);
-            return;
-          }
-
-          if (device) {
-            setDeviceList((prev: any) => {
-              const deviceExists = prev.some((d: any) => d.id === device.id);
-
-              if (device.name === "Trainning_PAD" && !deviceExists) {
-                console.log("Device found:", device.id, device.name);
-
-                return [...prev, { ...device, isConnect: false }];
-              }
-              return prev;
-            });
-          }
-        });
-      }
-    }, true);
+    scanForPeripherals();
 
     setTimeout(() => {
-      bleManager.stopDeviceScan();
       setScanning(false);
       console.log("Scan stopped after 10 seconds.");
     }, 10000);
   };
 
-  useEffect(() => {
-    // Update device connection statuses when connectedDevices change
-    setDeviceList((prev: any) =>
-      prev.map((device: any) => ({
-        ...device,
-        isConnect: connectedDevices.some((d) => d.deviceId === device.id),
-      }))
-    );
-  }, [connectedDevices]);
-
-  // Separate the devices into connected and disconnected groups
-
   const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
-    const isConnect = module.find((m) => m?.deviceId == device?.id);
-    // console.log(device);
-    console.log(isConnect);
+    const isConnect = connectedDevice.find((m) => m?.device.id == device?.id);
+    const isConnectingOrDisconnecting = connectingDevicesRef.current.has(
+      device.id
+    );
     return (
       <View
         style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
       >
-        <Image
-          source={require("../../assets/images/device.png")}
+        <MaterialIcons name="wb-twilight" size={65} color="black" />
+        {/* <Image
+          source={require("../../assets/images/icon.png")}
           style={tw`w-20 h-20`}
-        />
+        /> */}
 
         <View style={tw`ml-4`}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
@@ -136,30 +102,53 @@ const BLE = () => {
           <Text
             style={[
               tw`text-sm`,
-              isConnect ? styles.connectedText : styles.disconnectedText,
+              isConnect
+                ? isConnectingOrDisconnecting
+                  ? styles.disconnectingText
+                  : styles.connectedText
+                : isConnectingOrDisconnecting
+                ? styles.connectingText
+                : styles.disconnectedText,
             ]}
           >
-            Status: {isConnect ? "Connected" : "Disconnected"}
+            Status:{" "}
+            {isConnect
+              ? isConnectingOrDisconnecting
+                ? "Disconnecting..."
+                : "Connected"
+              : isConnectingOrDisconnecting
+              ? "Connecting..."
+              : "Disconnected"}
           </Text>
 
           <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
             Battery Voltage:{" "}
-            {device?.manufacturerData
-              ? base64toDecManu(device?.manufacturerData)
-              : "N/A"}
+            {/* {device?.manufacturerData
+							? base64toDecManu(device?.manufacturerData)
+							: "N/A"} */}
+            {(
+              (base64toDecManu(device?.manufacturerData as string) / 30000) *
+              100
+            ).toFixed(2) + " %"}
           </Text>
         </View>
 
         <TouchableOpacity
           style={styles.blinkButton}
-          onPress={() => toggleConnection(device.id)}
+          onPress={() => toggleConnection(device)}
+          disabled={isConnectingOrDisconnecting} // Disable button while connecting/disconnecting
         >
           <Text style={tw`text-gray-700`}>
-            {isConnect ? "Disconnect" : "Connect"}
+            {isConnect
+              ? isConnectingOrDisconnecting
+                ? "Disconnecting..."
+                : "Disconnect"
+              : isConnectingOrDisconnecting
+              ? "Connecting..."
+              : "Connect"}
           </Text>
         </TouchableOpacity>
       </View>
-      // <Text>test</Text>
     );
   };
 
@@ -176,15 +165,14 @@ const BLE = () => {
 
       {/* Render connected devices */}
       <View style={tw`bg-white shadow-lg`}>
-        <Text style={tw`text-lg font-bold text-black rounded-lg p-2 `}>
-          {" "}
+        <Text style={tw`text-lg font-bold text-black rounded-lg p-2`}>
           Connected Devices
         </Text>
       </View>
       <FlatList
-        data={connectedDevices}
-        keyExtractor={(item) => item?.deviceId}
-        renderItem={({ item }) => <DeviceItem device={item.device} />}
+        data={connectedDevice.filter((d) => d != null)}
+        keyExtractor={(item) => item?.device.id as string}
+        renderItem={({ item }) => <DeviceItem device={item.device as Device} />}
         ListEmptyComponent={
           <Text style={tw`mx-4 my-2`}> No connected devices</Text>
         }
@@ -193,13 +181,12 @@ const BLE = () => {
       {/* Render disconnected devices */}
       <View style={tw`bg-white shadow-lg`}>
         <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>
-          {" "}
           Disconnected Devices
         </Text>
       </View>
       <FlatList
-        data={deviceList.filter(
-          (d) => d != null && !module.find((m) => m?.deviceId == d.id)
+        data={allDevices.filter(
+          (d) => d != null && !connectedDevice.find((m) => m?.device.id == d.id)
         )}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <DeviceItem device={item} />}
@@ -228,8 +215,14 @@ const styles = StyleSheet.create({
   connectedText: {
     color: "#0E8850",
   },
+  connectingText: {
+    color: "#FFA500", // Orange color for connecting state
+  },
   disconnectedText: {
     color: "#D32F2F",
+  },
+  disconnectingText: {
+    color: "#FF4500", // OrangeRed color for disconnecting state
   },
   defaultBatteryText: {
     color: "#4CAF50",
