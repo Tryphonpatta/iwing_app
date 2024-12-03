@@ -22,11 +22,27 @@ import { base64toDec } from "@/util/encode";
 //   device: Device;
 // };
 
-type ConnectedDevice = Device | null;
+export class ConnectedDevice {
+  constructor(device: Device) {
+    this.device = device;
+    this.writeCharacteristic = async (
+      characteristic: string,
+      value: string
+    ) => {
+      await device.writeCharacteristicWithResponseForService(
+        CHARACTERISTIC.IWING_TRAINERPAD,
+        characteristic,
+        value
+      );
+    };
+  }
+  device: Device;
+  writeCharacteristic: (characteristic: string, value: string) => Promise<void>;
+}
 
 interface BleContextType {
   allDevices: Device[];
-  connectedDevice: ConnectedDevice[];
+  connectedDevice: (ConnectedDevice | null)[];
   buttonStatus: Boolean | null;
   requestPermissions: () => Promise<boolean>;
   scanForPeripherals: () => void;
@@ -44,6 +60,11 @@ interface BleContextType {
     setFunction: (data: any) => void,
     characteristic: string
   ) => Promise<Subscription | undefined>;
+  monitorCharacteristicRef: (
+    device: Device,
+    value: any,
+    characteristic: string
+  ) => Promise<Subscription | undefined>;
 }
 
 const BleContext = createContext<BleContextType | undefined>(undefined);
@@ -54,12 +75,9 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [allDevices, setAllDevices] = useState<Device[]>([]);
-  const [connectedDevice, setConnectedDevice] = useState<ConnectedDevice[]>([
-    null,
-    null,
-    null,
-    null,
-  ]);
+  const [connectedDevice, setConnectedDevice] = useState<
+    (ConnectedDevice | null)[]
+  >([null, null, null, null, null, null, null, null, null]);
   const [buttonStatus, setButtonStatus] = useState<Boolean | null>(null);
 
   const requestAndroid31Permissions = async () => {
@@ -97,15 +115,43 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const deviceConnection = await bleManager.connectToDevice(device.id);
       await deviceConnection.discoverAllServicesAndCharacteristics();
-      if (!(await deviceConnection.isConnected())) throw new Error("errorrrr");
+      const index = connectedDevice.findIndex((d) => d === null);
       const tempDevices = connectedDevice;
-      for (let index = 0; index < 4; index++)
-        if (tempDevices[index] == null) {
-          tempDevices[index] = deviceConnection;
-          break;
-        }
+      tempDevices[index] = {
+        device: deviceConnection,
+        writeCharacteristic: async (characteristic: string, value: string) => {
+          await deviceConnection.writeCharacteristicWithResponseForService(
+            CHARACTERISTIC.IWING_TRAINERPAD,
+            characteristic,
+            value
+          );
+        },
+      } as ConnectedDevice;
+      // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
       setConnectedDevice(tempDevices);
-      bleManager.stopDeviceScan();
+      // const sub = deviceConnection.monitorCharacteristicForService(
+      //   CHARACTERISTIC.IWING_TRAINERPAD,
+      //   CHARACTERISTIC.BUTTONS,
+      //   (error, characteristic) => {
+      //     if (error) {
+      //       console.log("Error monitoring characteristic", error);
+      //       console.log(JSON.stringify(error));
+      //       return;
+      //     }
+      //     if (!characteristic?.value) {
+      //       console.log("No data received");
+      //       return;
+      //     }
+      //     console.log(
+      //       "Characteristic value: ",
+      //       base64toDec(characteristic.value as string)
+      //     );
+      //     // setButtonStatus(base64toDec(characteristic.value as string) === 1);
+      //   }
+      // );
+      // await new Promise((resolve) => setTimeout(resolve, 10000));
+      // sub.remove();
+      // bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -119,10 +165,12 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
   const scanForPeripherals = () => {
-    console.log("scanning for peripherals");
+    console.log("Scanning for peripherals...");
+    setAllDevices([]); // Clear all non-connected devices before scanning
     bleManager.startDeviceScan([], null, (error, device) => {
       if (error) {
         console.log(error);
+        return;
       }
       if (device && device.name === "Trainning_PAD") {
         setAllDevices((prevState: Device[]) => {
@@ -179,8 +227,21 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     value: string
   ) => {
     try {
+      console.log(`write device: ${device.id}`);
       if (device) {
-        await device.writeCharacteristicWithoutResponseForService(
+        // await bleManager.writeCharacteristicWithoutResponseForDevice(
+        //   device.id,
+        //   CHARACTERISTIC.IWING_TRAINERPAD,
+        //   characteristic,
+        //   value
+        // );
+        console.log("Writing to characteristic");
+        // await device.writeCharacteristicWithoutResponseForService(
+        //   CHARACTERISTIC.IWING_TRAINERPAD,
+        //   characteristic,
+        //   value
+        // );
+        await device.writeCharacteristicWithResponseForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
           characteristic,
           value
@@ -210,7 +271,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Disconnected from device");
       console.log(connectedDevice);
       const tempDevices = connectedDevice;
-      const index = tempDevices.findIndex((d) => d?.id === device.id);
+      const index = tempDevices.findIndex((d) => d?.device.id === device.id);
       tempDevices[index] = null;
       console.log(tempDevices);
       setConnectedDevice(tempDevices);
@@ -225,30 +286,77 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     characteristic: string
   ) => {
     try {
-      if (device && (await device.isConnected())) {
+      console.log("monitor ", device.id);
+      if (device) {
+        console.log("Monitoring characteristic...))))))).....");
+        await device.discoverAllServicesAndCharacteristics();
         const sub = device.monitorCharacteristicForService(
           CHARACTERISTIC.IWING_TRAINERPAD,
-          CHARACTERISTIC.BUTTONS,
+          characteristic,
           (error, characteristic) => {
+            // console.log("Hello");
             if (error) {
               console.log("Error monitoring characteristic", error);
+              console.log(JSON.stringify(error));
               return;
             }
             if (!characteristic?.value) {
               console.log("No data received");
               return;
             }
+            console.log(
+              "Characteristic value: ",
+              base64toDec(characteristic.value as string)
+            );
             setFunction(base64toDec(characteristic.value as string) === 1);
           }
         );
-
+        console.log("monitored");
         return sub;
       }
     } catch (e) {
       console.log("Failed to monitor characteristic", e);
     }
   };
-
+  const monitorCharacteristicRef = async (
+    device: Device,
+    value: any,
+    characteristic: string
+  ) => {
+    try {
+      console.log("monitor ", device.id);
+      if (device) {
+        // await device.discoverAllServicesAndCharacteristics();
+        console.log("discovered");
+        const sub = device.monitorCharacteristicForService(
+          CHARACTERISTIC.IWING_TRAINERPAD,
+          CHARACTERISTIC.BUTTONS,
+          (error, characteristic) => {
+            // console.log("Hello", device);
+            if (error) {
+              console.log("Error monitoring characteristic", error);
+              console.log(JSON.stringify(error));
+              return;
+            }
+            if (!characteristic?.value) {
+              console.log("No data received");
+              return;
+            }
+            // console.log(
+            //   "Characteristic value: ",
+            //   base64toDec(characteristic.value as string)
+            // );
+            value.current = base64toDec(characteristic.value as string);
+            // console.log(value.current);
+          }
+        );
+        console.log("monitored");
+        return sub;
+      }
+    } catch (e) {
+      console.log("Failed to monitor characteristic", e);
+    }
+  };
   return (
     <BleContext.Provider
       value={{
@@ -263,6 +371,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         swapConnectedDevice,
         disconnectDevice,
         monitorCharacteristic,
+        monitorCharacteristicRef,
       }}
     >
       {children}

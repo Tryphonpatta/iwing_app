@@ -1,3 +1,4 @@
+// home.tsx
 import * as React from "react";
 import {
   StyleSheet,
@@ -8,55 +9,13 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Module } from "@/util/buttonType";
-import { CHARACTERISTIC } from "@/enum/characteristic";
 import { SelectList } from "react-native-dropdown-select-list";
 import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { useBleManager } from "./context/blecontext";
-import { Device } from "react-native-ble-plx";
-
-export type ModuleHome = Module | null;
-
-// export const isCenter = async (
-//   module: ModuleHome[],
-//   readCharacteristic: Function
-// ) => {
-//   // if (module[3] == null || module[2] == null) {
-//   //   console.log("Module not found");
-//   //   return { left: -1, right: -1 };
-//   // }
-//   const right = await readCharacteristic(
-//     module[3]?.deviceId as string,
-//     CHARACTERISTIC.IWING_TRAINERPAD,
-//     CHARACTERISTIC.IR_RX
-//   );
-//   const left = await readCharacteristic(
-//     module[2]?.deviceId as string,
-//     CHARACTERISTIC.IWING_TRAINERPAD,
-//     CHARACTERISTIC.IR_RX
-//   );
-//   return { left, right };
-// };
-
-// export const isHit = async (
-//   module: ModuleHome[],
-//   readCharacteristic: Function,
-//   id: number
-// ) => {
-//   try {
-//     const hit = await readCharacteristic(
-//       module[id]?.deviceId as string,
-//       CHARACTERISTIC.IWING_TRAINERPAD,
-//       CHARACTERISTIC.IR_RX
-//     );
-//     console.log(hit);
-//     return hit ? hit == 255 : false;
-//   } catch (e) {
-//     console.log("Error: ", e);
-//   }
-// };
+import { ConnectedDevice } from "./context/blecontext"; // Import ConnectedDevice if needed
+import { CHARACTERISTIC } from "@/enum/characteristic";
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -64,51 +23,33 @@ export default function Home() {
   const [isCalibrate, setIsCalibrate] = React.useState(false);
   const isCalibrateRef = React.useRef(isCalibrate);
   const [irrx, setIrrx] = React.useState(0);
-
-  const {
-    connectToDevice,
-    allDevices,
-    connectedDevice,
-    buttonStatus,
-    requestPermissions,
-    scanForPeripherals,
-    startStreamingData,
-    writeCharacteristic,
-    swapConnectedDevice,
-    disconnectDevice,
-    monitorCharacteristic,
-  } = useBleManager();
-  const test = async () => {
-    const sub = await startStreamingData(
-      connectedDevice[0] as Device,
-      CHARACTERISTIC.BUTTONS
-    );
-  };
-  console.log(connectedDevice);
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
 
-  const blink = async (device: Device) => {
+  const {
+    connectedDevice,
+    swapConnectedDevice,
+    monitorCharacteristic,
+  } = useBleManager();
+
+  // Function to blink the device's LED
+  const blink = async (connectedDevice: ConnectedDevice) => {
     console.log("Blinking");
     let redLight = true;
-    const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
-    console.log(device);
     for (let i = 0; i < 10; i++) {
-      await writeCharacteristic(
-        device,
+      await connectedDevice.writeCharacteristic(
         CHARACTERISTIC.LED,
         redLight ? redColor : blueColor
       );
       redLight = !redLight;
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Adjusted delay
     }
-    // await writeCharacteristic(device, CHARACTERISTIC.LED, blueColor);
-    writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
+    await connectedDevice.writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
   };
 
   const setThreshold = (val: number) => {
@@ -117,64 +58,44 @@ export default function Home() {
       return;
     }
     for (let i = 0; i < 4; i++) {
-      if (connectedDevice[i])
-        writeCharacteristic(
-          connectedDevice[i] as Device,
+      if (connectedDevice[i]) {
+        connectedDevice[i]?.writeCharacteristic(
           CHARACTERISTIC.VIB_THRES,
           hexToBase64(decToBase64(val))
         );
+      }
     }
     console.log("Threshold set to: ", val);
   };
 
-  // const isHit = async (id: number) => {
-  //   try {
-  //     const hit = await readCharacteristic(
-  //       module[id]?.deviceId as string,
-  //       CHARACTERISTIC.IWING_TRAINERPAD,
-  //       CHARACTERISTIC.VIBRATION
-  //     );
-  //     return hit ? hit == 255 : false;
-  //   } catch (e) {
-  //     console.log("Error: ", e);
-  //   }
-  // };
+  const calibrate = async (senderIndex: number, receiverIndex: number) => {
+    const senderDevice = connectedDevice[senderIndex];
+    const receiverDevice = connectedDevice[receiverIndex];
 
-  const calibrate = async (sender: number, receiver: number) => {
-    if (
-      (connectedDevice && !connectedDevice[sender]) ||
-      (connectedDevice && !connectedDevice[receiver])
-    ) {
+    if (!senderDevice || !receiverDevice) {
       console.log("Invalid module");
       return;
     }
-    if (
-      connectedDevice &&
-      connectedDevice[sender] &&
-      connectedDevice[receiver]
-    ) {
-      writeCharacteristic(
-        connectedDevice[sender],
-        CHARACTERISTIC.IR_TX,
-        hexToBase64("01")
-      );
-      writeCharacteristic(
-        connectedDevice[receiver],
-        CHARACTERISTIC.MODE,
-        hexToBase64("01")
-      );
-    }
+
+    await senderDevice.writeCharacteristic(
+      CHARACTERISTIC.IR_TX,
+      hexToBase64("01")
+    );
+    await receiverDevice.writeCharacteristic(
+      CHARACTERISTIC.MODE,
+      hexToBase64("01")
+    );
+
     while (isCalibratingRef.current) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
+
     console.log("Calibration done");
-    writeCharacteristic(
-      connectedDevice[sender] as Device,
+    await senderDevice.writeCharacteristic(
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
-    writeCharacteristic(
-      connectedDevice[receiver] as Device,
+    await receiverDevice.writeCharacteristic(
       CHARACTERISTIC.MODE,
       hexToBase64("00")
     );
@@ -188,6 +109,7 @@ export default function Home() {
     setModalContent(content);
     setIsModalVisible(!isModalVisible);
   };
+
   function swapModule(index1: number, index2: number) {
     swapConnectedDevice(index1, index2);
   }
@@ -195,7 +117,6 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      {/* <View style={styles.header}> */}
       <Text
         style={[
           tw`text-center font-bold text-white my-4 mt-2 shadow-lg`,
@@ -204,11 +125,9 @@ export default function Home() {
       >
         Home
       </Text>
-      {/* </View> */}
 
       {/* Content */}
       <View style={styles.content}>
-        {/* <Text style={styles.contentText}>This is the main content area</Text> */}
         <View style={{ gap: 30 }}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -323,23 +242,16 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                // if (
-                //   selectedModule &&
-                //   connectedDevice[selectedModule - 1] != null
-                // ) {
-                //   disconnectDevice(
-                //     connectedDevice[selectedModule - 1] as Device
-                //   );
-                // }
-                // startStreamingData(
-                //   connectedDevice[(selectedModule as number) - 1] as Device,
-                //   CHARACTERISTIC.BUTTONS
-                // );
-                const sub = monitorCharacteristic(
-                  connectedDevice[(selectedModule as number) - 1] as Device,
-                  setIrrx,
-                  CHARACTERISTIC.BUTTONS
-                );
+                const deviceIndex = (selectedModule as number) - 1;
+                const device = connectedDevice[deviceIndex]?.device;
+                if (device) {
+                  const sub = await monitorCharacteristic(
+                    device,
+                    setIrrx,
+                    CHARACTERISTIC.BUTTONS
+                  );
+                  // Handle subscription if needed
+                }
               }}
             >
               <Text
@@ -348,7 +260,7 @@ export default function Home() {
                   { color: "#fff", fontWeight: "bold" },
                 ]}
               >
-                {`disconnect ${irrx}`}
+                {`Monitor ${irrx}`}
               </Text>
             </TouchableOpacity>
             <SelectList
@@ -377,15 +289,13 @@ export default function Home() {
                 style={[
                   styles.button,
                   { backgroundColor: "red", marginRight: 8 },
-                ]} // Adjust marginRight to add spacing between buttons
+                ]}
                 onPress={() => {
-                  // console.log(module);
-                  // console.log(selectedModule);
                   if (
                     selectedModule &&
                     connectedDevice[selectedModule - 1] != null
                   ) {
-                    blink(connectedDevice[selectedModule - 1] as Device);
+                    blink(connectedDevice[selectedModule - 1] as ConnectedDevice);
                   }
                 }}
               >
@@ -402,7 +312,7 @@ export default function Home() {
                 style={[
                   styles.button,
                   { backgroundColor: "orange", marginRight: 8 },
-                ]} // Adjust marginRight to add spacing between buttons
+                ]}
                 onPress={() => {
                   if (
                     selectedModule &&
@@ -429,37 +339,8 @@ export default function Home() {
                   Calibrate
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, { marginRight: 8 }]} // Adjust marginRight to add spacing between buttons
-                onPress={async () => {
-                  startStreamingData(
-                    connectedDevice[(selectedModule as number) - 1] as Device,
-                    CHARACTERISTIC.BUTTONS
-                  );
-                }}
-              >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    { color: "#fff", fontWeight: "bold" },
-                  ]}
-                >
-                  Music
-                </Text>
-              </TouchableOpacity>
-              {/* <TouchableOpacity
-                style={[styles.closeButton, { marginLeft: 8 }]}
-                onPress={() => {
-                  setSelectedModule(null);
-                  toggleModal("");
-                }}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity> */}
+              {/* Add any additional buttons here */}
             </View>
-            {/* <Text style={styles.conditionalText}>
-              {isCalibrate ? "Sender" : "Receiver"}
-            </Text> */}
             <View style={styles.dividerLine} />
             <View style={{ width: "100%", alignItems: "flex-end" }}>
               <TouchableOpacity
@@ -478,7 +359,8 @@ export default function Home() {
           </View>
         </View>
       </Modal>
-      {/* Calibration Modal */}
+
+      {/* Debugging Button */}
       <View style={{ width: "100%", alignItems: "flex-end" }}>
         <TouchableOpacity
           style={[
@@ -489,9 +371,10 @@ export default function Home() {
             console.log(connectedDevice);
           }}
         >
-          <Text style={styles.closeButtonText}>print</Text>
+          <Text style={styles.closeButtonText}>Print Connected Devices</Text>
         </TouchableOpacity>
       </View>
+
       {/* Footer */}
       <View style={styles.footer}></View>
     </SafeAreaView>
