@@ -25,6 +25,7 @@ import { base64toDec } from "@/util/encode";
 export class ConnectedDevice {
   device: Device;
   button: boolean = true;
+  private buttonListeners: ((state: boolean) => void)[] = [];
 
   constructor(device: Device) {
     this.device = device;
@@ -55,7 +56,6 @@ export class ConnectedDevice {
     }
     return base64toDec(char.value as string);
   }
-
   async monitorButton(): Promise<void> {
     this.device.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
@@ -73,9 +73,43 @@ export class ConnectedDevice {
         //   "Characteristic value: ",
         //   base64toDec(characteristic.value as string)
         // );
-        this.button = base64toDec(characteristic.value as string) === 1;
+        const newState = base64toDec(characteristic.value as string) === 1;
+        this.button = newState;
+
+        // Notify listeners
+        this.buttonListeners.forEach((listener) => listener(newState));
       }
     );
+  }
+  async waitForButtonToBeFalse(): Promise<void> {
+    return new Promise((resolve) => {
+      const listener = (state: boolean) => {
+        if (!state) {
+          resolve();
+          // Remove the listener after resolution
+          this.buttonListeners = this.buttonListeners.filter(
+            (l) => l !== listener
+          );
+        }
+      };
+
+      this.buttonListeners.push(listener);
+    });
+  }
+  async waitForButtonToBeTrue(): Promise<void> {
+    return new Promise((resolve) => {
+      const listener = (state: boolean) => {
+        if (!state) {
+          resolve();
+          // Remove the listener after resolution
+          this.buttonListeners = this.buttonListeners.filter(
+            (l) => l !== listener
+          );
+        }
+      };
+
+      this.buttonListeners.push(listener);
+    });
   }
 }
 

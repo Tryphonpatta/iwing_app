@@ -404,14 +404,15 @@ const StartGame = () => {
         //   // console.log("loop for hit", isHitRef.current);
         //   await new Promise((resolve) => setTimeout(resolve, 10));
         // }
-        while (connectedDevice[index].button === true) {
-          // console.log("loop for hit", isHitRef.current);
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-        while (connectedDevice[index].button === false) {
-          // console.log("loop for hit", isHitRef.current);
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        }
+        // while (connectedDevice[index].button === true) {
+        //   // console.log("loop for hit", isHitRef.current);
+        //   await new Promise((resolve) => setTimeout(resolve, 10));
+        // }
+        await connectedDevice[index].waitForButtonToBeFalse();
+        // while (connectedDevice[index].button === false) {
+        //   // console.log("loop for hit", isHitRef.current);
+        //   await new Promise((resolve) => setTimeout(resolve, 10));
+        // }
         buttonHit += 1;
         hit += 1;
         setUserHitCount((prev) => prev + 1);
