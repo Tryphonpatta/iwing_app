@@ -242,6 +242,26 @@ export default function Home() {
                 source={require("../../assets/images/field.png")}
                 style={styles.fieldImage}
               />
+              <TouchableOpacity
+                  style={[
+                    styles.outlineContainer,
+                    {
+                      borderColor: connectedDevice[4] ? "green" : "#808080",
+                      backgroundColor: connectedDevice[4]
+                      ? "rgba(0, 255, 0, 0.2)"
+                      : "#BFBFBF",
+                    },
+                    styles.overlayButton,
+                  ]}
+                  onPress={() => {
+                    if (connectedDevice[4] != null) {
+                      setSelectedModule(5);
+                      toggleModal("Device 5 Content");
+                    }
+                  }}
+                  >
+                  <Text style={styles.buttonText}>Device Center</Text>
+                </TouchableOpacity>
             </View>
           </View>
           <View style={styles.buttonRow}>
@@ -283,6 +303,7 @@ export default function Home() {
             >
               <Text style={styles.buttonText}>Device 4</Text>
             </TouchableOpacity>
+            
           </View>
         </View>
       </View>
@@ -299,6 +320,21 @@ export default function Home() {
             <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
             <View style={styles.dividerLine} />
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: "blue" }]}
+              onPress={async () => {
+                
+              }}
+            >
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: "#fff", fontWeight: "bold" },
+                ]}
+              >
+                Set Deafult
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
@@ -324,7 +360,7 @@ export default function Home() {
                 setSelectedModule(null);
                 toggleModal("");
               }}
-              data={[1, 2, 3, 4].filter(
+              data={[1, 2, 3, 4, 5].filter(
                 (val) => val !== (selectedModule as number)
               )}
               save="value"
@@ -376,12 +412,12 @@ export default function Home() {
                   if (
                     selectedModule &&
                     connectedDevice[selectedModule - 1] != null &&
-                    connectedDevice[4 - selectedModule] &&
+                    connectedDevice[5 - selectedModule] &&
                     isCalibrating === false
                   ) {
                     setIsCalibrating(true);
                     isCalibratingRef.current = true;
-                    calibrate(selectedModule - 1, 4 - selectedModule);
+                    calibrate(selectedModule - 1, 5 - selectedModule);
                   } else {
                     console.log("Invalid module");
                     setIsCalibrating(false);
@@ -570,5 +606,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8F5E9",
     flexDirection: "row",
     justifyContent: "space-around",
+  },
+  overlayButton: {
+    position: "absolute",
+    alignItems: "center",
+    height: 100,
+    paddingHorizontal: 30,
+    maxWidth: 150
   },
 });

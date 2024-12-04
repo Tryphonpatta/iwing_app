@@ -6,8 +6,10 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  Alert,
 } from "react-native";
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
+import * as FileSystem from "expo-file-system";
 import RunScreen from "../run";
 
 const { width } = Dimensions.get("window");
@@ -30,7 +32,6 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
     odd: false,
   });
 
-  // Calculate Total Hit Time and Total Back Center Time
   const totalHitTime = interactionTimes
     .filter((interaction) => interaction.description.startsWith("Center to"))
     .reduce((acc, interaction) => acc + interaction.time, 0);
@@ -39,22 +40,18 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
     .filter((interaction) => interaction.description.endsWith("to Center"))
     .reduce((acc, interaction) => acc + interaction.time, 0);
 
-  // Calculate progress as Total Hit Time / Total Time
   const progress = totalTime > 0 ? Math.min(totalHitTime / totalTime, 1) : 0;
 
-  // Circle progress properties
   const radius = 60;
   const strokeWidth = 10;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - progress * circumference;
 
-  // Function to handle button press
   const handleDonePress = () => {
     setShowRunScreen(true);
   };
 
-  // Function to toggle filter options
   const toggleFilter = (filter: string) => {
     setFilters((prevFilters) => {
       const updatedFilters = {
@@ -62,7 +59,6 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
         even: filter === "even" ? !prevFilters.even : prevFilters.even,
         odd: filter === "odd" ? !prevFilters.odd : prevFilters.odd,
       };
-      // Ensure at least one filter is selected
       if (!updatedFilters.all && !updatedFilters.even && !updatedFilters.odd) {
         updatedFilters.all = true;
       }
@@ -70,13 +66,36 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
     });
   };
 
-  // Filter interactions based on selected filters
   const filteredInteractions = interactionTimes.filter((_, index) => {
     if (filters.all) return true;
     if (filters.even && index % 2 === 0) return true;
     if (filters.odd && index % 2 !== 0) return true;
     return false;
   });
+
+  const saveToCSV = async () => {
+    try {
+      // Prepare CSV content
+      const csvHeader = "Description,Time (s)\n";
+      const csvRows = interactionTimes
+        .map((interaction) => `${interaction.description},${interaction.time.toFixed(2)}`)
+        .join("\n");
+      const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(2)}`;
+
+      // Define file path
+      const fileUri = `${FileSystem.documentDirectory}interaction_times.csv`;
+
+      // Write to file
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      Alert.alert("CSV Saved", `File saved to:\n${fileUri}`);
+    } catch (error) {
+      console.error("Error saving CSV:", error);
+      Alert.alert("Error", "An error occurred while saving the CSV file.");
+    }
+  };
 
   if (showRunScreen) {
     return <RunScreen />;
@@ -120,40 +139,32 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
       </Svg>
 
       <ScrollView style={styles.scrollView}>
-        {/* Total Time - Displayed Separately */}
         <View style={[styles.row, styles.totalTimeContainer]}>
           <Text style={styles.label}>Total Time:</Text>
           <Text style={styles.value}>{totalTime.toFixed(2)} s</Text>
         </View>
 
-        {/* Checklist for Filters */}
         <View style={styles.filterContainer}>
-          {/* All Checkbox */}
           <TouchableOpacity onPress={() => toggleFilter("all")} style={styles.checkboxContainer}>
             <View style={[styles.checkboxSquare, filters.all && styles.checkboxChecked]} />
             <Text style={styles.checkboxLabel}>All</Text>
           </TouchableOpacity>
-
-          {/* CenterTo Checkbox (Even Rows) */}
           <TouchableOpacity onPress={() => toggleFilter("even")} style={styles.checkboxContainer}>
             <View style={[styles.checkboxSquare, filters.even && styles.checkboxChecked]} />
             <Text style={styles.checkboxLabel}>CenterTo</Text>
           </TouchableOpacity>
-
-          {/* ToCenter Checkbox (Odd Rows) */}
           <TouchableOpacity onPress={() => toggleFilter("odd")} style={styles.checkboxContainer}>
             <View style={[styles.checkboxSquare, filters.odd && styles.checkboxChecked]} />
             <Text style={styles.checkboxLabel}>ToCenter</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Interaction Times List */}
         <View style={styles.resultContainer}>
           {filteredInteractions.map((interaction, index) => (
             <View
               style={[
                 styles.row,
-                { backgroundColor: index % 2 === 0 ? "#ffffff" : "#f0f0f0" , borderRadius: 10},
+                { backgroundColor: index % 2 === 0 ? "#ffffff" : "#f0f0f0", borderRadius: 10 },
               ]}
               key={index}
             >
@@ -164,9 +175,13 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
         </View>
       </ScrollView>
 
-      {/* Finish Button */}
       <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
         <Text style={styles.doneButtonText}>Finish</Text>
+      </TouchableOpacity>
+
+      {/* Save to CSV Button */}
+      <TouchableOpacity style={styles.doneButton} onPress={saveToCSV}>
+        <Text style={styles.doneButtonText}>Save to CSV</Text>
       </TouchableOpacity>
     </View>
   );
