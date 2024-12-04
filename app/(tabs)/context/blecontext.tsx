@@ -165,6 +165,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       const index = connectedDevice.findIndex((d) => d === null);
       const tempDevices = connectedDevice;
       tempDevices[index] = new ConnectedDevice(deviceConnection);
+      console.log("set mode");
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
       if (index === 4) {
         await tempDevices[index]?.writeCharacteristic(
@@ -172,10 +173,11 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
           hexToBase64("00000002")
         );
         console.log("change mode");
-        await tempDevices[index]?.writeCharacteristic(
-          CHARACTERISTIC.MODE,
-          hexToBase64("00000102")
-        );
+        // await new Promise((resolve) => setTimeout(resolve, 1000));
+        // await tempDevices[index]?.writeCharacteristic(
+        //   CHARACTERISTIC.MODE,
+        //   hexToBase64("00000102")
+        // );
         console.log("write default");
       }
       tempDevices[index]?.monitorVibration();

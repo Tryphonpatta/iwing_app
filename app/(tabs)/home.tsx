@@ -99,7 +99,11 @@ export default function Home() {
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
-    await device.blinkLED([redColor, blueColor]);
+    // await device.blinkLED([redColor, blueColor]);
+    await device.writeCharacteristic(
+      CHARACTERISTIC.MODE,
+      hexToBase64("00000102")
+    );
     // for (let i = 0; i < 10; i++) {
     //   await writeCharacteristic(
     //     device,
