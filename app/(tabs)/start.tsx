@@ -18,16 +18,16 @@ import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteri
 import ShowPad from "../running";
 import { Device } from "react-native-ble-plx";
 
-function createInterval(callback: any, delay: number) {
-  let intervalId = setInterval(callback, delay);
-  let resolvePromise: any;
+// function createInterval(callback: any, delay: number) {
+//   let intervalId = setInterval(callback, delay);
+//   let resolvePromise: any;
 
-  const promise = new Promise((resolve) => {
-    resolvePromise = resolve;
-  });
+//   const promise = new Promise((resolve) => {
+//     resolvePromise = resolve;
+//   });
 
-  return { intervalId, clear, promise };
-}
+//   return { intervalId, clear, promise };
+// }
 // Define the StartGame functional component
 const StartGame = () => {
   // Destructure positions from the IconPosition context
@@ -126,7 +126,7 @@ const StartGame = () => {
   const [pressButton, setPressButton] = useState(false);
 
   // Destructure parameters with default values in case they are undefined
-  const {
+  let {
     lightOut = null,
     hitCount = 0,
     timeout = 0,
@@ -330,6 +330,7 @@ const StartGame = () => {
   // };
 
   // Function to start the game with additional modes and conditions
+
   const play_2 = async (
     timeduration: number,
     interval: number,
@@ -343,6 +344,10 @@ const StartGame = () => {
       const randomIndex = Math.floor(Math.random() * totalPads);
       console.log(`Activated pad index: ${randomIndex}`);
       return randomIndex; // Return the selected index
+    };
+    const randomTime = () => {
+      // Return a random number between 0.5 and 5
+      return Math.random() * 4.5 + 0.5;
     };
     let hit = 0;
     hitCountRef.current = 0;
@@ -398,54 +403,182 @@ const StartGame = () => {
 
       //hit case
       while (buttonHit < hitCount && lightOut === "Hit") {
-        console.log("button Hit", buttonHit);
+        console.log("time Diff", Date.now() - activePadtime);
+        console.log(
+          "///////////////////////////////",
+          connectedDevice[index].button
+        );
 
-        // while (isHitRef.current) {
-        //   // console.log("loop for hit", isHitRef.current);
-        //   await new Promise((resolve) => setTimeout(resolve, 10));
-        // }
-        // while (connectedDevice[index].button === true) {
-        //   // console.log("loop for hit", isHitRef.current);
-        //   await new Promise((resolve) => setTimeout(resolve, 10));
-        // }
-        await connectedDevice[index].waitForButtonToBeFalse();
-        // while (connectedDevice[index].button === false) {
-        //   // console.log("loop for hit", isHitRef.current);
-        //   await new Promise((resolve) => setTimeout(resolve, 10));
-        // }
-        buttonHit += 1;
-        hit += 1;
-        setUserHitCount((prev) => prev + 1);
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        console.log("loop for hit", buttonHit);
+        try {
+          const timeRemaining =
+            startTime + (minDuration * 60 + secDuration) * 1000 - Date.now();
+
+          // Use Promise.race to wait for either the button state change or timeout
+          await Promise.race([
+            connectedDevice[index].waitForButtonToBeFalse(),
+            new Promise<void>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Timeout exceeded")),
+                timeRemaining
+              )
+            ),
+          ]);
+
+          console.log("button pressed");
+          buttonHit += 1;
+          hit += 1;
+          setUserHitCount((prev) => prev + 1);
+
+          // Small delay to allow further processing
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        } catch (error) {
+          if (error.message === "Timeout exceeded") {
+            console.log("Time condition exceeded before button press");
+            break; // Exit the loop if timeout is reached
+          }
+          console.error("Error occurred:", error);
+        }
       }
 
       //case timeout
+      let isbreak = false;
+      // while (
+      //   Date.now() < activePadtime + timeout * 1000 &&
+      //   lightOut === "Timeout" &&
+      //   !isbreak
+      // ) {
+      //   console.log("time Diff", Date.now() - activePadtime);
+      //   console.log(
+      //     "///////////////////////////////",
+      //     connectedDevice[index].button
+      //   );
+
+      //   // if (connectedDevice[index].button === false) {
+      //   //   buttonHit += 1;
+      //   //   hit += 1;
+      //   //   hitCountRef.current += 1;
+      //   //   setUserHitCount((prev) => prev + 1);
+      //   //   console.log("+++++++++++++++++++++++buttonhit", hit);
+      //   //   isbreak = true;
+      //   // while (connectedDevice[index].button === true) {
+      //   //   // console.log("loop for hit", isHitRef.current);
+      //   //   await new Promise((resolve) => setTimeout(resolve, 10));
+      //   //   isbreak = true;
+      //   // }
+      //   // while (connectedDevice[index].button === false) {
+      //   //   // console.log("loop for hit", isHitRef.current);
+      //   //   await new Promise((resolve) => setTimeout(resolve, 10));
+      //   // }
+      //   console.log("wait for button to be true");
+      //   await connectedDevice[index].waitForButtonToBeFalse();
+      //   console.log("button pressed");
+
+      //   buttonHit += 1;
+      //   hit += 1;
+      //   setUserHitCount((prev) => prev + 1);
+      //   await new Promise((resolve) => setTimeout(resolve, 10));
+      //   // console.log("loop for hit", buttonHit);
+
+      //   //await new Promise((resolve) => setTimeout(resolve, 100));
+      // }
+      isbreak = false;
       while (
         Date.now() < activePadtime + timeout * 1000 &&
-        lightOut === "Timeout"
+        lightOut === "Timeout" &&
+        !isbreak
       ) {
         console.log("time Diff", Date.now() - activePadtime);
-        if (!isHitRef.current) {
-          hit++;
+        console.log(
+          "///////////////////////////////",
+          connectedDevice[index].button
+        );
+
+        try {
+          const timeRemaining = activePadtime + timeout * 1000 - Date.now();
+
+          // Use Promise.race to wait for either the button state change or timeout
+          await Promise.race([
+            (async () => {
+              await connectedDevice[index].waitForButtonToBeFalse();
+              isbreak = true; // Set isbreak to true after the button press
+            })(),
+            new Promise<void>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Timeout exceeded")),
+                timeRemaining
+              )
+            ),
+          ]);
+
+          console.log("button pressed");
+          buttonHit += 1;
+          hit += 1;
           setUserHitCount((prev) => prev + 1);
-          console.log("buttonhit", hit);
+
+          // Break the loop immediately after the first button press
+          break;
+        } catch (error) {
+          if (error.message === "Timeout exceeded") {
+            console.log("Time condition exceeded before button press");
+            break; // Exit the loop if timeout is reached
+          }
+          console.error("Error occurred:", error);
         }
-        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      console.log("-------------------------light out", lightOut);
+
+      // console.log("-------------------------light out", lightOut);
+
+      let isTotalTimeUp = false;
+
+      setInterval(() => {
+        const totalTimeremaining =
+          startTime + (minDuration * 60 + secDuration) * 1000 - Date.now();
+        if (totalTimeremaining <= 0) {
+          console.log("Total time is up!");
+          isTotalTimeUp = true;
+        }
+      }, 100); // Check every 100ms (adjust frequency as needed)
+
       while (
         Date.now() < activePadtime + timeout * 1000 &&
         buttonHit < hitCount &&
-        lightOut === "Hit or Timeout"
+        lightOut === "Hit or Timeout" &&
+        !isTotalTimeUp
       ) {
-        if (!isHitRef.current) {
-          buttonHit++;
-          hitCountRef.current++;
-          hit++;
-          console.log("buttonhit", hit);
+        console.log("time Diff", Date.now() - activePadtime);
+        console.log(
+          "///////////////////////////////",
+          connectedDevice[index].button
+        );
+
+        try {
+          const timeRemaining = activePadtime + timeout * 1000 - Date.now();
+
+          // Use Promise.race to wait for either the button state change or timeout
+          await Promise.race([
+            connectedDevice[index].waitForButtonToBeFalse(),
+            new Promise<void>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Timeout exceeded")),
+                timeRemaining
+              )
+            ),
+          ]);
+
+          console.log("button pressed");
+          buttonHit += 1;
+          hit += 1;
+          setUserHitCount((prev) => prev + 1);
+
+          // Small delay to allow further processing
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        } catch (error) {
+          if (error.message === "Timeout exceeded") {
+            console.log("Time condition exceeded before button press");
+            break; // Exit the loop if timeout is reached
+          }
+          console.error("Error occurred:", error);
         }
-        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -456,7 +589,11 @@ const StartGame = () => {
       // );
       setActivePadIndex(-1);
       connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
-
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
+      console.log("***************************delay time mode", lightDelay);
+      console.log("***************************delay time", delaytime);
       await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
       console.log("active pad after turn off", activePadIndex);
       // isHitSub?.remove();
@@ -532,7 +669,7 @@ const StartGame = () => {
           {/* ระบบสำรอง */}
           Hit Count: {hitCountRef.current} {"\n"}
           {/* ระบบหลัก */}
-          {/* Hit Count: {userHitCount} {"\n"} */}
+          Hit Count: {userHitCount} {"\n"}
         </Text>
       </View>
 
