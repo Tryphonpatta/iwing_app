@@ -99,11 +99,11 @@ export default function Home() {
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
-    // await device.blinkLED([redColor, blueColor]);
-    await device.writeCharacteristic(
-      CHARACTERISTIC.MODE,
-      hexToBase64("00000102")
-    );
+    await device.blinkLED([redColor, blueColor]);
+    // await device.writeCharacteristic(
+    //   CHARACTERISTIC.MODE,
+    //   hexToBase64("00000102")
+    // );
     // for (let i = 0; i < 10; i++) {
     //   await writeCharacteristic(
     //     device,
@@ -359,6 +359,12 @@ export default function Home() {
                     blink(
                       connectedDevice[selectedModule - 1] as ConnectedDevice
                     );
+                    if (selectedModule - 1 === 3) {
+                      connectedDevice[4]?.writeCharacteristic(
+                        CHARACTERISTIC.MODE,
+                        hexToBase64("00000102")
+                      );
+                    }
                   }
                 }}
               >

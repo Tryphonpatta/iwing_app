@@ -57,6 +57,7 @@ export class ConnectedDevice {
   }
 
   async monitorVibration(): Promise<void> {
+    console.log("monitoring vibration");
     this.device.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.VIBRATION,
@@ -73,12 +74,14 @@ export class ConnectedDevice {
         //   "Characteristic value: ",
         //   base64toDec(characteristic.value as string)
         // );
-        this.vibration = base64toDec(characteristic.value as string) === 1;
+        console.log("Vibration: ", base64toDec(characteristic.value as string));
+        this.vibration = base64toDec(characteristic.value as string) === 255;
       }
     );
   }
 
   async blinkLED(colors: string[]) {
+    await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
     for (let i = 0; i < 5; i++) {
       for (const color of colors) {
         await this.writeCharacteristic(CHARACTERISTIC.LED, color);
@@ -167,19 +170,19 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       tempDevices[index] = new ConnectedDevice(deviceConnection);
       console.log("set mode");
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
-      if (index === 4) {
-        await tempDevices[index]?.writeCharacteristic(
-          CHARACTERISTIC.MODE,
-          hexToBase64("00000002")
-        );
-        console.log("change mode");
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
-        // await tempDevices[index]?.writeCharacteristic(
-        //   CHARACTERISTIC.MODE,
-        //   hexToBase64("00000102")
-        // );
-        console.log("write default");
-      }
+      // if (index === 4) {
+      //   await tempDevices[index]?.writeCharacteristic(
+      //     CHARACTERISTIC.MODE,
+      //     hexToBase64("00000002")
+      //   );
+      //   console.log("change mode");
+      //   // await new Promise((resolve) => setTimeout(resolve, 1000));
+      //   // await tempDevices[index]?.writeCharacteristic(
+      //   //   CHARACTERISTIC.MODE,
+      //   //   hexToBase64("00000102")
+      //   // );
+      //   console.log("write default");
+      // }
       tempDevices[index]?.monitorVibration();
       setConnectedDevice(tempDevices);
       // const sub = deviceConnection.monitorCharacteristicForService(
@@ -218,12 +221,23 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
     devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
   const scanForPeripherals = () => {
+    const deviceId = [
+      "894FFD97-2AA7-BAE7-A394-FB7606D8F144",
+      "100351E2-4451-67E4-2539-65A9A65513EE",
+      "57283496-587F-CFE2-570B-DB088FDAD43A",
+      "F1A86E12-6977-CFC6-3396-E23230DBB7FF",
+      "90619FED-76EF-EA85-D468-B3CD3A2631BE",
+    ];
     console.log("scanning for peripherals");
     bleManager.startDeviceScan([], null, (error, device) => {
       if (error) {
         console.log(error);
       }
-      if (device && device.name === "Trainning_PAD") {
+      if (
+        device &&
+        device.name === "Trainning_PAD" &&
+        deviceId.includes(device.id)
+      ) {
         setAllDevices((prevState: Device[]) => {
           if (!isDuplicateDevice(prevState, device)) {
             console.log("ID: ", device.id);
