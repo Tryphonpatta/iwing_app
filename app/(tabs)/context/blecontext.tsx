@@ -233,10 +233,14 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       if (error) {
         console.log(error);
       }
+      // if (
+      //   device &&
+      //   device.name === "Trainning_PAD" &&
+      //   deviceId.includes(device.id)
+      // ) {
       if (
         device &&
-        device.name === "Trainning_PAD" &&
-        deviceId.includes(device.id)
+        device.name === "Trainning_PAD"
       ) {
         setAllDevices((prevState: Device[]) => {
           if (!isDuplicateDevice(prevState, device)) {

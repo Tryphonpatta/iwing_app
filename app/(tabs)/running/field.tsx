@@ -1,4 +1,3 @@
-// field.tsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -8,15 +7,10 @@ import {
   Dimensions,
 } from "react-native";
 import ResultScreen from "./result"; // Adjust the import path as needed
-import { useBleManager } from "../context/blecontext"; // Use context to access devices
+import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
 import { CHARACTERISTIC } from "@/enum/characteristic";
-import { hexToBase64, base64toDec } from "@/util/encode";
-import {
-  Device,
-  Subscription,
-  BleError,
-  Characteristic,
-} from "react-native-ble-plx"; // Import necessary types
+import { Device } from "react-native-ble-plx";
+import { hexToBase64 } from "@/util/encode";
 
 const { width, height } = Dimensions.get("window");
 
@@ -36,7 +30,18 @@ type Interaction = {
 };
 
 const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
-  const { connectedDevice, writeCharacteristic } = useBleManager();
+  const {
+    connectToDevice,
+    allDevices,
+    connectedDevice,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
+    writeCharacteristic,
+    swapConnectedDevice,
+    disconnectDevice,
+    monitorCharacteristic,
+  } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -53,9 +58,27 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
   const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
 
-  // References to manage subscriptions
-  const centerSubscriptionRef = useRef<Subscription | null>(null);
-  const hitSubscriptionRef = useRef<Subscription | null>(null);
+  // References to manage async loops
+  const centerActiveRef = useRef(gameState.centerActive);
+  const hitActiveRef = useRef(false);
+  const stopActiveRef = useRef(false);
+
+  // Update centerActiveRef when gameState.centerActive changes
+  useEffect(() => {
+    centerActiveRef.current = gameState.centerActive;
+    if (gameState.centerActive) {
+      isCenter();
+    }
+  }, [gameState.centerActive]);
+
+  const isCenter = async () => {
+    try {
+      const xxx = await connectedDevice[4]?.xxxxx;
+      handleReturnToCenter();
+    } catch (error) {
+      console.error("Failed to read characteristic:", error);
+    }
+  };
 
   // Parse counts
   const R1Count = parseInt(R1) || 0;
@@ -68,9 +91,13 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   useEffect(() => {
     let sequence: CircleKey[] = [];
 
-    if (mode === 2) {
-      // Mode 2 is "Bicycle": Fixed sequence R1 -> L1 -> L2 -> R2
-      sequence = ["R1", "L1", "L2", "R2"];
+    if (mode === 1) {
+      // Mode ขวา: R1 R2 L2 L1
+      sequence = ["R1", "R2", "L2", "L1"];
+    }
+    else if (mode === 2){
+      // Mode ซ้าย: L1 L2 R2 R1
+      sequence = ["L1", "L2", "R2", "R1"];
     } else {
       // Default random sequence based on counts for other modes
       for (let i = 0; i < L1Count; i++) sequence.push("L1");
@@ -92,138 +119,9 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
     return array;
   };
 
-  // Start center monitoring when centerActive changes
-  useEffect(() => {
-    if (gameState.centerActive) {
-      startCenterMonitoring();
-    } else {
-      stopCenterMonitoring();
-    }
-  }, [gameState.centerActive]);
-
-  // Start hit monitoring when currentGreen changes
-  useEffect(() => {
-    if (gameState.currentGreen) {
-      startHitMonitoring();
-    } else {
-      stopHitMonitoring();
-    }
-  }, [gameState.currentGreen]);
-
-  // Cleanup subscriptions on unmount
-  useEffect(() => {
-    return () => {
-      stopCenterMonitoring();
-      stopHitMonitoring();
-    };
-  }, []);
-
-  const startCenterMonitoring = () => {
-    const leftDevice = connectedDevice[2]?.device;
-    const rightDevice = connectedDevice[3]?.device;
-
-    if (!leftDevice || !rightDevice) {
-      console.error("Left or right device not connected.");
-      return;
-    }
-
-    // Subscribe to left device
-    // const leftSubscription = leftDevice.monitorCharacteristicForService(
-    //   CHARACTERISTIC.IWING_TRAINERPAD,
-    //   CHARACTERISTIC.IR_RX,
-    //   (error: BleError | null, characteristic: Characteristic | null) => {
-    //     if (error) {
-    //       console.error("Left device monitoring error:", error);
-    //       return;
-    //     }
-    //     const value = base64toDec(characteristic?.value ?? "");
-    //     if (value === 0) {
-    //       handleReturnToCenter();
-    //     }
-    //   }
-    // );
-
-    // // Subscribe to right device
-    // const rightSubscription = rightDevice.monitorCharacteristicForService(
-    //   CHARACTERISTIC.IWING_TRAINERPAD,
-    //   CHARACTERISTIC.IR_RX,
-    //   (error: BleError | null, characteristic: Characteristic | null) => {
-    //     if (error) {
-    //       console.error("Right device monitoring error:", error);
-    //       return;
-    //     }
-    //     const value = base64toDec(characteristic?.value ?? "");
-    //     if (value === 0) {
-    //       handleReturnToCenter();
-    //     }
-    //   }
-    // );
-    if (connectedDevice[4]?.vibration) {
-      handleReturnToCenter();
-    }
-    // Combine subscriptions
-    // centerSubscriptionRef.current = {
-    //   remove: () => {
-    //     leftSubscription?.remove();
-    //     rightSubscription?.remove();
-    //   },
-    // } as Subscription;
-  };
-
-  const stopCenterMonitoring = () => {
-    centerSubscriptionRef.current = null;
-  };
-
-  const startHitMonitoring = () => {
-    const circle = gameState.currentGreen;
-    if (!circle) return;
-
-    const id =
-      circle === "R1" ? 1 : circle === "R2" ? 3 : circle === "L1" ? 0 : 2;
-
-    const device = connectedDevice[id]?.device;
-
-    if (!device) {
-      console.error("Device not connected for hit monitoring.");
-      return;
-    }
-    if (connectedDevice[id]?.vibration) {
-      handleHitDetected();
-    }
-
-    // hitSubscriptionRef.current = device.monitorCharacteristicForService(
-    //   CHARACTERISTIC.IWING_TRAINERPAD,
-    //   CHARACTERISTIC.VIBRATION,
-    //   (error: BleError | null, characteristic: Characteristic | null) => {
-    //     if (error) {
-    //       console.error("Hit monitoring error:", error);
-    //       return;
-    //     }
-    //     const value = base64toDec(characteristic?.value ?? "");
-    //     if (value === 255) {
-    //       handleHitDetected();
-    //     }
-    //   }
-    // );
-  };
-
-  const stopHitMonitoring = () => {
-    hitSubscriptionRef.current?.remove();
-    hitSubscriptionRef.current = null;
-  };
-
   useEffect(() => {
     if (circleSequence.length === 0) return;
-    // writeCharacteristic(
-    //   connectedDevice[0]?.device as Device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("01")
-    // );
-    // writeCharacteristic(
-    //   connectedDevice[1]?.device as Device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("01")
-    // );
+    
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
 
@@ -247,6 +145,28 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
       handleStopAndShowResult();
     }
   }, [gameState.centerActive, currentIndex, circleSequence]);
+
+  // const isCenter = async () => {
+  //   if (connectedDevice[4]?.vibration) {
+  //     handleReturnToCenter();
+  //   }
+  // };
+
+  // const checkCenterStatus = async () => {
+  //   try {
+  //     while (centerActiveRef.current && !stopActiveRef.current) {
+  //       const centerStatus = await isCenter();
+
+  //       if (centerStatus.left === 0 && centerStatus.right === 0) {
+  //         handleReturnToCenter();
+  //         break;
+  //       }
+  //       await new Promise((resolve) => setTimeout(resolve, 200));
+  //     }
+  //   } catch (error) {
+  //     console.error("Failed to read characteristic:", error);
+  //   }
+  // };
 
   const handleCenterPress = () => {
     if (gameState.centerActive) {
@@ -274,8 +194,66 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
       centerActive: false,
     }));
     setCurrentIndex((prevIndex) => prevIndex + 1);
-    setGameState((prevState) => ({ ...prevState, currentGreen: null }));
   };
+
+  useEffect(() => {
+    const circle = gameState.currentGreen;
+    if (!circle) return;
+
+    const id =
+      circle === "R1" ? 1 : circle === "R2" ? 3 : circle === "L1" ? 0 : 2;
+
+    checkHit(id);
+
+    // const device = connectedDevice[id]?.device;
+
+    // if (!device) {
+    //   console.error("Device not connected for hit monitoring.");
+    //   return;
+    // }
+    // console.log(`connectDevice ${connectedDevice[id]?.vibration}`);
+    // if (connectedDevice[id]?.vibration) {
+    //   handleHitDetected();
+    // }
+  }, []);
+
+  const checkHit = async (id: number) => {
+    const ppp = await connectedDevice[id]?.yyyy;
+    handleHitDetected();
+    // try {
+    //   const ppp = await connectedDevice[id].yyyy
+    //   handleHitDetected();
+
+    //   while (hitActiveRef.current && !stopActiveRef.current) {
+    //     if (!connectedDevice[id]) throw new Error("DeviceId is NULL");
+    //     const hitStatus = await isHit(id);
+
+    //     if (hitStatus) {
+    //       handleHitDetected();
+    //       hitActiveRef.current = false;
+    //       return;
+    //     }
+    //     await new Promise((resolve) => setTimeout(resolve, 200));
+    //   }
+    // } catch (error) {
+    //   console.error("Failed to read characteristic:", error);
+    //   hitActiveRef.current = false;
+    // }
+  };
+
+  // const isHit = async (id: number) => {
+  //   try {
+  //     if (connectedDevice[id] === undefined)
+  //       throw new Error("DeviceId is NULL");
+  //     if (id == 0) return hitL1 ? hitL1 == 255 : 0;
+  //     if (id == 2) return hitL2 ? hitL2 == 255 : 0;
+  //     if (id == 1) return hitR1 ? hitR1 == 255 : 0;
+  //     if (id == 3) return hitR2 ? hitR2 == 255 : 0;
+  //   } catch (e) {
+  //     console.error("Error reading hit characteristic:", e);
+  //     return false;
+  //   }
+  // };
 
   const handleHitDetected = () => {
     if (gameState.currentGreen) {
@@ -299,39 +277,27 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
         [circle]: "red",
         Center: "yellow",
       }));
-
-      // Only set `centerActive` to true if it's not the last circle
-      if (currentIndex < circleSequence.length - 1) {
-        setGameState((prevState) => ({ ...prevState, centerActive: true }));
-      } else {
-        setGameState((prevState) => ({ ...prevState, centerActive: false }));
-        handleStopAndShowResult();
-      }
-      // Stop hit monitoring
-      // stopHitMonitoring();
+      setGameState((prevState) => ({ ...prevState, centerActive: true }));
+      hitActiveRef.current = false;
     }
   };
 
   const handleStopAndShowResult = () => {
-    writeCharacteristic(
-      connectedDevice[0]?.device as Device,
-      CHARACTERISTIC.IR_TX,
-      hexToBase64("00")
-    );
-    writeCharacteristic(
-      connectedDevice[1]?.device as Device,
-      CHARACTERISTIC.IR_TX,
-      hexToBase64("00")
-    );
+    // writeCharacteristic(
+    //   connectedDevice[0].device,
+    //   CHARACTERISTIC.IR_TX,
+    //   hexToBase64("00")
+    // );
+    // writeCharacteristic(
+    //   connectedDevice[1].device,
+    //   CHARACTERISTIC.IR_TX,
+    //   hexToBase64("00")
+    // );
 
-    // Stop all subscriptions
-    stopCenterMonitoring();
-    stopHitMonitoring();
-
+    stopActiveRef.current = true; // Stop all async loops
     setGameState((prevState) => ({
       ...prevState,
       centerActive: false, // Ensure centerActive is reset
-      currentGreen: null,
     }));
     setShowResultScreen(true);
   };
