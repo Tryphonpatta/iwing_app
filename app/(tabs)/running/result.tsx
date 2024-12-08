@@ -7,6 +7,7 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  Platform,
 } from "react-native";
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
 import * as FileSystem from "expo-file-system";
@@ -20,17 +21,23 @@ type Interaction = {
 };
 
 type ResultScreenProps = {
-  interactionTimes: Interaction[];
-  totalTime: number;
+  interactionTimes?: Interaction[];
+  totalTime?: number;
 };
 
-const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
+const ResultScreen = ({
+  interactionTimes = [],
+  totalTime = 0,
+}: ResultScreenProps) => {
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [filters, setFilters] = useState({
     all: true,
     even: false,
     odd: false,
   });
+
+  // Log interactionTimes for debugging
+  console.log("Interaction Times:", interactionTimes);
 
   const totalHitTime = interactionTimes
     .filter((interaction) => interaction.description.startsWith("Center to"))
@@ -75,6 +82,23 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
 
   const saveToCSV = async () => {
     try {
+      let directoryUri = "";
+
+      if (Platform.OS === "android") {
+        // Request directory permissions using StorageAccessFramework
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+
+        if (!permissions.granted) {
+          Alert.alert("Permission Denied", "Cannot save file without directory permissions.");
+          return;
+        }
+
+        directoryUri = permissions.directoryUri;
+      } else {
+        // For iOS or other platforms, use the default Documents directory
+        directoryUri = FileSystem.documentDirectory;
+      }
+
       // Prepare CSV content
       const csvHeader = "Description,Time (s)\n";
       const csvRows = interactionTimes
@@ -82,15 +106,33 @@ const ResultScreen = ({ interactionTimes, totalTime }: ResultScreenProps) => {
         .join("\n");
       const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(2)}`;
 
-      // Define file path
-      const fileUri = `${FileSystem.documentDirectory}interaction_times.csv`;
+      // Define the file name
+      const fileName = "interaction_times.csv";
 
-      // Write to file
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+      let fileUri = "";
 
-      Alert.alert("CSV Saved", `File saved to:\n${fileUri}`);
+      if (Platform.OS === "android") {
+        // Use StorageAccessFramework to create the file in the selected directory
+        fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          directoryUri,
+          fileName,
+          "text/csv"
+        );
+
+        // Write the CSV content to the file
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(fileUri, csvContent, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+      } else {
+        // For iOS or other platforms, use the standard FileSystem.writeAsStringAsync
+        fileUri = `${directoryUri}${fileName}`;
+        await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+      }
+
+      // Notify the user
+      Alert.alert("File Saved", `File successfully saved to:\n${fileUri}`);
     } catch (error) {
       console.error("Error saving CSV:", error);
       Alert.alert("Error", "An error occurred while saving the CSV file.");
@@ -209,7 +251,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
     fontWeight: "bold",
-  },  
+  },
   containerResult: {
     flex: 1,
     backgroundColor: "#f5f5f5",
@@ -242,27 +284,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     marginBottom: 10,
   },
-  checkbox: {
-    padding: 10,
-  },
-  checkboxText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
   resultContainer: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
     marginBottom: 20,
-    // Shadow (Works for both iOS and Android)
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
-    elevation: 8, // Elevation for Android
+    elevation: 8,
   },
   row: {
     flexDirection: "row",

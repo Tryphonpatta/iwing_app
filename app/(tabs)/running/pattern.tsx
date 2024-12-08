@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Modal,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
-  Easing,
   FlatList,
-  Dimensions
+  Dimensions,
+  Alert,
 } from "react-native";
 import Field from "./field";
 import RunScreen from "../run";
@@ -36,29 +35,40 @@ const PatternScreen = () => {
   const [selectedMode, setSelectedMode] = useState(modes[0].id);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
+  useEffect(() => {
+    setModeValues(selectedMode);
+  }, [selectedMode]);
+
   const handleStart = () => {
-    const totalCounts = R1 + R2 + L1 + L2;
-    if (totalCounts > 0) {
-      setShowField(true);
-    } else {
-      alert("Please enter at least one count to start.");
+    let totalCounts = 0;
+    if (selectedMode === 1 || selectedMode === 2) {
+      // Only L1 is relevant
+      totalCounts = L1;
+      if (L1 <= 0) {
+        Alert.alert("Validation Error", "Please enter a value greater than 0 for L1.");
+        return;
+      }
+    } else if (selectedMode === 3) {
+      // All inputs are relevant
+      totalCounts = R1 + R2 + L1 + L2;
+      if (totalCounts <= 0) {
+        Alert.alert("Validation Error", "Please enter at least one count to start.");
+        return;
+      }
     }
+
+    setShowField(true);
   };
 
-  const setModeValues = (modeId : number) => {
-    if (modeId === 2 || modeId === 1) {
-      // Bicycle mode: set all values to 1 and enable Bicycle mode sequence
-      setR1(1);
-      setR2(1);
-      setL1(1);
-      setL2(1);
-    } else {
-      // Reset values for other modes and disable Bicycle mode sequence
+  const setModeValues = (modeId) => {
+    if (modeId === 1 || modeId === 2) {
+      // Reset R1, R2, and L2 when switching to Mode 1 or 2
       setR1(0);
       setR2(0);
-      setL1(0);
       setL2(0);
     }
+    // For Mode 3, you can choose to reset or retain the existing values
+    // Here, we'll retain them
   };
 
   if (showRunScreen) {
@@ -66,7 +76,15 @@ const PatternScreen = () => {
   }
 
   if (goField) {
-    return <Field R1={R1} R2={R2} L1={L1} L2={L2} mode={selectedMode} />;
+    return (
+      <Field
+        R1={selectedMode === 3 ? R1 : undefined}
+        R2={selectedMode === 3 ? R2 : undefined}
+        L1={L1}
+        L2={selectedMode === 3 ? L2 : undefined}
+        mode={selectedMode}
+      />
+    );
   }
 
   const renderModeIcon = ({ item }) => (
@@ -77,7 +95,6 @@ const PatternScreen = () => {
       ]}
       onPress={() => {
         setSelectedMode(item.id);
-        setModeValues(item.id);
       }}
     >
       <Ionicons
@@ -91,6 +108,7 @@ const PatternScreen = () => {
           fontWeight: "bold",
           color: selectedMode === item.id ? "#2f855a" : "#777",
           marginTop: 5,
+          textAlign: "center",
         }}
       >
         {item.description.split(":")[0]}
@@ -110,14 +128,14 @@ const PatternScreen = () => {
 
       {/* Info Button */}
       <View style={{ alignItems: "flex-end", width: "97%", marginVertical: 10 }}>
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center" }}
-            onPress={() => setShowInfoModal(true)}
-          >
-            <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
-            <Text style={{ fontSize: 16, color: "#2f855a" }}>Info</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => setShowInfoModal(true)}
+        >
+          <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
+          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>Info</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.container}>
         <Text style={styles.selectText}>SELECT</Text>
@@ -132,68 +150,91 @@ const PatternScreen = () => {
             decelerationRate="fast"
             snapToInterval={itemWidth + itemSpacing}
             contentContainerStyle={{
-              paddingHorizontal: itemSpacing+10 / 2,
+              paddingHorizontal: (itemSpacing + 10) / 2,
             }}
           />
         </View>
 
         <View style={styles.spinnerGridContainer}>
-          <View style={styles.spinnerGridRow}>
-            <View style={styles.spinnerGridItem}>
-              <InputSpinner
-                max={100}
-                min={0}
-                step={1}
-                value={L1}
-                onChange={(num) => setL1(num)}
-                style={styles.spinner}
-                skin="clean"
-                color="#2f855a"
-              />
-              <Text style={styles.spinnerGridLabel}>L1</Text>
+          {/* Conditionally render inputs based on selected mode */}
+          {(selectedMode === 1 || selectedMode === 2) && (
+            <View style={styles.spinnerGridRow}>
+              <View style={styles.spinnerGridItem}>
+                <InputSpinner
+                  max={100}
+                  min={0}
+                  step={1}
+                  value={L1}
+                  onChange={(num) => setL1(num)}
+                  style={styles.spinner}
+                  skin="clean"
+                  color="#2f855a"
+                />
+                <Text style={styles.spinnerGridLabel}>Round</Text>
+              </View>
             </View>
-            <View style={styles.spinnerGridItem}>
-              <InputSpinner
-                max={100}
-                min={0}
-                step={1}
-                value={R1}
-                onChange={(num) => setR1(num)}
-                style={styles.spinner}
-                skin="clean"
-                color="#2f855a"
-              />
-              <Text style={styles.spinnerGridLabel}>R1</Text>
-            </View>
-          </View>
-          <View style={styles.spinnerGridRow}>
-            <View style={styles.spinnerGridItem}>
-              <InputSpinner
-                max={100}
-                min={0}
-                step={1}
-                value={L2}
-                onChange={(num) => setL2(num)}
-                style={styles.spinner}
-                skin="clean"
-                color="#2f855a"
-              />
-              <Text style={styles.spinnerGridLabel}>L2</Text>
-            </View>
-            <View style={styles.spinnerGridItem}>
-              <InputSpinner
-                max={100}
-                min={0}
-                step={1}
-                value={R2}
-                onChange={(num) => setR2(num)}
-                style={styles.spinner}
-                skin="clean"
-                color="#2f855a"
-              />
-              <Text style={styles.spinnerGridLabel}>R2</Text>
-            </View>
-          </View>
+          )}
+
+          {selectedMode === 3 && (
+            <>
+            <View style={styles.spinnerGridRow}>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={L1}
+                    onChange={(num) => setL1(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>L1</Text>
+                </View>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={R1}
+                    onChange={(num) => setR1(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>R1</Text>
+                </View>
+              </View>
+              <View style={styles.spinnerGridRow}>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={L2}
+                    onChange={(num) => setL2(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>L2</Text>
+                </View>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={R2}
+                    onChange={(num) => setR2(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>R2</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Start Button */}
@@ -226,7 +267,6 @@ const PatternScreen = () => {
             </View>
           </View>
         </Modal>
-
       </View>
     </View>
   );
@@ -259,7 +299,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    // justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
   },
@@ -282,14 +321,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: 100,
+    padding: 10,
+    borderRadius: 10,
+    marginHorizontal: 10,
   },
   selectedIconContainer: {
     backgroundColor: "#d9f7be",
-    borderRadius: 50,
+  },
+  spinnerGridContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f8f8",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    alignSelf: "stretch",
+    padding: 10,
+    marginBottom: 20,
+  },
+  spinnerGridRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    marginTop: 8,
+    width: "100%",
+  },
+  spinnerGridItem: {
+    flex: 1,
+    alignItems: "center",
+    padding: 10,
   },
   spinner: {
-    width: "90%",
-    marginBottom: 15,
+    width: "80%",
+    marginBottom: 5,
     borderRadius: 25,
     backgroundColor: "#fff",
     elevation: 4,
@@ -297,6 +361,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
+  },
+  spinnerGridLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    textAlign: "center",
   },
   startButton: {
     backgroundColor: "#2f855a",
@@ -322,6 +392,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
+    width: "80%",
   },
   modalText: {
     fontSize: 16,
@@ -341,42 +412,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: "#fff",
-    textAlign: "center",
-  },
-  spinnerGridContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    // padding: 16,
-    backgroundColor: "#f8f8f8",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    alignSelf: "flex-start", // Makes the container size itself to the content
-  },
-  spinnerGridRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-    marginTop: 8,
-    width: "100%",
-    // borderWidth: 1,
-    // borderColor: "#ccc",
-    // borderRadius: 10,
-    // backgroundColor: "#fff",
-  },
-  spinnerGridItem: {
-    flex: 1,
-    alignItems: "center",
-    // marginHorizontal: 8,
-    padding: 10,
-  },
-  spinnerGridSpinner: {
-    marginBottom: 8,
-  },
-  spinnerGridLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
     textAlign: "center",
   },
 });
