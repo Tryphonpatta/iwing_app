@@ -23,6 +23,7 @@ const BLE = () => {
     connectedDevice,
     scanForPeripherals,
     disconnectDevice,
+    stopDeviceScan,
   } = useBleManager();
 
   const [scanning, setScanning] = useState<boolean>(false);
@@ -146,14 +147,15 @@ const BLE = () => {
   const startScan = async () => {
     //Clear the list of disconnected devices
     setDisconnectedDevice([]);
-
     console.log("Scanning...");
     setScanning(true);
-  
+
     scanForPeripherals();
-  
+
     setTimeout(() => {
       setScanning(false);
+      stopDeviceScan();
+
       console.log("Scan stopped after 10 seconds.");
     }, 10000);
   };

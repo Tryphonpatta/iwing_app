@@ -23,7 +23,7 @@ export const hexstringtoDecimal = (hexString: string): number => {
 };
 
 export const base64toDec = (base64: string): number => {
-  console.log("base64: ", base64);
+  // console.log("base64: ", base64);
   let i = 0;
   const hexArray = [];
   const hexstring = base64ToHex(base64);
@@ -38,7 +38,7 @@ export const base64toDec = (base64: string): number => {
 };
 
 export const base64toDecManu = (base64: string): number => {
-  console.log("base64: ", base64);
+  // console.log("base64: ", base64);
   let i = 0;
   const hexArray = [];
   const hexstring = base64ToHex(base64);

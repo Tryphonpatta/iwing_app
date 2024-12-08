@@ -25,15 +25,43 @@ import { base64toDec, hexToBase64 } from "@/util/encode";
 export class ConnectedDevice {
   device: Device;
   vibration: boolean = true;
+  private isActive: boolean = false;
+  private vibrationListener: ((state: boolean) => void)[] = [];
+  private activityTimeout: NodeJS.Timeout | null = null; // Timer for inactivity
+  private isMonitoringActivity: boolean = false;
+  version: number = 0;
+  // private timer: number;
 
   constructor(device: Device) {
     this.device = device;
+    // this.timer = 5; // Set timeout duration to 5 seconds
+    // this.startInactivityMonitor();
   }
+
+  // private resetInactivityTimer() {
+  //   if (this.activityTimeout) {
+  //     clearTimeout(this.activityTimeout);
+  //   }
+  //   this.activityTimeout = setTimeout(async () => {
+  //     console.log(
+  //       `No activity detected for ${this.timer} seconds, changing mode...`
+  //     );
+  //     await this.changeMode(0, 0, 0, 4); // Adjust mode parameters as needed
+  //   }, this.timer * 1000);
+  // }
+
+  // private startInactivityMonitor() {
+  //   if (this.isMonitoringActivity) return;
+  //   this.isMonitoringActivity = true;
+  //   this.resetInactivityTimer(); // Start the timer initially
+  // }
 
   async writeCharacteristic(
     characteristic: string,
     value: string
   ): Promise<void> {
+    // this.resetInactivityTimer(); // Reset timer
+    await this.changeActive();
     console.log("writing to characteristic");
     await this.device.writeCharacteristicWithResponseForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
@@ -45,6 +73,8 @@ export class ConnectedDevice {
   async readCharacteristic(
     characteristic: string
   ): Promise<number | undefined> {
+    // this.resetInactivityTimer(); // Reset timer
+    await this.changeActive();
     const char = await this.device.readCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
       characteristic
@@ -57,6 +87,8 @@ export class ConnectedDevice {
   }
 
   async monitorVibration(): Promise<void> {
+    // this.resetInactivityTimer(); // Reset timer
+
     console.log("monitoring vibration");
     this.device.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
@@ -70,17 +102,32 @@ export class ConnectedDevice {
           console.log("No data received");
           return;
         }
-        // console.log(
-        //   "Characteristic value: ",
-        //   base64toDec(characteristic.value as string)
-        // );
         console.log("Vibration: ", base64toDec(characteristic.value as string));
-        this.vibration = base64toDec(characteristic.value as string) === 255;
+        const newState = base64toDec(characteristic.value as string) >= 1;
+        this.vibration = newState;
+        this.vibrationListener.forEach((listener) => listener(newState));
       }
     );
   }
 
+  async waitForVibration(): Promise<void> {
+    // this.resetInactivityTimer(); // Reset timer
+    return new Promise((resolve) => {
+      const listener = (state: boolean) => {
+        if (state) {
+          resolve();
+          this.vibrationListener = this.vibrationListener.filter(
+            (l) => l !== listener
+          );
+        }
+      };
+      this.vibrationListener.push(listener);
+    });
+  }
+
   async blinkLED(colors: string[]) {
+    // this.resetInactivityTimer(); // Reset timer
+    await this.changeActive();
     await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
     for (let i = 0; i < 5; i++) {
       for (const color of colors) {
@@ -89,6 +136,35 @@ export class ConnectedDevice {
       }
     }
     await this.writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
+    await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
+  }
+
+  async changeMode(a: number, b: number, c: number, d: number) {
+    // this.resetInactivityTimer(); // Reset timer
+    console.log(`Changing mode to: ${a}, ${b}, ${c}, ${d}`);
+    await this.writeCharacteristic(
+      CHARACTERISTIC.MODE,
+      hexToBase64(`0${a}0${b}0${c}0${d}`)
+    );
+  }
+
+  async readVersion() {
+    const version = await this.readCharacteristic(CHARACTERISTIC.MODE);
+    if (!version) return;
+    console.log("Version: ", version / (16 * 16 * 16 * 16 * 16));
+  }
+
+  async changeRest() {
+    await this.changeMode(0, 0, 0, 4);
+    this.isActive = false;
+  }
+
+  async changeActive() {
+    if (this.isActive) return;
+    this.isActive = true;
+    await this.changeMode(0, 0, 0, 0);
+
+    // this.resetInactivityTimer();
   }
 }
 
@@ -116,6 +192,7 @@ interface BleContextType {
     value: any,
     characteristic: string
   ) => Promise<Subscription | undefined>;
+  stopDeviceScan: () => void;
 }
 
 const BleContext = createContext<BleContextType | undefined>(undefined);
@@ -170,44 +247,30 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       tempDevices[index] = new ConnectedDevice(deviceConnection);
       console.log("set mode");
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
-      // if (index === 4) {
-      //   await tempDevices[index]?.writeCharacteristic(
-      //     CHARACTERISTIC.MODE,
-      //     hexToBase64("00000002")
-      //   );
-      //   console.log("change mode");
-      //   // await new Promise((resolve) => setTimeout(resolve, 1000));
-      //   // await tempDevices[index]?.writeCharacteristic(
-      //   //   CHARACTERISTIC.MODE,
-      //   //   hexToBase64("00000102")
-      //   // );
-      //   console.log("write default");
-      // }
-      tempDevices[index]?.monitorVibration();
+      if (index === 4) {
+        await tempDevices[index]?.writeCharacteristic(
+          CHARACTERISTIC.MODE,
+          hexToBase64("00000002")
+        );
+        //   console.log("change mode");
+      }
+      // await Promise.all([
+      //   tempDevices[index]?.monitorVibration(),
+      //   tempDevices[index]?.readVersion(),
+      //   tempDevices[index]?.changeMode(0, 0, 0, 4),
+      // ]);
+      await Promise.all([
+        tempDevices[index]?.monitorVibration(),
+        tempDevices[index]?.readVersion(),
+        tempDevices[index]?.changeRest(),
+      ]);
+      // await tempDevices[index]?.monitorVibration();
+      // await tempDevices[index]?.readVersion();
+      // await tempDevices[index]?.changeRest();
+      // await new Promise((resolve) => setTimeout(resolve, 5000));
+      // await tempDevices[index]?.changeMode(0, 0, 0, 0);
+      // await tempDevices[index]?.changeMode(0, 0, 0, 4);
       setConnectedDevice(tempDevices);
-      // const sub = deviceConnection.monitorCharacteristicForService(
-      //   CHARACTERISTIC.IWING_TRAINERPAD,
-      //   CHARACTERISTIC.BUTTONS,
-      //   (error, characteristic) => {
-      //     if (error) {
-      //       console.log("Error monitoring characteristic", error);
-      //       console.log(JSON.stringify(error));
-      //       return;
-      //     }
-      //     if (!characteristic?.value) {
-      //       console.log("No data received");
-      //       return;
-      //     }
-      //     console.log(
-      //       "Characteristic value: ",
-      //       base64toDec(characteristic.value as string)
-      //     );
-      //     // setButtonStatus(base64toDec(characteristic.value as string) === 1);
-      //   }
-      // );
-      // await new Promise((resolve) => setTimeout(resolve, 10000));
-      // sub.remove();
-      // bleManager.stopDeviceScan();
     } catch (e) {
       console.log("FAILED TO CONNECT", e);
     }
@@ -228,7 +291,6 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       "F1A86E12-6977-CFC6-3396-E23230DBB7FF",
       "90619FED-76EF-EA85-D468-B3CD3A2631BE",
     ];
-    console.log("scanning for peripherals");
     bleManager.startDeviceScan([], null, (error, device) => {
       if (error) {
         console.log(error);
@@ -238,10 +300,8 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       //   device.name === "Trainning_PAD" &&
       //   deviceId.includes(device.id)
       // ) {
-      if (
-        device &&
-        device.name === "Trainning_PAD"
-      ) {
+
+      if (device && device.name === "Trainning_PAD") {
         setAllDevices((prevState: Device[]) => {
           if (!isDuplicateDevice(prevState, device)) {
             console.log("ID: ", device.id);
@@ -253,6 +313,10 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
     });
+  };
+  const stopDeviceScan = async () => {
+    await bleManager.stopDeviceScan();
+    setAllDevices([]);
   };
 
   const onDataUpdate = (
@@ -440,6 +504,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         disconnectDevice,
         monitorCharacteristic,
         monitorCharacteristicRef,
+        stopDeviceScan,
       }}
     >
       {children}

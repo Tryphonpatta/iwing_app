@@ -40,23 +40,23 @@ export const isCenter = async (
   return { left, right };
 };
 
-export const isHit = async (
-  module: ModuleHome[],
-  readCharacteristic: Function,
-  id: number
-) => {
-  try {
-    const hit = await readCharacteristic(
-      module[id]?.deviceId as string,
-      CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.IR_RX
-    );
-    console.log(hit);
-    return hit ? hit == 255 : false;
-  } catch (e) {
-    console.log("Error: ", e);
-  }
-};
+// export const isHit = async (
+//   module: ModuleHome[],
+//   readCharacteristic: Function,
+//   id: number
+// ) => {
+//   try {
+//     const hit = await readCharacteristic(
+//       module[id]?.deviceId as string,
+//       CHARACTERISTIC.IWING_TRAINERPAD,
+//       CHARACTERISTIC.IR_RX
+//     );
+//     console.log(hit);
+//     return hit ? hit == 255 : false;
+//   } catch (e) {
+//     console.log("Error: ", e);
+//   }
+// };
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -64,7 +64,12 @@ export default function Home() {
   const [isCalibrate, setIsCalibrate] = React.useState(false);
   const isCalibrateRef = React.useRef(isCalibrate);
 
-  const { connectedDevice, writeCharacteristic } = useBleManager();
+  const {
+    connectedDevice,
+    writeCharacteristic,
+    swapConnectedDevice,
+    disconnectDevice,
+  } = useBleManager();
   const [selectedModule, setSelectedModule] = React.useState<number | null>(
     null
   );
@@ -168,11 +173,7 @@ export default function Home() {
     setIsModalVisible(!isModalVisible);
   };
   function swapModule(index1: number, index2: number) {
-    const moduleTemp = [...connectedDevice];
-    const temp = moduleTemp[index1];
-    moduleTemp[index1] = moduleTemp[index2];
-    moduleTemp[index2] = temp;
-    console.log("swapped");
+    swapConnectedDevice(index1, index2);
   }
 
   return (
@@ -247,25 +248,25 @@ export default function Home() {
                 style={styles.fieldImage}
               />
               <TouchableOpacity
-                  style={[
-                    styles.outlineContainer,
-                    {
-                      borderColor: connectedDevice[4] ? "green" : "#808080",
-                      backgroundColor: connectedDevice[4]
+                style={[
+                  styles.outlineContainer,
+                  {
+                    borderColor: connectedDevice[4] ? "green" : "#808080",
+                    backgroundColor: connectedDevice[4]
                       ? "rgba(0, 255, 0, 0.2)"
                       : "#BFBFBF",
-                    },
-                    styles.overlayButton,
-                  ]}
-                  onPress={() => {
-                    if (connectedDevice[4] != null) {
-                      setSelectedModule(5);
-                      toggleModal("Device 5 Content");
-                    }
-                  }}
-                  >
-                  <Text style={styles.buttonText}>Device Center</Text>
-                </TouchableOpacity>
+                  },
+                  styles.overlayButton,
+                ]}
+                onPress={() => {
+                  if (connectedDevice[4] != null) {
+                    setSelectedModule(5);
+                    toggleModal("Device 5 Content");
+                  }
+                }}
+              >
+                <Text style={styles.buttonText}>Device Center</Text>
+              </TouchableOpacity>
             </View>
           </View>
           <View style={styles.buttonRow}>
@@ -307,7 +308,6 @@ export default function Home() {
             >
               <Text style={styles.buttonText}>Device 4</Text>
             </TouchableOpacity>
-            
           </View>
         </View>
       </View>
@@ -327,7 +327,18 @@ export default function Home() {
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "blue" }]}
               onPress={async () => {
-                
+                if (
+                  selectedModule &&
+                  connectedDevice[selectedModule - 1] != null
+                ) {
+                  console.log("set Default");
+                  await connectedDevice[selectedModule - 1]?.changeMode(
+                    0,
+                    0,
+                    1,
+                    2
+                  );
+                }
               }}
             >
               <Text
@@ -336,17 +347,20 @@ export default function Home() {
                   { color: "#fff", fontWeight: "bold" },
                 ]}
               >
-                Set Deafult
+                Set Default
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "green" }]}
               onPress={async () => {
-                // if (selectedModule && module[selectedModule - 1] != null) {
-                //   disconnectDevice(
-                //     module[selectedModule - 1]?.deviceId as string
-                //   );
-                // }
+                if (
+                  selectedModule &&
+                  connectedDevice[selectedModule - 1] != null
+                ) {
+                  await disconnectDevice(
+                    connectedDevice[selectedModule - 1]?.device as Device
+                  );
+                }
               }}
             >
               <Text
@@ -622,6 +636,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 100,
     paddingHorizontal: 30,
-    maxWidth: 150
+    maxWidth: 150,
   },
 });

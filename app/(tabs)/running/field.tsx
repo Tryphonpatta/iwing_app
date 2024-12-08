@@ -73,7 +73,13 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   const isCenter = async () => {
     try {
-      const xxx = await connectedDevice[4]?.xxxxx;
+      // console.log("wait for center");
+      await connectedDevice[4]?.waitForVibration();
+      // while (1) {
+      //   console.log("loop");
+      //   await new Promise((resolve) => setTimeout(resolve, 100000));
+      // }
+      // console.log("center detected");
       handleReturnToCenter();
     } catch (error) {
       console.error("Failed to read characteristic:", error);
@@ -89,15 +95,25 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   const [circleSequence, setCircleSequence] = useState<CircleKey[]>([]);
 
   useEffect(() => {
+    connectedDevice[4]?.changeMode(0, 0, 0, 2);
     let sequence: CircleKey[] = [];
 
     if (mode === 1) {
       // Mode ขวา: R1 R2 L2 L1
-      sequence = ["R1", "R2", "L2", "L1"];
-    }
-    else if (mode === 2){
+      const sequenceTemp: CircleKey[] = ["R1", "R2", "L2", "L1"];
+      for (let i = 0; i < L1Count; i++) {
+        for (let j = 0; j < sequenceTemp.length; j++) {
+          sequence.push(sequenceTemp[j]);
+        }
+      }
+    } else if (mode === 2) {
       // Mode ซ้าย: L1 L2 R2 R1
-      sequence = ["L1", "L2", "R2", "R1"];
+      const sequenceTemp: CircleKey[] = ["L1", "L2", "R2", "R1"];
+      for (let i = 0; i < L1Count; i++) {
+        for (let j = 0; j < sequenceTemp.length; j++) {
+          sequence.push(sequenceTemp[j]);
+        }
+      }
     } else {
       // Default random sequence based on counts for other modes
       for (let i = 0; i < L1Count; i++) sequence.push("L1");
@@ -121,7 +137,7 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
 
   useEffect(() => {
     if (circleSequence.length === 0) return;
-    
+    console.log("change");
     if (!gameState.centerActive && currentIndex < circleSequence.length) {
       const nextCircle = circleSequence[currentIndex];
 
@@ -215,10 +231,12 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
     // if (connectedDevice[id]?.vibration) {
     //   handleHitDetected();
     // }
-  }, []);
+  }, [gameState.currentGreen]);
 
   const checkHit = async (id: number) => {
-    const ppp = await connectedDevice[id]?.yyyy;
+    // console.log("checkHit", id);
+    await connectedDevice[id]?.waitForVibration();
+    // console.log("hit detected", id);
     handleHitDetected();
     // try {
     //   const ppp = await connectedDevice[id].yyyy
