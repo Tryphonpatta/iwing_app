@@ -25,7 +25,7 @@ import { base64toDec, hexToBase64 } from "@/util/encode";
 export class ConnectedDevice {
   device: Device;
   vibration: boolean = true;
-  private isActive: boolean = false;
+  private isActive: boolean = true;
   private vibrationListener: ((state: boolean) => void)[] = [];
   private activityTimeout: NodeJS.Timeout | null = null; // Timer for inactivity
   private isMonitoringActivity: boolean = false;
@@ -83,6 +83,7 @@ export class ConnectedDevice {
       console.log("No data received");
       return;
     }
+    console.log("version", char.value);
     return base64toDec(char.value as string);
   }
 
@@ -150,8 +151,9 @@ export class ConnectedDevice {
 
   async readVersion() {
     const version = await this.readCharacteristic(CHARACTERISTIC.MODE);
+
     if (!version) return;
-    console.log("Version: ", version / (16 * 16 * 16 * 16 * 16));
+    console.log("Version: ", version % (16 * 16));
   }
 
   async changeRest() {
