@@ -1,5 +1,6 @@
 {
   "expo": {
+    "jsEngine": "hermes",
     "name": "iwing",
     "slug": "iwing",
     "version": "1.0.0",
@@ -42,7 +43,11 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "react-native-ble-plx"],
+    "plugins": [
+      "expo-router",
+      "react-native-ble-plx",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
     },

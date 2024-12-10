@@ -25,6 +25,18 @@ const modes = [
 const itemWidth = width * 0.8; // Make each item 80% of the screen width
 const itemSpacing = width * 0.1;
 
+const functionsOptions = [
+  { id: 'f1', label: 'Center' },
+  { id: 'f2', label: 'Miss' },
+  // { id: 'f3', label: 'Function 3' },
+];
+
+const soundsOptions = [
+  { id: 's1', label: 'Hit' },
+  { id: 's2', label: 'Mobile Phone' },
+  // { id: 's3', label: 'Sound 3' },
+];
+
 const PatternScreen = () => {
   const [R1, setR1] = useState(0);
   const [R2, setR2] = useState(0);
@@ -33,7 +45,21 @@ const PatternScreen = () => {
   const [goField, setShowField] = useState(false);
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [selectedMode, setSelectedMode] = useState(modes[0].id);
+  const [selectedFunction, setSelectedFunction] = useState(functionsOptions[0].id);
+  const [selectedSound, setSelectedSound] = useState(soundsOptions[0].id);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showSetting, setShowSetting] = useState(false);
+
+  const [activeSettingsTab, setActiveSettingsTab] = useState("functions"); // 'functions' or 'sounds'
+  
+  // States for storing which checkboxes are selected
+  const [selectedFunctions, setSelectedFunctions] = useState(() =>
+    functionsOptions.reduce((acc, curr) => ({ ...acc, [curr.id]: false }), {})
+  );
+
+  const [selectedSounds, setSelectedSounds] = useState(() =>
+    soundsOptions.reduce((acc, curr) => ({ ...acc, [curr.id]: false }), {})
+  );
 
   useEffect(() => {
     setModeValues(selectedMode);
@@ -42,14 +68,12 @@ const PatternScreen = () => {
   const handleStart = () => {
     let totalCounts = 0;
     if (selectedMode === 1 || selectedMode === 2) {
-      // Only L1 is relevant
       totalCounts = L1;
       if (L1 <= 0) {
         Alert.alert("Validation Error", "Please enter a value greater than 0 for L1.");
         return;
       }
     } else if (selectedMode === 3) {
-      // All inputs are relevant
       totalCounts = R1 + R2 + L1 + L2;
       if (totalCounts <= 0) {
         Alert.alert("Validation Error", "Please enter at least one count to start.");
@@ -67,8 +91,7 @@ const PatternScreen = () => {
       setR2(0);
       setL2(0);
     }
-    // For Mode 3, you can choose to reset or retain the existing values
-    // Here, we'll retain them
+    // For Mode 3, retain existing values
   };
 
   if (showRunScreen) {
@@ -76,6 +99,9 @@ const PatternScreen = () => {
   }
 
   if (goField) {
+    const selectedFunctionIds = Object.keys(selectedFunctions).filter((id) => selectedFunctions[id]);
+    const selectedSoundIds = Object.keys(selectedSounds).filter((id) => selectedSounds[id]);
+
     return (
       <Field
         R1={selectedMode === 3 ? R1 : undefined}
@@ -83,6 +109,8 @@ const PatternScreen = () => {
         L1={L1}
         L2={selectedMode === 3 ? L2 : undefined}
         mode={selectedMode}
+        op_func={selectedFunctionIds}
+        op_sound={selectedSoundIds}
       />
     );
   }
@@ -116,6 +144,31 @@ const PatternScreen = () => {
     </TouchableOpacity>
   );
 
+  const toggleFunctionSelection = (id) => {
+    setSelectedFunctions((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSoundSelection = (id) => {
+    setSelectedSounds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const renderCheckboxList = (options, selectedState, toggleFn) => {
+    return options.map((option) => (
+      <TouchableOpacity
+        key={option.id}
+        style={styles.checkboxContainer}
+        onPress={() => toggleFn(option.id)}
+      >
+        <Ionicons
+          name={selectedState[option.id] ? "checkbox" : "square-outline"}
+          size={24}
+          color="#2f855a"
+        />
+        <Text style={styles.checkboxLabel}>{option.label}</Text>
+      </TouchableOpacity>
+    ));
+  };
+
   return (
     <View style={styles.screen}>
       {/* Header with Back Icon */}
@@ -126,14 +179,22 @@ const PatternScreen = () => {
         <Text style={styles.title}>Pattern Mode</Text>
       </View>
 
-      {/* Info Button */}
-      <View style={{ alignItems: "flex-end", width: "97%", marginVertical: 10 }}>
+      {/* Info and Settings Buttons */}
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", width: "97%", marginVertical: 10 }}>
         <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center" }}
+          style={{ flexDirection: "row", alignItems: "center", marginRight: 15 }}
           onPress={() => setShowInfoModal(true)}
         >
           <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>Info</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center" }}
+          onPress={() => setShowSetting(true)}
+        >
+          <Ionicons name="settings-outline" size={28} color="#2f855a" />
+          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>Settings</Text>
         </TouchableOpacity>
       </View>
 
@@ -177,7 +238,7 @@ const PatternScreen = () => {
 
           {selectedMode === 3 && (
             <>
-            <View style={styles.spinnerGridRow}>
+              <View style={styles.spinnerGridRow}>
                 <View style={styles.spinnerGridItem}>
                   <InputSpinner
                     max={100}
@@ -267,6 +328,78 @@ const PatternScreen = () => {
             </View>
           </View>
         </Modal>
+
+        {/* Settings Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showSetting}
+          onRequestClose={() => setShowSetting(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Settings</Text>
+              
+              {/* Tabs for Settings */}
+              <View style={styles.tabContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.tabButton,
+                    activeSettingsTab === "functions" && styles.activeTabButton,
+                  ]}
+                  onPress={() => setActiveSettingsTab("functions")}
+                >
+                  <Text
+                    style={[
+                      styles.tabButtonText,
+                      activeSettingsTab === "functions" && styles.activeTabButtonText,
+                    ]}
+                  >
+                    Functions
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.tabButton,
+                    activeSettingsTab === "sounds" && styles.activeTabButton,
+                  ]}
+                  onPress={() => setActiveSettingsTab("sounds")}
+                >
+                  <Text
+                    style={[
+                      styles.tabButtonText,
+                      activeSettingsTab === "sounds" && styles.activeTabButtonText,
+                    ]}
+                  >
+                    Sounds
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Displaying checkbox lists based on active tab */}
+              {activeSettingsTab === "functions" && (
+                <View style={{ marginTop: 20 }}>
+                  {renderCheckboxList(functionsOptions, selectedFunctions, toggleFunctionSelection)}
+                </View>
+              )}
+
+              {activeSettingsTab === "sounds" && (
+                <View style={{ marginTop: 20 }}>
+                  {renderCheckboxList(soundsOptions, selectedSounds, toggleSoundSelection)}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowSetting(false)}
+              >
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </View>
   );
@@ -413,6 +546,37 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#fff",
     textAlign: "center",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+  },
+  tabButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  activeTabButton: {
+    borderBottomWidth: 2,
+    borderColor: "#2f855a",
+  },
+  tabButtonText: {
+    fontSize: 16,
+    color: "#777",
+  },
+  activeTabButtonText: {
+    color: "#2f855a",
+    fontWeight: "bold",
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  checkboxLabel: {
+    marginLeft: 10,
+    fontSize: 16,
   },
 });
 

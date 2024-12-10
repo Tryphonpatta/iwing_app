@@ -11,6 +11,7 @@ import { useBleManager } from "../context/blecontext"; // Use context to access 
 import { CHARACTERISTIC } from "@/enum/characteristic";
 import { Device } from "react-native-ble-plx";
 import { hexToBase64 } from "@/util/encode";
+import { List } from "@ui-kitten/components";
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,6 +23,8 @@ type FieldProps = {
   L1: string;
   L2: string;
   mode: number;
+  op_func: List;
+  op_sound: List;
 };
 
 type Interaction = {
@@ -29,7 +32,7 @@ type Interaction = {
   time: number; // in seconds
 };
 
-const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
+const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
   const {
     connectToDevice,
     allDevices,
@@ -97,6 +100,7 @@ const Field = ({ R1, R2, L1, L2, mode }: FieldProps) => {
   useEffect(() => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     let sequence: CircleKey[] = [];
+    console.log(`op_func ${op_func} || op_sound ${op_sound}`);
 
     if (mode === 1) {
       // Mode ขวา: R1 R2 L2 L1
