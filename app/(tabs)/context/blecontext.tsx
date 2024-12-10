@@ -175,6 +175,12 @@ export class ConnectedDevice {
 
     // this.resetInactivityTimer();
   }
+
+  async readBattery() {
+    const battery = await this.readCharacteristic(CHARACTERISTIC.BATT_VOLTAGE);
+    if (!battery) return;
+    console.log("Battery: ", battery);
+  }
 }
 
 interface BleContextType {
@@ -271,6 +277,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       await Promise.all([
         tempDevices[index]?.monitorVibration(),
         tempDevices[index]?.readVersion(),
+        tempDevices[index]?.readBattery(),
         tempDevices[index]?.changeRest(),
       ]);
       // await tempDevices[index]?.monitorVibration();
