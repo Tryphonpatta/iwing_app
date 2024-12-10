@@ -12,19 +12,25 @@ import { CHARACTERISTIC } from "@/enum/characteristic";
 import { Device } from "react-native-ble-plx";
 import { hexToBase64 } from "@/util/encode";
 import { List } from "@ui-kitten/components";
+import { Audio } from "expo-av";
 
 const { width, height } = Dimensions.get("window");
 
 type CircleKey = "R1" | "R2" | "L1" | "L2" | "Center";
 
 type FieldProps = {
-  R1: string;
-  R2: string;
-  L1: string;
-  L2: string;
+  R1: number | undefined;
+  R2: number | undefined;
+  L1: number | undefined;
+  L2: number | undefined;
   mode: number;
-  op_func: List;
-  op_sound: List;
+  op_func: {
+    center: boolean;
+  };
+  op_sound: {
+    hit: boolean;
+    mobile: boolean;
+  };
 };
 
 type Interaction = {
@@ -32,7 +38,7 @@ type Interaction = {
   time: number; // in seconds
 };
 
-const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
+const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   const {
     connectToDevice,
     allDevices,
@@ -76,24 +82,48 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
 
   const isCenter = async () => {
     try {
-      // console.log("wait for center");
-      await connectedDevice[4]?.waitForVibration();
-      // while (1) {
-      //   console.log("loop");
-      //   await new Promise((resolve) => setTimeout(resolve, 100000));
-      // }
-      // console.log("center detected");
-      handleReturnToCenter();
+      // Create an array of promises, each representing the vibration detection for each device
+      // console.log("connectedDevice", connectedDevice);
+      console.log("wait center");
+      // Use Promise.race() to wait for the first device to resolve
+      const dictCircle = new Map();
+      dictCircle.set("R1", 1);
+      dictCircle.set("R2", 3);
+      dictCircle.set("L1", 0);
+      dictCircle.set("L2", 2);
+      const nextId =
+        currentIndex + 1 >= circleSequence.length
+          ? -1
+          : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
+      console.log("nextId", nextId);
+      if (nextId !== -1 && op_func.center == false) {
+        const vibrationPromises = [
+          connectedDevice[nextId]?.waitForVibration().then(() => nextId),
+          connectedDevice[4]?.waitForVibration().then(() => 4),
+        ];
+        const firstResolveIndex = await Promise.race(vibrationPromises);
+        console.log("firstResolve", firstResolveIndex);
+        if (firstResolveIndex === 4) {
+          handleReturnToCenter();
+        } else {
+          console.log("miss");
+          handleReturnToCenter();
+        }
+      } else {
+        await connectedDevice[4]?.waitForVibration();
+        handleReturnToCenter();
+      }
+      console.log("nextId", nextId);
     } catch (error) {
       console.error("Failed to read characteristic:", error);
     }
   };
 
   // Parse counts
-  const R1Count = parseInt(R1) || 0;
-  const R2Count = parseInt(R2) || 0;
-  const L1Count = parseInt(L1) || 0;
-  const L2Count = parseInt(L2) || 0;
+  const R1Count = R1 || 0;
+  const R2Count = R2 || 0;
+  const L1Count = L1 || 0;
+  const L2Count = L2 || 0;
 
   const [circleSequence, setCircleSequence] = useState<CircleKey[]>([]);
 
@@ -101,7 +131,6 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     let sequence: CircleKey[] = [];
     console.log(`op_func ${op_func} || op_sound ${op_sound}`);
-
     if (mode === 1) {
       // Mode ขวา: R1 R2 L2 L1
       const sequenceTemp: CircleKey[] = ["R1", "R2", "L2", "L1"];
@@ -127,7 +156,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
 
       sequence = shuffleArray(sequence);
     }
-
+    console.log(sequence);
     setCircleSequence(sequence);
   }, [mode, L1Count, L2Count, R1Count, R2Count]);
 
@@ -165,28 +194,6 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
       handleStopAndShowResult();
     }
   }, [gameState.centerActive, currentIndex, circleSequence]);
-
-  // const isCenter = async () => {
-  //   if (connectedDevice[4]?.vibration) {
-  //     handleReturnToCenter();
-  //   }
-  // };
-
-  // const checkCenterStatus = async () => {
-  //   try {
-  //     while (centerActiveRef.current && !stopActiveRef.current) {
-  //       const centerStatus = await isCenter();
-
-  //       if (centerStatus.left === 0 && centerStatus.right === 0) {
-  //         handleReturnToCenter();
-  //         break;
-  //       }
-  //       await new Promise((resolve) => setTimeout(resolve, 200));
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to read characteristic:", error);
-  //   }
-  // };
 
   const handleCenterPress = () => {
     if (gameState.centerActive) {
@@ -240,6 +247,13 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
   const checkHit = async (id: number) => {
     // console.log("checkHit", id);
     await connectedDevice[id]?.waitForVibration();
+    if (op_sound.hit) await connectedDevice[id]?.beep();
+    if (op_sound.mobile) {
+      const { sound } = await Audio.Sound.createAsync(
+        require("../../../assets/audio/beep-06.mp3")
+      );
+      await sound.playAsync();
+    }
     // console.log("hit detected", id);
     handleHitDetected();
     // try {
@@ -329,6 +343,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func , op_sound}: FieldProps) => {
       (acc, interaction) => acc + interaction.time,
       0
     );
+    setShowResultScreen(false);
     return (
       <ResultScreen interactionTimes={interactionTimes} totalTime={totalTime} />
     );

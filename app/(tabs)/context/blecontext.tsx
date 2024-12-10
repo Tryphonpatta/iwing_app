@@ -62,7 +62,7 @@ export class ConnectedDevice {
   ): Promise<void> {
     // this.resetInactivityTimer(); // Reset timer
     await this.changeActive();
-    console.log("writing to characteristic");
+    // console.log("writing to characteristic");
     await this.device.writeCharacteristicWithResponseForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
       characteristic,
@@ -94,7 +94,7 @@ export class ConnectedDevice {
     this.device.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
       CHARACTERISTIC.VIBRATION,
-      (error, characteristic) => {
+      async (error, characteristic) => {
         if (error) {
           console.log("Error monitoring characteristic", error);
           return;
@@ -105,12 +105,19 @@ export class ConnectedDevice {
         }
         console.log("Vibration: ", base64toDec(characteristic.value as string));
         const newState = base64toDec(characteristic.value as string) >= 1;
+        if (newState) {
+          await this.beep();
+          await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
+        }
         this.vibration = newState;
         this.vibrationListener.forEach((listener) => listener(newState));
       }
     );
   }
-
+  async beep() {
+    await this.changeActive();
+    await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
+  }
   async waitForVibration(): Promise<void> {
     // this.resetInactivityTimer(); // Reset timer
     return new Promise((resolve) => {
@@ -249,23 +256,23 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       tempDevices[index] = new ConnectedDevice(deviceConnection);
       console.log("set mode");
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
-      // if (index === 4) {
-      await tempDevices[index]?.writeCharacteristic(
-        CHARACTERISTIC.MODE,
-        hexToBase64("00000002")
-      );
-      //   console.log("change mode");
-      // }
+      if (index === 4) {
+        await tempDevices[index]?.writeCharacteristic(
+          CHARACTERISTIC.MODE,
+          hexToBase64("00000002")
+        );
+        //   console.log("change mode");
+      }
       // await Promise.all([
       //   tempDevices[index]?.monitorVibration(),
       //   tempDevices[index]?.readVersion(),
       //   tempDevices[index]?.changeMode(0, 0, 0, 4),
       // ]);
-      // await Promise.all([
-      //   tempDevices[index]?.monitorVibration(),
-      //   tempDevices[index]?.readVersion(),
-      //   tempDevices[index]?.changeRest(),
-      // ]);
+      await Promise.all([
+        tempDevices[index]?.monitorVibration(),
+        tempDevices[index]?.readVersion(),
+        tempDevices[index]?.changeRest(),
+      ]);
       // await tempDevices[index]?.monitorVibration();
       // await tempDevices[index]?.readVersion();
       // await tempDevices[index]?.changeRest();
@@ -369,8 +376,8 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         //   CHARACTERISTIC.IWING_TRAINERPAD,
         //   characteristic,
         //   value
-        // );
-        console.log("Writing to characteristic");
+        // // );
+        // console.log("Writing to characteristic");
         // await device.writeCharacteristicWithoutResponseForService(
         //   CHARACTERISTIC.IWING_TRAINERPAD,
         //   characteristic,

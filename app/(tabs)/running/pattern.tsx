@@ -17,8 +17,16 @@ import { Ionicons } from "@expo/vector-icons";
 const { width } = Dimensions.get("window");
 
 const modes = [
-  { id: 1, icon: "hand-right-outline", description: "Hand-Right: การทดสอบผู้ถนัดด้านขวามือ." },
-  { id: 2, icon: "hand-left-outline", description: "Hand-Left: การทดสอบผู้ถนัดด้านซ้ายมือ." },
+  {
+    id: 1,
+    icon: "hand-right-outline",
+    description: "Hand-Right: การทดสอบผู้ถนัดด้านขวามือ.",
+  },
+  {
+    id: 2,
+    icon: "hand-left-outline",
+    description: "Hand-Left: การทดสอบผู้ถนัดด้านซ้ายมือ.",
+  },
   { id: 3, icon: "dice", description: "Random: การทดสอบแบบสุ่มตำแหน่ง." },
 ];
 
@@ -26,14 +34,13 @@ const itemWidth = width * 0.8; // Make each item 80% of the screen width
 const itemSpacing = width * 0.1;
 
 const functionsOptions = [
-  { id: 'f1', label: 'Center' },
-  { id: 'f2', label: 'Miss' },
+  { id: "f1", label: "Center" },
   // { id: 'f3', label: 'Function 3' },
 ];
 
 const soundsOptions = [
-  { id: 's1', label: 'Hit' },
-  { id: 's2', label: 'Mobile Phone' },
+  { id: "s1", label: "Hit" },
+  { id: "s2", label: "Mobile Phone" },
   // { id: 's3', label: 'Sound 3' },
 ];
 
@@ -45,13 +52,15 @@ const PatternScreen = () => {
   const [goField, setShowField] = useState(false);
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [selectedMode, setSelectedMode] = useState(modes[0].id);
-  const [selectedFunction, setSelectedFunction] = useState(functionsOptions[0].id);
+  const [selectedFunction, setSelectedFunction] = useState(
+    functionsOptions[0].id
+  );
   const [selectedSound, setSelectedSound] = useState(soundsOptions[0].id);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showSetting, setShowSetting] = useState(false);
 
   const [activeSettingsTab, setActiveSettingsTab] = useState("functions"); // 'functions' or 'sounds'
-  
+
   // States for storing which checkboxes are selected
   const [selectedFunctions, setSelectedFunctions] = useState(() =>
     functionsOptions.reduce((acc, curr) => ({ ...acc, [curr.id]: false }), {})
@@ -70,13 +79,19 @@ const PatternScreen = () => {
     if (selectedMode === 1 || selectedMode === 2) {
       totalCounts = L1;
       if (L1 <= 0) {
-        Alert.alert("Validation Error", "Please enter a value greater than 0 for L1.");
+        Alert.alert(
+          "Validation Error",
+          "Please enter a value greater than 0 for L1."
+        );
         return;
       }
     } else if (selectedMode === 3) {
       totalCounts = R1 + R2 + L1 + L2;
       if (totalCounts <= 0) {
-        Alert.alert("Validation Error", "Please enter at least one count to start.");
+        Alert.alert(
+          "Validation Error",
+          "Please enter at least one count to start."
+        );
         return;
       }
     }
@@ -99,8 +114,12 @@ const PatternScreen = () => {
   }
 
   if (goField) {
-    const selectedFunctionIds = Object.keys(selectedFunctions).filter((id) => selectedFunctions[id]);
-    const selectedSoundIds = Object.keys(selectedSounds).filter((id) => selectedSounds[id]);
+    const selectedFunctionIds = Object.keys(selectedFunctions).filter(
+      (id) => selectedFunctions[id]
+    );
+    const selectedSoundIds = Object.keys(selectedSounds).filter(
+      (id) => selectedSounds[id]
+    );
 
     return (
       <Field
@@ -109,13 +128,18 @@ const PatternScreen = () => {
         L1={L1}
         L2={selectedMode === 3 ? L2 : undefined}
         mode={selectedMode}
-        op_func={selectedFunctionIds}
-        op_sound={selectedSoundIds}
+        op_func={{
+          center: selectedFunctionIds.includes("f1"),
+        }}
+        op_sound={{
+          hit: selectedSoundIds.includes("s1"),
+          mobile: selectedSoundIds.includes("s2"),
+        }}
       />
     );
   }
 
-  const renderModeIcon = ({ item }) => (
+  const renderModeIcon = ({ item }: any) => (
     <TouchableOpacity
       style={[
         styles.iconContainer,
@@ -144,7 +168,7 @@ const PatternScreen = () => {
     </TouchableOpacity>
   );
 
-  const toggleFunctionSelection = (id) => {
+  const toggleFunctionSelection = (id: any) => {
     setSelectedFunctions((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -180,13 +204,30 @@ const PatternScreen = () => {
       </View>
 
       {/* Info and Settings Buttons */}
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", width: "97%", marginVertical: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          width: "97%",
+          marginVertical: 10,
+        }}
+      >
         <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center", marginRight: 15 }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginRight: 15,
+          }}
           onPress={() => setShowInfoModal(true)}
         >
-          <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
-          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>Info</Text>
+          <Ionicons
+            name="information-circle-outline"
+            size={28}
+            color="#2f855a"
+          />
+          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
+            Info
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -194,7 +235,9 @@ const PatternScreen = () => {
           onPress={() => setShowSetting(true)}
         >
           <Ionicons name="settings-outline" size={28} color="#2f855a" />
-          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>Settings</Text>
+          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
+            Settings
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -315,7 +358,9 @@ const PatternScreen = () => {
               <Text style={styles.modalTitle}>Mode Explanations</Text>
               {modes.map((mode) => (
                 <Text key={mode.id} style={styles.modalText}>
-                  <Text style={{ fontWeight: "bold" }}>{mode.description.split(":")[0]}: </Text>
+                  <Text style={{ fontWeight: "bold" }}>
+                    {mode.description.split(":")[0]}:{" "}
+                  </Text>
                   {mode.description.split(":")[1]}
                 </Text>
               ))}
@@ -339,7 +384,7 @@ const PatternScreen = () => {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Settings</Text>
-              
+
               {/* Tabs for Settings */}
               <View style={styles.tabContainer}>
                 <TouchableOpacity
@@ -352,7 +397,8 @@ const PatternScreen = () => {
                   <Text
                     style={[
                       styles.tabButtonText,
-                      activeSettingsTab === "functions" && styles.activeTabButtonText,
+                      activeSettingsTab === "functions" &&
+                        styles.activeTabButtonText,
                     ]}
                   >
                     Functions
@@ -369,7 +415,8 @@ const PatternScreen = () => {
                   <Text
                     style={[
                       styles.tabButtonText,
-                      activeSettingsTab === "sounds" && styles.activeTabButtonText,
+                      activeSettingsTab === "sounds" &&
+                        styles.activeTabButtonText,
                     ]}
                   >
                     Sounds
@@ -380,13 +427,21 @@ const PatternScreen = () => {
               {/* Displaying checkbox lists based on active tab */}
               {activeSettingsTab === "functions" && (
                 <View style={{ marginTop: 20 }}>
-                  {renderCheckboxList(functionsOptions, selectedFunctions, toggleFunctionSelection)}
+                  {renderCheckboxList(
+                    functionsOptions,
+                    selectedFunctions,
+                    toggleFunctionSelection
+                  )}
                 </View>
               )}
 
               {activeSettingsTab === "sounds" && (
                 <View style={{ marginTop: 20 }}>
-                  {renderCheckboxList(soundsOptions, selectedSounds, toggleSoundSelection)}
+                  {renderCheckboxList(
+                    soundsOptions,
+                    selectedSounds,
+                    toggleSoundSelection
+                  )}
                 </View>
               )}
 
@@ -399,7 +454,6 @@ const PatternScreen = () => {
             </View>
           </View>
         </Modal>
-
       </View>
     </View>
   );
