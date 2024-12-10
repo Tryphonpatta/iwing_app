@@ -249,23 +249,23 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
       tempDevices[index] = new ConnectedDevice(deviceConnection);
       console.log("set mode");
       // await tempDevices[index]?.writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
-      if (index === 4) {
-        await tempDevices[index]?.writeCharacteristic(
-          CHARACTERISTIC.MODE,
-          hexToBase64("00000002")
-        );
-        //   console.log("change mode");
-      }
+      // if (index === 4) {
+      await tempDevices[index]?.writeCharacteristic(
+        CHARACTERISTIC.MODE,
+        hexToBase64("00000002")
+      );
+      //   console.log("change mode");
+      // }
       // await Promise.all([
       //   tempDevices[index]?.monitorVibration(),
       //   tempDevices[index]?.readVersion(),
       //   tempDevices[index]?.changeMode(0, 0, 0, 4),
       // ]);
-      await Promise.all([
-        tempDevices[index]?.monitorVibration(),
-        tempDevices[index]?.readVersion(),
-        tempDevices[index]?.changeRest(),
-      ]);
+      // await Promise.all([
+      //   tempDevices[index]?.monitorVibration(),
+      //   tempDevices[index]?.readVersion(),
+      //   tempDevices[index]?.changeRest(),
+      // ]);
       // await tempDevices[index]?.monitorVibration();
       // await tempDevices[index]?.readVersion();
       // await tempDevices[index]?.changeRest();

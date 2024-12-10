@@ -16,6 +16,7 @@ import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { Device } from "react-native-ble-plx";
+import { Audio } from "expo-av";
 
 export type ModuleHome = Module | null;
 
@@ -104,6 +105,12 @@ export default function Home() {
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
+    console.log("sounddd");
+    const { sound } = await Audio.Sound.createAsync(
+      require("../../assets/audio/beep-06.mp3")
+    );
+    await sound.playAsync();
+    console.log("sounddd");
     await device.blinkLED([redColor, blueColor]);
     // await device.writeCharacteristic(
     //   CHARACTERISTIC.MODE,
