@@ -105,10 +105,10 @@ export class ConnectedDevice {
         }
         console.log("Vibration: ", base64toDec(characteristic.value as string));
         const newState = base64toDec(characteristic.value as string) >= 1;
-        if (newState) {
-          await this.beep();
-          await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
-        }
+        // if (newState) {
+        //   await this.beep();
+        //   // await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
+        // }
         this.vibration = newState;
         this.vibrationListener.forEach((listener) => listener(newState));
       }
@@ -117,6 +117,7 @@ export class ConnectedDevice {
   async beep() {
     await this.changeActive();
     await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
+    await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
   }
   async waitForVibration(): Promise<void> {
     // this.resetInactivityTimer(); // Reset timer

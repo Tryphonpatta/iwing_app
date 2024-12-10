@@ -106,7 +106,8 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
         if (firstResolveIndex === 4) {
           handleReturnToCenter();
         } else {
-          console.log("miss");
+          console.log("missmissmissmissmissmissmissmiss");
+          setCurrentIndex((prevIndex) => prevIndex + 1);
           handleReturnToCenter();
         }
       } else {
@@ -131,6 +132,9 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     let sequence: CircleKey[] = [];
     console.log(`op_func ${op_func} || op_sound ${op_sound}`);
+    for (let i = 0; i < 4; i++) {
+      connectedDevice[i]?.changeMode(0, 0, 0, 0);
+    }
     if (mode === 1) {
       // Mode ขวา: R1 R2 L2 L1
       const sequenceTemp: CircleKey[] = ["R1", "R2", "L2", "L1"];
@@ -343,7 +347,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
       (acc, interaction) => acc + interaction.time,
       0
     );
-    setShowResultScreen(false);
+    // setShowResultScreen(false);
     return (
       <ResultScreen interactionTimes={interactionTimes} totalTime={totalTime} />
     );
