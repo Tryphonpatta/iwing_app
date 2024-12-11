@@ -17,18 +17,9 @@ import { CHARACTERISTIC } from "@/enum/characteristic"; // Import BLE characteri
 // import { Result } from "@/app/(tabs)/result";
 import ShowPad from "../running";
 import { Device } from "react-native-ble-plx";
+import { light } from "@eva-design/eva";
+import index from "..";
 
-// function createInterval(callback: any, delay: number) {
-//   let intervalId = setInterval(callback, delay);
-//   let resolvePromise: any;
-
-//   const promise = new Promise((resolve) => {
-//     resolvePromise = resolve;
-//   });
-
-//   return { intervalId, clear, promise };
-// }
-// Define the StartGame functional component
 const StartGame = () => {
   // Destructure positions from the IconPosition context
   // const { positions } = useIconPosition();
@@ -251,22 +242,6 @@ const StartGame = () => {
             </Text>
           </View>
 
-          {/* <View style={styles.row}>
-            <Text style={styles.label}>Total Time</Text>
-            <Text style={styles.output}>
-              {(gameEndTime - starttime) / 1000} seconds
-            </Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Time Remain</Text>
-            <Text style={styles.output}>
-              {(minDuration * 60 + secDuration - (gameEndTime - starttime)) /
-                1000}{" "}
-              seconds
-            </Text>
-          </View> */}
-
           <View style={styles.row}>
             {isHitMode && (
               <View style={styles.row}>
@@ -291,45 +266,478 @@ const StartGame = () => {
   );
 
   const handleCloseResult = () => setShowresult(false);
-  // Function to detect hits by the user with proper handling of lightOut modes
-  // const detectHits = async (activePadIndexRef: number): Promise<number> => {
-  //   try {
-  //     // ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และ activePadIndex อยู่ในช่วงที่ถูกต้องหรือไม่
-  //     console.log(
-  //       `active padingix->${activePadIndexRef}, length conntect->${connectedDevice.length}`
-  //     );
+  //_______________________________________________________________________________________game play function
+  const activateRandomPad = () => {
+    const totalPads = connectedDevice.filter(
+      (device) => device !== null
+    ).length;
+    const randomIndex = Math.floor(Math.random() * totalPads);
+    console.log(`Activated pad index: ${randomIndex}`);
+    return randomIndex; // Return the selected index
+  };
+  const randomTime = () => {
+    // Return a random number between 0.5 and 5
+    return Math.random() * 4.5 + 0.5;
+  };
 
-  //     if (
-  //       connectedDevice.length === 0 ||
-  //       activePadIndexRef < 0 ||
-  //       activePadIndexRef >= connectedDevice.length
-  //     ) {
-  //       console.log("No valid connected devices or invalid activePadIndex.");
-  //       return -1;
-  //     }
+  const play_hit = async (hitCount: number) => {
+    const timeout = (minDuration * 60 + secDuration) * 1000; // Game duration in milliseconds
+    const startTime = Date.now(); // Record start time
 
-  //     const device = connectedDevice[activePadIndexRef] as Device;
-  //     // อ่านค่าปุ่มจากอุปกรณ์
-  //     const press = await monitorCharacteristic(
-  //       device,
-  //       setIshit,
-  //       CHARACTERISTIC.BUTTONS
-  //     );
+    //duration = "Timeout"  or "Hit or Timeout"case;
+    let activepad = 0;
+    while (
+      (duration === "Timeout" || duration === "Hit or Timeout") &&
+      timeout - (Date.now() - startTime) > 0
+    ) {
+      const remainingTime = timeout - (Date.now() - startTime);
+      if (remainingTime <= 0) {
+        console.log("Time is up. Exiting the loop.");
+        break;
+      }
 
-  //     console.log(`Device ${device?.id} - press: ${isHit}`);
-  //     if (isHit === null) {
-  //       return -1;
-  //     } else {
-  //       return isHit;
-  //     }
-  //     return press === 0 ? 0 : 1; // คืนค่า 0 หากมีการกดปุ่ม มิฉะนั้นคืนค่า 1
-  //   } catch (error) {
-  //     console.error("Error in detectHits:", error);
-  //     return 1;
-  //   }
-  // };
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
 
-  // Function to start the game with additional modes and conditions
+      console.log("Remaining time:", remainingTime);
+
+      try {
+        const index = activateRandomPad();
+        activepad = index;
+        setActivePadIndex(index);
+
+        if (hitCount >= hitduration && duration === "Hit or Timeout") {
+          console.log("Hit duration reached. Exiting the loop.");
+          break;
+        }
+
+        // Turn on the pad's LED
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Wait for button release or timeout
+        await Promise.race([
+          connectedDevice[index].waitForButtonToBeFalse(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Time is up")), remainingTime)
+          ),
+        ]);
+
+        // Turn off the pad's LED
+        setActivePadIndex(-1);
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "AAAA"
+        );
+
+        // Delay for the specified `delaytime`
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+
+        // Increment hit count
+        hitCount++;
+        setUserHitCount(hitCount);
+        console.log("Button hit successfully!");
+      } catch (error) {
+        if (error.message === "Time is up") {
+          console.log("Time ran out. Ending the game.");
+          break;
+        } else {
+          console.error("An error occurred:", error);
+        }
+      }
+    }
+
+    //duration = "Hit"  case;
+
+    while (duration === "Hit" && hitCount < hitduration) {
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
+      try {
+        const index = activateRandomPad();
+        // Turn on the pad's LED
+        setActivePadIndex(index);
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Wait for button release or timeout
+        await connectedDevice[index].waitForButtonToBeTrue();
+        hitCount++;
+        setUserHitCount(hitCount);
+        // Turn off the pad's LED
+        setActivePadIndex(-1);
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "AAAA"
+        );
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      } catch (error) {
+        console.error("An error occurred:", error);
+      }
+    }
+    //turn off the light when game end
+    setActivePadIndex(-1);
+    if (connectedDevice[activepad].device) {
+      await writeCharacteristic(
+        connectedDevice[activepad].device,
+        CHARACTERISTIC.LED,
+        "AAAA"
+      );
+    }
+  };
+  const play_timeout = async (hitCount: number, interval: number) => {
+    const timeout = (minDuration * 60 + secDuration) * 1000; // Game duration in milliseconds
+    const startTime = Date.now(); // Record start time
+    let activepad = 0;
+    while (
+      (duration === "Timeout" || duration === "Hit or Timeout") &&
+      Date.now() - startTime < timeout
+    ) {
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
+      const index = activateRandomPad();
+      activepad = index;
+      setActivePadIndex(index);
+      try {
+        if (hitCount >= hitduration && duration === "Hit or Timeout") break;
+        // Turn on the pad's LED
+        setActivePadIndex(index);
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Wait for button release, game timeout, or interval timeout
+        await Promise.race([
+          connectedDevice[index].waitForButtonToBeFalse(), // Button release
+          new Promise(
+            (_, reject) =>
+              setTimeout(
+                () => reject("Timeout"),
+                timeout - (Date.now() - startTime)
+              ) // Game timeout
+          ),
+          new Promise(
+            (_, reject) =>
+              setTimeout(() => reject("Interval Timeout"), interval) // Interval timeout
+          ),
+        ]);
+        hitCount++;
+        setUserHitCount(hitCount);
+
+        // Turn off the pad's LED after successful interaction
+        setActivePadIndex(-1);
+        await writeCharacteristic(
+          connectedDevice[activepad].device,
+          CHARACTERISTIC.LED,
+          "AAAA"
+        );
+
+        // Delay for the specified `delaytime`
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      } catch (error) {
+        if (error === "Timeout") {
+          console.log("Game timeout reached. Ending the game.");
+          break; // Exit the loop if total game timeout is reached
+        } else if (error === "Interval Timeout") {
+          console.log("Interval timeout reached. Moving to the next pad.");
+          setActivePadIndex(-1);
+          await writeCharacteristic(
+            connectedDevice[index].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+
+          // Delay for the specified `delaytime`
+          await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+        } else {
+          console.error("An unexpected error occurred:", error);
+        }
+      }
+    }
+    //duration = "Hit" case;
+    while (duration === "Hit" && hitCount < hitduration) {
+      try {
+        if (lightDelay === "Random") {
+          delaytime = randomTime();
+        }
+        const index = activateRandomPad();
+        activepad = index;
+        setActivePadIndex(index);
+        // Turn on the pad's LED
+        await writeCharacteristic(
+          connectedDevice[index].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Create a race to detect whether it's the button press or timeout
+        const result = await Promise.race([
+          connectedDevice[index]
+            .waitForButtonToBeFalse()
+            .then(() => "Button Pressed"),
+          new Promise((_, reject) =>
+            setTimeout(() => reject("Interval Timeout"), interval)
+          ).catch(() => "Interval Timeout"),
+        ]);
+
+        // Check the result of the race
+        if (result === "Button Pressed") {
+          // Increment the hit count if button was pressed
+          hitCount++;
+          setUserHitCount(hitCount);
+          console.log(`Hit count: ${hitCount} out of ${hitduration}`);
+          // Turn off the pad's LED after successful interaction
+          setActivePadIndex(-1);
+          await writeCharacteristic(
+            connectedDevice[index].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+        } else if (result === "Interval Timeout") {
+          console.log("Interval timeout reached. Moving to the next pad.");
+          setActivePadIndex(-1);
+          await writeCharacteristic(
+            connectedDevice[index].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+        }
+
+        // Delay for the specified time between hits
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      } catch (error) {
+        console.error("An error occurred:", error);
+      }
+    }
+
+    if (connectedDevice[activepad].device) {
+      setActivePadIndex(-1);
+      await writeCharacteristic(
+        connectedDevice[activepad].device,
+        CHARACTERISTIC.LED,
+        "AAAA"
+      );
+    }
+  };
+  const play_hitOrTimeout = async (hitCounts: number, interval: number) => {
+    const timeout = (minDuration * 60 + secDuration) * 1000; // Total game duration in milliseconds
+    const startTime = Date.now(); // Start time of the game
+    let activepad = -1; // Track the active pad
+    let currentHitCounts = 0; // Initialize the current hit count
+    let isstuck = false;
+    while (
+      duration === "Hit" &&
+      hitCounts < hitduration // Continue while time remains and hit count is not met
+    ) {
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
+
+      try {
+        // Activate a random pad
+        if (!isstuck || activepad < 0) {
+          const index = activateRandomPad();
+          activepad = index;
+          setActivePadIndex(index);
+        }
+
+        // Turn on the pad's LED
+        const padTurnon = Date.now();
+        await writeCharacteristic(
+          connectedDevice[activepad].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Wait for button press, interval timeout, or game timeout
+        await Promise.race([
+          connectedDevice[activepad].waitForButtonToBeFalse().then(() => "Hit"), // Button release
+          new Promise(
+            (_, reject) =>
+              setTimeout(() => reject("Interval Timeout"), interval) // Interval timeout
+          ),
+        ]);
+        // Turn off the pad's LED
+        if (result === "Hit") {
+          currentHitCounts++;
+          hitCounts++;
+          setUserHitCount(hitCounts);
+          isstuck = true;
+
+          if (currentHitCounts >= hitCount) {
+            isstuck = false;
+            console.log("Hit duration reached. Exiting the loop.");
+            currentHitCounts = 0;
+            setActivePadIndex(-1);
+            await writeCharacteristic(
+              connectedDevice[activepad].device,
+              CHARACTERISTIC.LED,
+              "AAAA"
+            );
+
+            // Delay before activating the next pad
+            await new Promise((resolve) =>
+              setTimeout(resolve, delaytime * 1000)
+            );
+          }
+        }
+      } catch (error) {
+        if (error === "Interval Timeout") {
+          isstuck = false;
+          console.log(
+            "Interval timeout reached. Moving to the next pad.---------------"
+          );
+          currentHitCounts = 0;
+          setActivePadIndex(-1);
+          await writeCharacteristic(
+            connectedDevice[activepad].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+          await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+        } else {
+          console.error("An unexpected error occurred:", error);
+        }
+
+        // Ensure the pad's LED is turned off in case of an error
+        setActivePadIndex(-1);
+        if (activepad >= 0) {
+          await writeCharacteristic(
+            connectedDevice[activepad].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+        }
+
+        // Delay before activating the next pad
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      }
+    }
+    while (
+      (duration === "Timeout" || duration === "Hit or Timeout") &&
+      Date.now() - startTime < timeout
+      // Continue while time remains and hit count is not met
+    ) {
+      if (lightDelay === "Random") {
+        delaytime = randomTime();
+      }
+      if (duration === "Hit or Timeout" && hitCounts >= hitduration) break;
+
+      try {
+        // Activate a random pad
+        if (!isstuck || activepad < 0) {
+          const index = activateRandomPad();
+          activepad = index;
+          setActivePadIndex(index);
+        }
+
+        // Turn on the pad's LED
+        const padTurnon = Date.now();
+        await writeCharacteristic(
+          connectedDevice[activepad].device,
+          CHARACTERISTIC.LED,
+          "wAAA"
+        );
+
+        // Wait for button press, interval timeout, or game timeout
+        const result = await Promise.race([
+          connectedDevice[activepad].waitForButtonToBeFalse().then(() => "Hit"),
+          new Promise(
+            (_, reject) =>
+              setTimeout(
+                () => reject("Timeout"),
+                timeout - (Date.now() - startTime)
+              ) // Game timeout
+          ),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject("Interval Timeout"),
+              interval - (Date.now() - padTurnon)
+            )
+          ),
+        ]);
+
+        // Turn off the pad's LED
+        if (result === "Hit") {
+          currentHitCounts++;
+          hitCounts++;
+          setUserHitCount(hitCounts);
+          isstuck = true;
+
+          if (currentHitCounts >= hitCount) {
+            isstuck = false;
+            console.log("Hit duration reached. Exiting the loop.");
+            currentHitCounts = 0;
+            setActivePadIndex(-1);
+            await writeCharacteristic(
+              connectedDevice[activepad].device,
+              CHARACTERISTIC.LED,
+              "AAAA"
+            );
+
+            // Delay before activating the next pad
+            await new Promise((resolve) =>
+              setTimeout(resolve, delaytime * 1000)
+            );
+          }
+        }
+      } catch (error) {
+        if (error === "Interval Timeout") {
+          isstuck = false;
+          console.log(
+            "Interval timeout reached. Moving to the next pad.---------------"
+          );
+          currentHitCounts = 0;
+          setActivePadIndex(-1);
+          await writeCharacteristic(
+            connectedDevice[activepad].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+          await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+        } else if (error === "Timeout") {
+          console.log("Game timeout reached. Ending the game.");
+          break; // Exit the loop if total game timeout is reached
+        } else {
+          console.error("An unexpected error occurred:", error);
+        }
+
+        // Ensure the pad's LED is turned off in case of an error
+        setActivePadIndex(-1);
+        if (activepad >= 0) {
+          await writeCharacteristic(
+            connectedDevice[activepad].device,
+            CHARACTERISTIC.LED,
+            "AAAA"
+          );
+        }
+
+        // Delay before activating the next pad
+        await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
+      }
+    }
+
+    // Final cleanup: turn off any active pad
+    if (activepad >= 0) {
+      await writeCharacteristic(
+        connectedDevice[activepad].device,
+        CHARACTERISTIC.LED,
+        "AAAA"
+      );
+    }
+  };
 
   const play_2 = async (
     timeduration: number,
@@ -337,272 +745,23 @@ const StartGame = () => {
     delay: number
   ) => {
     if (isPlaying) return;
-    const activateRandomPad = () => {
-      const totalPads = connectedDevice.filter(
-        (device) => device !== null
-      ).length;
-      const randomIndex = Math.floor(Math.random() * totalPads);
-      console.log(`Activated pad index: ${randomIndex}`);
-      return randomIndex; // Return the selected index
-    };
-    const randomTime = () => {
-      // Return a random number between 0.5 and 5
-      return Math.random() * 4.5 + 0.5;
-    };
+
     let hit = 0;
     hitCountRef.current = 0;
-    // stopGameRef.current = false;
     setUserHitCount(0);
     setPressButton(true);
     startTimeRef.current = Date.now();
-    let startTime: number = Date.now();
+    let startTime = Date.now();
 
-    while (
-      (hit < hitduration && duration === "Hit") ||
-      (Date.now() < startTime + (minDuration * 60 + secDuration) * 1000 &&
-        duration === "Timeout") ||
-      (Date.now() < startTime + (minDuration * 60 + secDuration) * 1000 &&
-        hit < hitduration &&
-        duration === "Hit or Timeout")
-      // lightOut === "Hit or Timeout")
-
-      // &&
-      // add stop game function
-      // !stopGameRef
-    ) {
-      const index = activateRandomPad();
-      //set setActivePadIndex to re render pad ui
-
-      if (!connectedDevice[index]) {
-        console.log("device is null");
-        continue;
-      }
-      console.log("index", index);
-      //turn on
-      // await writeCharacteristic(
-      //   connectedDevice[index].device,
-      //   CHARACTERISTIC.LED,
-      //   "AAD/"
-      // );
-      setActivePadIndex(index);
-      const activePadtime = Date.now();
-      console.log("write blue led");
-      connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAD/");
-      console.log("write blue led done");
-      console.log("active pad turn on :", activePadIndex);
-      console.log("write");
-      // const isHitSub = await monitorCharacteristicRef(
-      // 	connectedDevice[index].device,
-      // 	isHitRef,
-      // 	CHARACTERISTIC.BUTTONS
-      // );
-
-      console.log("monitored", hitCount);
-      let buttonHit = 0;
-      console.log("Tme diff1:", Date.now() - activePadtime);
-
-      //hit case
-      while (buttonHit < hitCount && lightOut === "Hit") {
-        console.log("time Diff", Date.now() - activePadtime);
-        console.log(
-          "///////////////////////////////",
-          connectedDevice[index].button
-        );
-
-        try {
-          const timeRemaining =
-            startTime + (minDuration * 60 + secDuration) * 1000 - Date.now();
-
-          // Use Promise.race to wait for either the button state change or timeout
-          await Promise.race([
-            connectedDevice[index].waitForButtonToBeFalse(),
-            new Promise<void>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Timeout exceeded")),
-                timeRemaining
-              )
-            ),
-          ]);
-
-          console.log("button pressed");
-          buttonHit += 1;
-          hit += 1;
-          setUserHitCount((prev) => prev + 1);
-
-          // Small delay to allow further processing
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        } catch (error) {
-          if (error.message === "Timeout exceeded") {
-            console.log("Time condition exceeded before button press");
-            break; // Exit the loop if timeout is reached
-          }
-          console.error("Error occurred:", error);
-        }
-      }
-
-      //case timeout
-      let isbreak = false;
-      // while (
-      //   Date.now() < activePadtime + timeout * 1000 &&
-      //   lightOut === "Timeout" &&
-      //   !isbreak
-      // ) {
-      //   console.log("time Diff", Date.now() - activePadtime);
-      //   console.log(
-      //     "///////////////////////////////",
-      //     connectedDevice[index].button
-      //   );
-
-      //   // if (connectedDevice[index].button === false) {
-      //   //   buttonHit += 1;
-      //   //   hit += 1;
-      //   //   hitCountRef.current += 1;
-      //   //   setUserHitCount((prev) => prev + 1);
-      //   //   console.log("+++++++++++++++++++++++buttonhit", hit);
-      //   //   isbreak = true;
-      //   // while (connectedDevice[index].button === true) {
-      //   //   // console.log("loop for hit", isHitRef.current);
-      //   //   await new Promise((resolve) => setTimeout(resolve, 10));
-      //   //   isbreak = true;
-      //   // }
-      //   // while (connectedDevice[index].button === false) {
-      //   //   // console.log("loop for hit", isHitRef.current);
-      //   //   await new Promise((resolve) => setTimeout(resolve, 10));
-      //   // }
-      //   console.log("wait for button to be true");
-      //   await connectedDevice[index].waitForButtonToBeFalse();
-      //   console.log("button pressed");
-
-      //   buttonHit += 1;
-      //   hit += 1;
-      //   setUserHitCount((prev) => prev + 1);
-      //   await new Promise((resolve) => setTimeout(resolve, 10));
-      //   // console.log("loop for hit", buttonHit);
-
-      //   //await new Promise((resolve) => setTimeout(resolve, 100));
-      // }
-      isbreak = false;
-      while (
-        Date.now() < activePadtime + timeout * 1000 &&
-        lightOut === "Timeout" &&
-        !isbreak
-      ) {
-        console.log("time Diff", Date.now() - activePadtime);
-        console.log(
-          "///////////////////////////////",
-          connectedDevice[index].button
-        );
-
-        try {
-          const timeRemaining = activePadtime + timeout * 1000 - Date.now();
-
-          // Use Promise.race to wait for either the button state change or timeout
-          await Promise.race([
-            (async () => {
-              await connectedDevice[index].waitForButtonToBeFalse();
-              isbreak = true; // Set isbreak to true after the button press
-            })(),
-            new Promise<void>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Timeout exceeded")),
-                timeRemaining
-              )
-            ),
-          ]);
-
-          console.log("button pressed");
-          buttonHit += 1;
-          hit += 1;
-          setUserHitCount((prev) => prev + 1);
-
-          // Break the loop immediately after the first button press
-          break;
-        } catch (error) {
-          if (error.message === "Timeout exceeded") {
-            console.log("Time condition exceeded before button press");
-            break; // Exit the loop if timeout is reached
-          }
-          console.error("Error occurred:", error);
-        }
-      }
-
-      // console.log("-------------------------light out", lightOut);
-
-      let isTotalTimeUp = false;
-
-      setInterval(() => {
-        const totalTimeremaining =
-          startTime + (minDuration * 60 + secDuration) * 1000 - Date.now();
-        if (totalTimeremaining <= 0) {
-          console.log("Total time is up!");
-          isTotalTimeUp = true;
-        }
-      }, 100); // Check every 100ms (adjust frequency as needed)
-
-      while (
-        Date.now() < activePadtime + timeout * 1000 &&
-        buttonHit < hitCount &&
-        lightOut === "Hit or Timeout" &&
-        !isTotalTimeUp
-      ) {
-        console.log("time Diff", Date.now() - activePadtime);
-        console.log(
-          "///////////////////////////////",
-          connectedDevice[index].button
-        );
-
-        try {
-          const timeRemaining = activePadtime + timeout * 1000 - Date.now();
-
-          // Use Promise.race to wait for either the button state change or timeout
-          await Promise.race([
-            connectedDevice[index].waitForButtonToBeFalse(),
-            new Promise<void>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Timeout exceeded")),
-                timeRemaining
-              )
-            ),
-          ]);
-
-          console.log("button pressed");
-          buttonHit += 1;
-          hit += 1;
-          setUserHitCount((prev) => prev + 1);
-
-          // Small delay to allow further processing
-          await new Promise((resolve) => setTimeout(resolve, 10));
-        } catch (error) {
-          if (error.message === "Timeout exceeded") {
-            console.log("Time condition exceeded before button press");
-            break; // Exit the loop if timeout is reached
-          }
-          console.error("Error occurred:", error);
-        }
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      // await writeCharacteristic(
-      //   connectedDevice[index].device,
-      //   CHARACTERISTIC.LED,
-      //   "AAAA"
-      // );
-      setActivePadIndex(-1);
-      connectedDevice[index].writeCharacteristic(CHARACTERISTIC.LED, "AAAA");
-      if (lightDelay === "Random") {
-        delaytime = randomTime();
-      }
-      console.log("***************************delay time mode", lightDelay);
-      console.log("***************************delay time", delaytime);
-      await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
-      console.log("active pad after turn off", activePadIndex);
-      // isHitSub?.remove();
-      // setActivePadIndex(-1);
-      // await new Promise((resolve) => setTimeout(resolve, 300));
+    if (lightOut === "Hit") {
+      await play_hit(hit);
+    } else if (lightOut === "Timeout") {
+      await play_timeout(hit, interval);
+    } else if (lightOut === "Hit or Timeout") {
+      await play_hitOrTimeout(hit, interval);
     }
-    // end
-    setUserHitCount(hit);
-    // gameEndTimeRef.current = Date.now();
+
+    setUserHitCount(hit); // Update the user's hit count
     setPressButton(false);
     setIsPlaying(false);
     setShowresult(true);
@@ -619,19 +778,7 @@ const StartGame = () => {
         Test
       </Text>
       <TouchableOpacity
-        style={styles.playButton} // Styles for the play button
-        // old function
-        // onPress={() => {
-        // 	console.log("Start Game button pressed.");
-        // 	play_2(
-        // 		(minDuration * 60 + secDuration) * 1000, // Calculate duration in milliseconds
-        // 		timeout * 1000, // Convert timeout to milliseconds
-        // 		delaytime * 1000 // Delay time is already in milliseconds
-        // 	); // ตั้งค่า isPlaying เป็น true เมื่อกดปุ่ม
-        // 	// setIsPlaying(true);
-        // 	setShowresult(false);
-        // }}
-        // new function
+        style={styles.playButton}
         onPress={() => {
           console.log("Start Game button pressed.");
           if (isPlaying) {
@@ -666,8 +813,6 @@ const StartGame = () => {
       </TouchableOpacity>
       <View style={styles.hitCountContainer}>
         <Text style={styles.hitCountText}>
-          {/* ระบบสำรอง */}
-          Hit Count: {hitCountRef.current} {"\n"}
           {/* ระบบหลัก */}
           Hit Count: {userHitCount} {"\n"}
         </Text>
