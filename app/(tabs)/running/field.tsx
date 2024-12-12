@@ -58,6 +58,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
     L2: "red",
     Center: "blue",
   });
+  const [miss, setMiss] = useState(0);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [gameState, setGameState] = useState({
     currentGreen: null as CircleKey | null,
@@ -107,8 +108,9 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
           handleReturnToCenter();
         } else {
           console.log("missmissmissmissmissmissmissmiss");
+
           setCurrentIndex((prevIndex) => prevIndex + 1);
-          handleReturnToCenter();
+          handleReturnToCenter(true);
         }
       } else {
         await connectedDevice[4]?.waitForVibration();
@@ -208,8 +210,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
       handleReturnToCenter();
     }
   };
-
-  const handleReturnToCenter = () => {
+  const handleMissReturnToCenter = () => {
     const currentTime = Date.now();
     if (lastTimestamp !== null && gameState.currentGreen !== null) {
       const timeDiff = (currentTime - lastTimestamp) / 1000;
@@ -217,6 +218,47 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
         ...prevTimes,
         { description: `${gameState.currentGreen} to Center`, time: timeDiff },
       ]);
+    }
+    setLastTimestamp(currentTime);
+    setCircleColors((prevColors) => ({ ...prevColors, Center: "blue" }));
+    setGameState((prevState) => ({
+      ...prevState,
+      centerActive: false,
+    }));
+    setCurrentIndex((prevIndex) => prevIndex + 1);
+  };
+
+  const handleReturnToCenter = (miss = false) => {
+    const currentTime = Date.now();
+    if (lastTimestamp !== null && gameState.currentGreen !== null) {
+      const timeDiff = (currentTime - lastTimestamp) / 1000;
+      if (!miss)
+        setInteractionTimes((prevTimes) => [
+          ...prevTimes,
+          {
+            description: `${gameState.currentGreen} to Center`,
+            time: timeDiff,
+          },
+        ]);
+      else {
+        const nextState =
+          circleSequence[
+            (gameState.currentGreen === "R1"
+              ? 1
+              : gameState.currentGreen === "R2"
+              ? 3
+              : gameState.currentGreen === "L1"
+              ? 0
+              : 2) + 1
+          ];
+        setInteractionTimes((prevTimes) => [
+          ...prevTimes,
+          {
+            description: `Miss ${gameState.currentGreen} to Center and Hit ${nextState}`,
+            time: timeDiff,
+          },
+        ]);
+      }
     }
     setLastTimestamp(currentTime);
     setCircleColors((prevColors) => ({ ...prevColors, Center: "blue" }));
