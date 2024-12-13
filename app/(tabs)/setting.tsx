@@ -127,7 +127,7 @@ const BLE = () => {
 							? base64toDecManu(device?.manufacturerData)
 							: "N/A"} */}
             {(
-              (base64toDecManu(device?.manufacturerData as string) / 30000) *
+              (base64toDecManu(device?.manufacturerData as string) / 4200) *
               100
             ).toFixed(2) + " %"}
           </Text>

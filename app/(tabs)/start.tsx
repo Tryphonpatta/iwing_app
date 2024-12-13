@@ -267,14 +267,21 @@ const StartGame = () => {
 
   const handleCloseResult = () => setShowresult(false);
   //_______________________________________________________________________________________game play function
-  const activateRandomPad = () => {
-    const totalPads = connectedDevice.filter(
-      (device) => device !== null
-    ).length;
-    const randomIndex = Math.floor(Math.random() * totalPads);
-    console.log(`Activated pad index: ${randomIndex}`);
-    return randomIndex; // Return the selected index
+  const activateRandomPad = (activepad: number) => {
+    const connectedPads = connectedDevice.filter((device) => device !== null);
+    const totalPads = connectedPads.length;
+    let randomIndex = Math.floor(Math.random() * totalPads);
+    if (totalPads === 1) {
+      return activepad;
+    }
+    while (activepad === randomIndex) {
+      randomIndex = Math.floor(Math.random() * totalPads);
+      console.log("Random index :++++++++summmmm", randomIndex);
+    }
+    console.log("Random index :++++++++ mai summ", randomIndex);
+    return randomIndex;
   };
+
   const randomTime = () => {
     // Return a random number between 0.5 and 5
     return Math.random() * 4.5 + 0.5;
@@ -303,8 +310,9 @@ const StartGame = () => {
       console.log("Remaining time:", remainingTime);
 
       try {
-        const index = activateRandomPad();
+        const index = activateRandomPad(activepad);
         activepad = index;
+        // Turn on the pad's LED
         setActivePadIndex(index);
 
         if (hitCount >= hitduration && duration === "Hit or Timeout") {
@@ -359,7 +367,8 @@ const StartGame = () => {
         delaytime = randomTime();
       }
       try {
-        const index = activateRandomPad();
+        const index = activateRandomPad(activepad);
+        activepad = index;
         // Turn on the pad's LED
         setActivePadIndex(index);
         await writeCharacteristic(
@@ -405,7 +414,7 @@ const StartGame = () => {
       if (lightDelay === "Random") {
         delaytime = randomTime();
       }
-      const index = activateRandomPad();
+      const index = activateRandomPad(activepad);
       activepad = index;
       setActivePadIndex(index);
       try {
@@ -472,7 +481,7 @@ const StartGame = () => {
         if (lightDelay === "Random") {
           delaytime = randomTime();
         }
-        const index = activateRandomPad();
+        const index = activateRandomPad(activepad);
         activepad = index;
         setActivePadIndex(index);
         // Turn on the pad's LED
@@ -548,7 +557,7 @@ const StartGame = () => {
       try {
         // Activate a random pad
         if (!isstuck || activepad < 0) {
-          const index = activateRandomPad();
+          const index = activateRandomPad(activepad);
           activepad = index;
           setActivePadIndex(index);
         }
@@ -562,13 +571,14 @@ const StartGame = () => {
         );
 
         // Wait for button press, interval timeout, or game timeout
-        await Promise.race([
+        const result = await Promise.race([
           connectedDevice[activepad].waitForButtonToBeFalse().then(() => "Hit"), // Button release
           new Promise(
             (_, reject) =>
               setTimeout(() => reject("Interval Timeout"), interval) // Interval timeout
           ),
         ]);
+
         // Turn off the pad's LED
         if (result === "Hit") {
           currentHitCounts++;
@@ -625,6 +635,7 @@ const StartGame = () => {
         await new Promise((resolve) => setTimeout(resolve, delaytime * 1000));
       }
     }
+
     while (
       (duration === "Timeout" || duration === "Hit or Timeout") &&
       Date.now() - startTime < timeout
@@ -638,7 +649,7 @@ const StartGame = () => {
       try {
         // Activate a random pad
         if (!isstuck || activepad < 0) {
-          const index = activateRandomPad();
+          const index = activateRandomPad(activepad);
           activepad = index;
           setActivePadIndex(index);
         }
