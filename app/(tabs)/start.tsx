@@ -541,10 +541,23 @@ const StartGame = () => {
     }
   };
   const play_hitOrTimeout = async (hitCounts: number, interval: number) => {
+    const colorDict = {
+      1: "/wAB", // Red (#FF0000)
+      2: "/wAg", // Green (#00FF00)
+      3: "AA/A", // Blue (#0000FF)
+      4: "/wDg", // Yellow (#FFFF00)
+      5: "9vAM", // Purple (#800080)
+      6: "AP8A", // Teal (#008080)
+      7: "+/8A", // Orange (#FFA500)
+      8: "wDwA", // Dark Gray-Blue (#2C3E50)
+      9: "/wDw", // Light Green (#32CD32)
+      10: "+/wA", // Crimson (#DC143C)
+    };
+
     const timeout = (minDuration * 60 + secDuration) * 1000; // Total game duration in milliseconds
     const startTime = Date.now(); // Start time of the game
     let activepad = -1; // Track the active pad
-    let currentHitCounts = 0; // Initialize the current hit count
+    let currentHitCounts: number = 0; // Initialize the current hit count
     let isstuck = false;
     while (
       duration === "Hit" &&
@@ -567,7 +580,7 @@ const StartGame = () => {
         await writeCharacteristic(
           connectedDevice[activepad].device,
           CHARACTERISTIC.LED,
-          "wAAA"
+          colorDict[currentHitCounts + 1]
         );
 
         // Wait for button press, interval timeout, or game timeout
@@ -659,7 +672,7 @@ const StartGame = () => {
         await writeCharacteristic(
           connectedDevice[activepad].device,
           CHARACTERISTIC.LED,
-          "wAAA"
+          colorDict[currentHitCounts + 1]
         );
 
         // Wait for button press, interval timeout, or game timeout
