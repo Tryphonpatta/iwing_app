@@ -105,12 +105,7 @@ export default function Home() {
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
-    console.log("sounddd");
-    const { sound } = await Audio.Sound.createAsync(
-      require("../../assets/audio/beep-06.mp3")
-    );
-    await sound.playAsync();
-    console.log("sounddd");
+
     await device.blinkLED([redColor, blueColor]);
     // await device.writeCharacteristic(
     //   CHARACTERISTIC.MODE,

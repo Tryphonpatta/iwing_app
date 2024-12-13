@@ -37,6 +37,8 @@ type Interaction = {
   description: string;
   time: number; // in seconds
 };
+const sound = new Audio.Sound();
+const soundMiss = new Audio.Sound();
 
 const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   const {
@@ -75,6 +77,14 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
 
   // Update centerActiveRef when gameState.centerActive changes
   useEffect(() => {
+    if (!sound._loaded && !sound._loading)
+      sound.loadAsync(require("../../../assets/audio/beep-06.mp3"));
+    sound.setVolumeAsync(0.7);
+    if (!soundMiss._loaded && !soundMiss._loading)
+      soundMiss.loadAsync(require("../../../assets/audio/wrong.wav"));
+    soundMiss.setVolumeAsync(1);
+  }, []);
+  useEffect(() => {
     centerActiveRef.current = gameState.centerActive;
     if (gameState.centerActive) {
       isCenter();
@@ -108,7 +118,12 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
           handleReturnToCenter();
         } else {
           console.log("missmissmissmissmissmissmissmiss");
-
+          await Promise.all([
+            op_sound.hit
+              ? connectedDevice[firstResolveIndex as number]?.beep()
+              : null,
+            op_sound.mobile ? soundMiss.replayAsync() : null,
+          ]);
           setCurrentIndex((prevIndex) => prevIndex + 1);
           handleReturnToCenter(true);
         }
@@ -293,49 +308,15 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   const checkHit = async (id: number) => {
     // console.log("checkHit", id);
     await connectedDevice[id]?.waitForVibration();
-    if (op_sound.hit) await connectedDevice[id]?.beep();
-    if (op_sound.mobile) {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../../../assets/audio/beep-06.mp3")
-      );
-      await sound.playAsync();
-    }
+    console.log(op_sound);
+    await Promise.all([
+      op_sound.hit ? connectedDevice[id]?.beep() : null,
+      op_sound.mobile ? sound.replayAsync() : null,
+    ]);
+
     // console.log("hit detected", id);
     handleHitDetected();
-    // try {
-    //   const ppp = await connectedDevice[id].yyyy
-    //   handleHitDetected();
-
-    //   while (hitActiveRef.current && !stopActiveRef.current) {
-    //     if (!connectedDevice[id]) throw new Error("DeviceId is NULL");
-    //     const hitStatus = await isHit(id);
-
-    //     if (hitStatus) {
-    //       handleHitDetected();
-    //       hitActiveRef.current = false;
-    //       return;
-    //     }
-    //     await new Promise((resolve) => setTimeout(resolve, 200));
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to read characteristic:", error);
-    //   hitActiveRef.current = false;
-    // }
   };
-
-  // const isHit = async (id: number) => {
-  //   try {
-  //     if (connectedDevice[id] === undefined)
-  //       throw new Error("DeviceId is NULL");
-  //     if (id == 0) return hitL1 ? hitL1 == 255 : 0;
-  //     if (id == 2) return hitL2 ? hitL2 == 255 : 0;
-  //     if (id == 1) return hitR1 ? hitR1 == 255 : 0;
-  //     if (id == 3) return hitR2 ? hitR2 == 255 : 0;
-  //   } catch (e) {
-  //     console.error("Error reading hit characteristic:", e);
-  //     return false;
-  //   }
-  // };
 
   const handleHitDetected = () => {
     if (gameState.currentGreen) {
@@ -365,17 +346,6 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   };
 
   const handleStopAndShowResult = () => {
-    // writeCharacteristic(
-    //   connectedDevice[0].device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("00")
-    // );
-    // writeCharacteristic(
-    //   connectedDevice[1].device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("00")
-    // );
-
     stopActiveRef.current = true; // Stop all async loops
     setGameState((prevState) => ({
       ...prevState,

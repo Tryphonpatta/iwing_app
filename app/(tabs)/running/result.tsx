@@ -37,7 +37,7 @@ const ResultScreen = ({
   });
 
   // Log interactionTimes for debugging
-  console.log("Interaction Times:", interactionTimes);
+  // console.log("Interaction Times:", interactionTimes);
 
   const totalHitTime = interactionTimes
     .filter((interaction) => interaction.description.startsWith("Center to"))
@@ -86,10 +86,14 @@ const ResultScreen = ({
 
       if (Platform.OS === "android") {
         // Request directory permissions using StorageAccessFramework
-        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
         if (!permissions.granted) {
-          Alert.alert("Permission Denied", "Cannot save file without directory permissions.");
+          Alert.alert(
+            "Permission Denied",
+            "Cannot save file without directory permissions."
+          );
           return;
         }
 
@@ -102,9 +106,14 @@ const ResultScreen = ({
       // Prepare CSV content
       const csvHeader = "Description,Time (s)\n";
       const csvRows = interactionTimes
-        .map((interaction) => `${interaction.description},${interaction.time.toFixed(2)}`)
+        .map(
+          (interaction) =>
+            `${interaction.description},${interaction.time.toFixed(2)}`
+        )
         .join("\n");
-      const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(2)}`;
+      const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(
+        2
+      )}`;
 
       // Define the file name
       const fileName = "interaction_times.csv";
@@ -120,9 +129,13 @@ const ResultScreen = ({
         );
 
         // Write the CSV content to the file
-        await FileSystem.StorageAccessFramework.writeAsStringAsync(fileUri, csvContent, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          csvContent,
+          {
+            encoding: FileSystem.EncodingType.UTF8,
+          }
+        );
       } else {
         // For iOS or other platforms, use the standard FileSystem.writeAsStringAsync
         fileUri = `${directoryUri}${fileName}`;
@@ -187,16 +200,40 @@ const ResultScreen = ({
         </View>
 
         <View style={styles.filterContainer}>
-          <TouchableOpacity onPress={() => toggleFilter("all")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.all && styles.checkboxChecked]} />
+          <TouchableOpacity
+            onPress={() => toggleFilter("all")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.all && styles.checkboxChecked,
+              ]}
+            />
             <Text style={styles.checkboxLabel}>All</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFilter("even")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.even && styles.checkboxChecked]} />
+          <TouchableOpacity
+            onPress={() => toggleFilter("even")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.even && styles.checkboxChecked,
+              ]}
+            />
             <Text style={styles.checkboxLabel}>CenterTo</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFilter("odd")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.odd && styles.checkboxChecked]} />
+          <TouchableOpacity
+            onPress={() => toggleFilter("odd")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.odd && styles.checkboxChecked,
+              ]}
+            />
             <Text style={styles.checkboxLabel}>ToCenter</Text>
           </TouchableOpacity>
         </View>
@@ -206,7 +243,10 @@ const ResultScreen = ({
             <View
               style={[
                 styles.row,
-                { backgroundColor: index % 2 === 0 ? "#ffffff" : "#f0f0f0", borderRadius: 10 },
+                {
+                  backgroundColor: index % 2 === 0 ? "#ffffff" : "#f0f0f0",
+                  borderRadius: 10,
+                },
               ]}
               key={index}
             >
