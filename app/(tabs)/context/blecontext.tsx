@@ -138,6 +138,25 @@ export class ConnectedDevice {
       }
     );
   }
+
+  async monitorCharing(): Promise<void> {
+    this.device.monitorCharacteristicForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.BATT_VOLTAGE,
+      async (error, characteristic) => {
+        if (error) {
+          console.log("Error monitoring characteristic", error);
+          return;
+        }
+        if (!characteristic?.value) {
+          console.log("No data received");
+          return;
+        }
+        console.log("Battery: ", base64toDec(characteristic.value as string));
+        this.isCharging = base64toDec(characteristic.value as string) >= 1;
+      }
+    );
+  }
   async beep() {
     await this.changeActive();
     await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
@@ -311,6 +330,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         tempDevices[index]?.readVersion(),
         tempDevices[index]?.readBattery(),
         tempDevices[index]?.monitorBattery(),
+        tempDevices[index]?.monitorCharing(),
         tempDevices[index]?.changeRest(),
       ]);
       // await tempDevices[index]?.monitorVibration();
