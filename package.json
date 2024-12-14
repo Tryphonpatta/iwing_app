@@ -19,6 +19,7 @@
     "@expo/vector-icons": "^14.0.2",
     "@freakycoder/react-native-bounceable": "^1.0.3",
     "@react-native-community/slider": "^4.5.5",
+    "@react-native-picker/picker": "^2.10.2",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "@rneui/themed": "^4.0.0-rc.8",
