@@ -142,7 +142,7 @@ export class ConnectedDevice {
   async monitorCharing(): Promise<void> {
     this.device.monitorCharacteristicForService(
       CHARACTERISTIC.IWING_TRAINERPAD,
-      CHARACTERISTIC.BATT_VOLTAGE,
+      CHARACTERISTIC.BATT_CHARGING,
       async (error, characteristic) => {
         if (error) {
           console.log("Error monitoring characteristic", error);

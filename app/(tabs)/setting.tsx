@@ -259,10 +259,18 @@ const BLE = () => {
           <Text 
             style={[
               tw`text-sm`, 
-              { color: connectDevice?.battery < 20 ? "#FF0000" : "#4CAF50" }
+              { 
+                color: connectDevice?.isCharging 
+                  ? "#FFD700" // Yellow for charging
+                  : connectDevice?.battery < 20 
+                  ? "#FF0000" // Red for low battery
+                  : "#4CAF50" // Green for normal battery level
+              }
             ]}
           >
-            Battery Voltage: {connectDevice?.battery?.toFixed(2)}
+            {connectDevice?.isCharging 
+              ? "Battery Charging" 
+              : `Battery Voltage: ${connectDevice?.battery?.toFixed(2)}`}
           </Text>
 
         </View>
