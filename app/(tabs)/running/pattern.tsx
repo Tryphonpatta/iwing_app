@@ -79,7 +79,7 @@ const PatternScreen = () => {
     setShowField(true);
   };
 
-  const setModeValues = (modeId) => {
+  const setModeValues = (modeId: any) => {
     if (modeId === 1 || modeId === 2) {
       // Reset R1, R2, and L2 when switching to Mode 1 or 2
       setR1(0);

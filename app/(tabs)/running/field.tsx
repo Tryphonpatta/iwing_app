@@ -55,6 +55,9 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     Center: "blue",
   });
   const [miss, setMiss] = useState(0);
+  const isStillMiss = useRef(false);
+  const isCenterStillCall = useRef(false);
+  const isCheckHitStillCall = useRef(false);
   const [showResultScreen, setShowResultScreen] = useState(false);
   const [gameState, setGameState] = useState({
     currentGreen: null as CircleKey | null,
@@ -80,8 +83,10 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   }, []);
   useEffect(() => {
     centerActiveRef.current = gameState.centerActive;
-    if (gameState.centerActive) {
+    if (gameState.centerActive && !isCenterStillCall.current) {
+      isCenterStillCall.current = true;
       isCenter();
+      isCenterStillCall.current = false;
     }
   }, [gameState.centerActive]);
 
@@ -89,6 +94,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     try {
       // Create an array of promises, each representing the vibration detection for each device
       // console.log("connectedDevice", connectedDevice);
+
       console.log("wait center");
       // Use Promise.race() to wait for the first device to resolve
       const dictCircle = new Map();
@@ -102,9 +108,20 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
           : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
       console.log("nextId", nextId);
       if (nextId !== -1) {
+        let isCancelled = false;
         const vibrationPromises = [
-          connectedDevice[nextId]?.waitForVibration().then(() => nextId),
-          connectedDevice[4]?.waitForVibration().then(() => 4),
+          connectedDevice[nextId]?.waitForVibration().then(() => {
+            if (!isCancelled) {
+              isCancelled = true; // Cancel further handling of other promises
+              return nextId;
+            }
+          }),
+          connectedDevice[4]?.waitForVibration().then(() => {
+            if (!isCancelled) {
+              isCancelled = true; // Cancel further handling of other promises
+              return 4;
+            }
+          }),
         ];
         const firstResolveIndex = await Promise.race(vibrationPromises);
         console.log("firstResolve", firstResolveIndex);
@@ -121,6 +138,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
         }
       } else {
         await connectedDevice[4]?.waitForVibration();
+        isStillMiss.current = false;
         handleReturnToCenter();
       }
       console.log("nextId", nextId);
@@ -217,23 +235,6 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
       handleReturnToCenter();
     }
   };
-  const handleMissReturnToCenter = () => {
-    const currentTime = Date.now();
-    if (lastTimestamp !== null && gameState.currentGreen !== null) {
-      const timeDiff = (currentTime - lastTimestamp) / 1000;
-      setInteractionTimes((prevTimes) => [
-        ...prevTimes,
-        { description: `${gameState.currentGreen} to Center`, time: timeDiff },
-      ]);
-    }
-    setLastTimestamp(currentTime);
-    setCircleColors((prevColors) => ({ ...prevColors, Center: "blue" }));
-    setGameState((prevState) => ({
-      ...prevState,
-      centerActive: false,
-    }));
-    setCurrentIndex((prevIndex) => prevIndex + 1);
-  };
 
   const handleReturnToCenter = (miss = false) => {
     const currentTime = Date.now();
@@ -283,8 +284,10 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     const id =
       circle === "R1" ? 1 : circle === "R2" ? 3 : circle === "L1" ? 0 : 2;
 
+    if (isCheckHitStillCall.current) return;
+    isCheckHitStillCall.current = true;
     checkHit(id);
-
+    isCheckHitStillCall.current = false;
     // const device = connectedDevice[id]?.device;
 
     // if (!device) {
@@ -300,7 +303,11 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   const checkHit = async (id: number) => {
     // console.log("checkHit", id);
     await connectedDevice[id]?.waitForVibration();
-    await Promise.all([connectedDevice[id]?.beep(), sound.replayAsync()]);
+    if (!isStillMiss.current) {
+      await Promise.all([connectedDevice[id]?.beep(), sound.replayAsync()]);
+    } else {
+      await Promise.all([connectedDevice[id]?.beep(), soundMiss.replayAsync()]);
+    }
 
     // console.log("hit detected", id);
     handleHitDetected();

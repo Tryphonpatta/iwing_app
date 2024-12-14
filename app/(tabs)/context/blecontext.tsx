@@ -130,7 +130,7 @@ export class ConnectedDevice {
           console.log("No data received");
           return;
         }
-        console.log("Battery: ", base64toDec(characteristic.value as string));
+        // console.log("Battery: ", base64toDec(characteristic.value as string));
         this.battery =
           ((base64toDec(characteristic.value as string) - 3290) /
             (4200 - 3290)) *
@@ -152,7 +152,7 @@ export class ConnectedDevice {
           console.log("No data received");
           return;
         }
-        console.log("Battery: ", base64toDec(characteristic.value as string));
+        // console.log("Battery: ", base64toDec(characteristic.value as string));
         this.isCharging = base64toDec(characteristic.value as string) >= 1;
       }
     );
