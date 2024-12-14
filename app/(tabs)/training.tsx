@@ -72,7 +72,7 @@ const Dropdown = ({ label, selectedValue, onValueChange, options }) => {
 export default function App() {
 	const [lightOut, setLightOut] = useState("");
 	const [timeout, setTimeout] = useState(0.5);
-	const [hitCount, setHitCount] = useState(0);
+	const [hitCount, setHitCount] = useState(1);
 
 	const [lightDelay, setLightDelay] = useState("");
 	const [delaytime, setDelaytime] = useState(0.5);
@@ -269,20 +269,32 @@ export default function App() {
 									/>
 								</View> */}
 								{/* dropdown for hit count */}
-								<View style={[styles.section]}>
-									<Text style={styles.labelText}>Hit Count: {hitCount}</Text>
+								<View
+									style={[
+										styles.section,
+										{ marginBottom: "-2%", marginTop: "-5%" },
+									]}
+								>
+									<Text style={[styles.labelText, { marginBottom: "3%" }]}>
+										Hit Count: {hitCount}
+									</Text>
 									<TouchableOpacity
 										style={styles.dropdownButton}
 										onPress={() => setDropdownVisible(!dropdownVisible)}
 									>
-										<Text style={styles.dropdownButtonText}>
+										<Text
+											style={[
+												styles.dropdownButtonText,
+												{ fontSize: 16, marginLeft: "3%" },
+											]}
+										>
 											{hitCount ? hitCount.toString() : "Select Hit Count"}
 										</Text>
 										<MaterialIcons
 											name={
 												dropdownVisible ? "arrow-drop-up" : "arrow-drop-down"
 											}
-											size={24}
+											size={20}
 											color="#555"
 										/>
 									</TouchableOpacity>
@@ -295,6 +307,11 @@ export default function App() {
 													style={[
 														styles.option,
 														item === hitCount && styles.activeOption,
+														{
+															borderWidth: 1,
+															borderColor: "#ccc",
+															borderRadius: 4,
+														},
 													]}
 													onPress={() => {
 														setHitCount(item);
@@ -335,7 +352,10 @@ export default function App() {
 									styles.option,
 									lightDelay === "None" && styles.activeOption,
 								]}
-								onPress={() => setLightDelay("None")}
+								onPress={() => {
+									setLightDelay("None");
+									setDelaytime(0);
+								}}
 							>
 								<Text
 									style={[
@@ -351,7 +371,9 @@ export default function App() {
 									styles.option,
 									lightDelay === "Fixed" && styles.activeOption,
 								]}
-								onPress={() => setLightDelay("Fixed")}
+								onPress={() => {
+									setLightDelay("Fixed");
+								}}
 							>
 								<Text
 									style={[
@@ -726,7 +748,6 @@ const styles = StyleSheet.create({
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.25,
-		shadowRadius: 3.84,
 		elevation: 5,
 	},
 });

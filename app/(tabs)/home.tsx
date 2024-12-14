@@ -29,7 +29,6 @@ export default function Home() {
 		null
 	);
 	const [isCalibrating, setIsCalibrating] = React.useState(false);
-	const isCalibratingRef = React.useRef(isCalibrating);
 	console.log("Connected devices at start: ", connectedDevice);
 	React.useEffect(() => {
 		console.log("Connected devices: ", connectedDevice);
@@ -66,10 +65,10 @@ export default function Home() {
 		device: Device;
 		pad_no: number;
 	}) => (
-		<View style={styles.cardcontainer}>
+		<View style={[styles.cardcontainer, { paddingVertical: "5%" }]}>
 			<MaterialIcons name="wb-twilight" size={60} color="black" />
 			<View style={styles.cardcontent}>
-				<Text>Trainer Pad : {pad_no}</Text>
+				<Text>Trainer Pad : {pad_no + 1}</Text>
 				<Text>Trainer pad ID : {device.id} </Text>
 				<View style={styles.blinkbutton}>
 					<TouchableOpacity onPress={async () => await blink(device)}>

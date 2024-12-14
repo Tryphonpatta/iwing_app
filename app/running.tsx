@@ -107,7 +107,7 @@ function ShowPad(props: any) {
 						color="black"
 						style={styles.icon}
 					/>
-					<Text>Trainer Pad : {pad_no}</Text>
+					<Text>Trainer Pad : {pad_no + 1}</Text>
 				</TouchableOpacity>
 			</View>
 		</Draggable>
