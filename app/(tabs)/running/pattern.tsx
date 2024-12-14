@@ -102,6 +102,7 @@ const PatternScreen = () => {
         L1={L1}
         L2={selectedMode === 3 ? L2 : undefined}
         mode={selectedMode}
+        threshold={threshold}
       />
     );
   }
@@ -159,7 +160,11 @@ const PatternScreen = () => {
           }}
           onPress={() => setShowInfoModal(true)}
         >
-          <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
+          <Ionicons
+            name="information-circle-outline"
+            size={28}
+            color="#2f855a"
+          />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
             ข้อมูล
           </Text>
@@ -328,11 +333,10 @@ const PatternScreen = () => {
                 step={5}
                 value={threshold}
                 onChange={(num) => setThreshold(num)}
-                style={[{justifyContent: "center"}]}
+                style={[{ justifyContent: "center" }]}
                 skin="clean"
                 color="#2f855a"
               />
-
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowSetting(false)}

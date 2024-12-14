@@ -24,13 +24,7 @@ type FieldProps = {
   L1: number | undefined;
   L2: number | undefined;
   mode: number;
-  op_func: {
-    center: boolean;
-  };
-  op_sound: {
-    hit: boolean;
-    mobile: boolean;
-  };
+  threshold: number;
 };
 
 type Interaction = {
@@ -40,7 +34,7 @@ type Interaction = {
 const sound = new Audio.Sound();
 const soundMiss = new Audio.Sound();
 
-const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
+const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   const {
     connectToDevice,
     allDevices,
@@ -107,7 +101,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
           ? -1
           : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
       console.log("nextId", nextId);
-      if (nextId !== -1 && op_func.center == false) {
+      if (nextId !== -1) {
         const vibrationPromises = [
           connectedDevice[nextId]?.waitForVibration().then(() => nextId),
           connectedDevice[4]?.waitForVibration().then(() => 4),
@@ -119,10 +113,8 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
         } else {
           console.log("missmissmissmissmissmissmissmiss");
           await Promise.all([
-            op_sound.hit
-              ? connectedDevice[firstResolveIndex as number]?.beep()
-              : null,
-            op_sound.mobile ? soundMiss.replayAsync() : null,
+            connectedDevice[firstResolveIndex as number]?.beep(),
+            soundMiss.replayAsync(),
           ]);
           setCurrentIndex((prevIndex) => prevIndex + 1);
           handleReturnToCenter(true);
@@ -148,8 +140,8 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   useEffect(() => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     let sequence: CircleKey[] = [];
-    console.log(`op_func ${op_func} || op_sound ${op_sound}`);
     for (let i = 0; i < 4; i++) {
+      connectedDevice[i]?.setThreshold(threshold);
       connectedDevice[i]?.changeMode(0, 0, 0, 0);
     }
     if (mode === 1) {
@@ -308,11 +300,7 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   const checkHit = async (id: number) => {
     // console.log("checkHit", id);
     await connectedDevice[id]?.waitForVibration();
-    console.log(op_sound);
-    await Promise.all([
-      op_sound.hit ? connectedDevice[id]?.beep() : null,
-      op_sound.mobile ? sound.replayAsync() : null,
-    ]);
+    await Promise.all([connectedDevice[id]?.beep(), sound.replayAsync()]);
 
     // console.log("hit detected", id);
     handleHitDetected();
@@ -355,19 +343,19 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   };
 
   if (showResultScreen) {
-  const totalTime = interactionTimes.reduce(
-    (acc, interaction) => acc + interaction.time,
-    0
-  );
+    const totalTime = interactionTimes.reduce(
+      (acc, interaction) => acc + interaction.time,
+      0
+    );
 
-  return (
-    <ResultScreen
-      interactionTimes={interactionTimes}
-      totalTime={totalTime}
-      onClose={() => setShowResultScreen(false)}
-    />
-  );
-}
+    return (
+      <ResultScreen
+        interactionTimes={interactionTimes}
+        totalTime={totalTime}
+        onClose={() => setShowResultScreen(false)}
+      />
+    );
+  }
 
   return (
     <View style={styles.containerField}>

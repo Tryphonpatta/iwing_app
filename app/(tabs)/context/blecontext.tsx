@@ -30,6 +30,8 @@ export class ConnectedDevice {
   private activityTimeout: NodeJS.Timeout | null = null; // Timer for inactivity
   private isMonitoringActivity: boolean = false;
   version: number = 0;
+  battery: number = 0;
+  isCharging: boolean = false;
   // private timer: number;
 
   constructor(device: Device) {
@@ -111,6 +113,28 @@ export class ConnectedDevice {
         // }
         this.vibration = newState;
         this.vibrationListener.forEach((listener) => listener(newState));
+      }
+    );
+  }
+
+  async monitorBattery(): Promise<void> {
+    this.device.monitorCharacteristicForService(
+      CHARACTERISTIC.IWING_TRAINERPAD,
+      CHARACTERISTIC.BATT_VOLTAGE,
+      async (error, characteristic) => {
+        if (error) {
+          console.log("Error monitoring characteristic", error);
+          return;
+        }
+        if (!characteristic?.value) {
+          console.log("No data received");
+          return;
+        }
+        console.log("Battery: ", base64toDec(characteristic.value as string));
+        this.battery =
+          ((base64toDec(characteristic.value as string) - 3290) /
+            (4200 - 3290)) *
+          100;
       }
     );
   }
