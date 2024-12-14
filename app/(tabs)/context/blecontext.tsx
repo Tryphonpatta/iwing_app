@@ -9,7 +9,7 @@ import {
 } from "react-native-ble-plx";
 import * as ExpoDevice from "expo-device";
 import { CHARACTERISTIC } from "@/enum/characteristic";
-import { base64toDec, hexToBase64 } from "@/util/encode";
+import { base64toDec, decToBase64, hexToBase64 } from "@/util/encode";
 
 // type Module = {
 //   batteryVoltage: number;
@@ -181,6 +181,13 @@ export class ConnectedDevice {
     const battery = await this.readCharacteristic(CHARACTERISTIC.BATT_VOLTAGE);
     if (!battery) return;
     console.log("Battery: ", battery);
+  }
+
+  async setThreshold(threshold: number) {
+    await this.writeCharacteristic(
+      CHARACTERISTIC.VIB_THRES,
+      decToBase64(threshold)
+    );
   }
 }
 
