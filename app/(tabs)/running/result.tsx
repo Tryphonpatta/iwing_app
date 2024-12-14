@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
 import * as FileSystem from "expo-file-system";
-import RunScreen from "../run";
+import PatternScreen from "./pattern";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
@@ -23,6 +24,7 @@ type Interaction = {
 type ResultScreenProps = {
   interactionTimes?: Interaction[];
   totalTime?: number;
+  onClose: () => void;
 };
 
 const ResultScreen = ({
@@ -31,13 +33,9 @@ const ResultScreen = ({
 }: ResultScreenProps) => {
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [filters, setFilters] = useState({
-    all: true,
-    even: false,
-    odd: false,
+    centerTo: true,
+    toCenter: true,
   });
-
-  // Log interactionTimes for debugging
-  console.log("Interaction Times:", interactionTimes);
 
   const totalHitTime = interactionTimes
     .filter((interaction) => interaction.description.startsWith("Center to"))
@@ -59,24 +57,25 @@ const ResultScreen = ({
     setShowRunScreen(true);
   };
 
-  const toggleFilter = (filter: string) => {
+  const toggleFilter = (filter: "centerTo" | "toCenter") => {
     setFilters((prevFilters) => {
-      const updatedFilters = {
-        all: filter === "all" ? !prevFilters.all : prevFilters.all,
-        even: filter === "even" ? !prevFilters.even : prevFilters.even,
-        odd: filter === "odd" ? !prevFilters.odd : prevFilters.odd,
-      };
-      if (!updatedFilters.all && !updatedFilters.even && !updatedFilters.odd) {
-        updatedFilters.all = true;
+      const updatedFilters = { ...prevFilters, [filter]: !prevFilters[filter] };
+      // Ensure at least one filter is selected
+      if (!updatedFilters.centerTo && !updatedFilters.toCenter) {
+        updatedFilters.centerTo = true;
+        updatedFilters.toCenter = true;
       }
       return updatedFilters;
     });
   };
 
-  const filteredInteractions = interactionTimes.filter((_, index) => {
-    if (filters.all) return true;
-    if (filters.even && index % 2 === 0) return true;
-    if (filters.odd && index % 2 !== 0) return true;
+  const filteredInteractions = interactionTimes.filter((interaction) => {
+    const isCenterTo = interaction.description.startsWith("Center to");
+    const isToCenter = interaction.description.endsWith("to Center");
+
+    if (filters.centerTo && isCenterTo) return true;
+    if (filters.toCenter && isToCenter) return true;
+
     return false;
   });
 
@@ -96,7 +95,7 @@ const ResultScreen = ({
         directoryUri = permissions.directoryUri;
       } else {
         // For iOS or other platforms, use the default Documents directory
-        directoryUri = FileSystem.documentDirectory;
+        directoryUri = FileSystem.documentDirectory!;
       }
 
       // Prepare CSV content
@@ -140,92 +139,118 @@ const ResultScreen = ({
   };
 
   if (showRunScreen) {
-    return <RunScreen />;
+    return <PatternScreen />;
   }
 
   return (
-    <View style={styles.containerResult}>
-      <Text style={styles.title}>Result</Text>
+    <>
+      <View style={styles.header}>
+        <Text style={styles.title}>Result</Text>
+      </View>
 
-      {/* Circular Progress Indicator */}
-      <Svg height={radius * 2} width={radius * 2} style={styles.svgContainer}>
-        <Circle
-          stroke="#e0e0e0"
-          fill="none"
-          cx={radius}
-          cy={radius}
-          r={normalizedRadius}
-          strokeWidth={strokeWidth}
-        />
-        <Circle
-          stroke="#2f855a"
-          fill="none"
-          cx={radius}
-          cy={radius}
-          r={normalizedRadius}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-        <SvgText
-          x={radius}
-          y={radius}
-          textAnchor="middle"
-          dy=".3em"
-          fontSize="16"
-          fill="#333"
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          width: "97%",
+          marginVertical: 10,
+        }}
+      >
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginRight: 10,
+          }}
+          onPress={saveToCSV}
         >
-          {`Hit ${(progress * 100).toFixed(2)}%`}
-        </SvgText>
-      </Svg>
+          <Ionicons
+            name="save-outline"
+            size={28}
+            color="#2f855a"
+          />
+          <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
+            Save
+          </Text>
+        </TouchableOpacity>
+        </View>
 
-      <ScrollView style={styles.scrollView}>
+      <View style={styles.containerResult}>
+        {/* Circular Progress Indicator */}
+        <Svg height={radius * 2} width={radius * 2} style={styles.svgContainer}>
+          <Circle
+            stroke="#e0e0e0"
+            fill="none"
+            cx={radius}
+            cy={radius}
+            r={normalizedRadius}
+            strokeWidth={strokeWidth}
+          />
+          <Circle
+            stroke="#2f855a"
+            fill="none"
+            cx={radius}
+            cy={radius}
+            r={normalizedRadius}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+          <SvgText
+            x={radius}
+            y={radius}
+            textAnchor="middle"
+            dy=".3em"
+            fontSize="16"
+            fill="#333"
+          >
+            {`Hit ${(progress * 100).toFixed(2)}%`}
+          </SvgText>
+        </Svg>
+
         <View style={[styles.row, styles.totalTimeContainer]}>
           <Text style={styles.label}>Total Time:</Text>
           <Text style={styles.value}>{totalTime.toFixed(2)} s</Text>
         </View>
 
         <View style={styles.filterContainer}>
-          <TouchableOpacity onPress={() => toggleFilter("all")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.all && styles.checkboxChecked]} />
-            <Text style={styles.checkboxLabel}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFilter("even")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.even && styles.checkboxChecked]} />
+          <TouchableOpacity onPress={() => toggleFilter("centerTo")} style={styles.checkboxContainer}>
+            <View style={[styles.checkboxSquare, filters.centerTo && styles.checkboxChecked]} />
             <Text style={styles.checkboxLabel}>CenterTo</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFilter("odd")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.odd && styles.checkboxChecked]} />
+          <TouchableOpacity onPress={() => toggleFilter("toCenter")} style={styles.checkboxContainer}>
+            <View style={[styles.checkboxSquare, filters.toCenter && styles.checkboxChecked]} />
             <Text style={styles.checkboxLabel}>ToCenter</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.resultContainer}>
-          {filteredInteractions.map((interaction, index) => (
-            <View
-              style={[
-                styles.row,
-                { backgroundColor: index % 2 === 0 ? "#ffffff" : "#f0f0f0", borderRadius: 10 },
-              ]}
-              key={index}
-            >
-              <Text style={styles.label}>{interaction.description}:</Text>
-              <Text style={styles.value}>{interaction.time.toFixed(2)} s</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.resultContainer}>
+            {filteredInteractions.map((interaction, index) => (
+              <View
+                style={[
+                  styles.row,
+                  { backgroundColor: index % 2 === 0 ? "transparent" : "#f0f0f0" },
+                ]}
+                key={index}
+              >
+                <Text style={styles.label}>{interaction.description}:</Text>
+                <Text style={styles.value}>{interaction.time.toFixed(2)} s</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
 
-      <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
-        <Text style={styles.doneButtonText}>Finish</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
+          <Text style={styles.doneButtonText}>Finish</Text>
+        </TouchableOpacity>
 
-      {/* Save to CSV Button */}
-      <TouchableOpacity style={styles.doneButton} onPress={saveToCSV}>
-        <Text style={styles.doneButtonText}>Save to CSV</Text>
-      </TouchableOpacity>
-    </View>
+        {/* <TouchableOpacity style={styles.doneButton} onPress={saveToCSV}>
+          <Text style={styles.doneButtonText}>Save to CSV</Text>
+        </TouchableOpacity> */}
+      </View>
+    </>
   );
 };
 
@@ -262,9 +287,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: "bold",
-    marginBottom: 20,
-    color: "#2f855a",
+    color: "white",
     textAlign: "center",
+    flex: 1,
   },
   svgContainer: {
     marginBottom: 20,
@@ -272,6 +297,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     width: "100%",
+    marginBottom: 10,
   },
   totalTimeContainer: {
     backgroundColor: "#44bd80",
@@ -281,12 +307,14 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
+    width: "70%",
     marginBottom: 10,
   },
   resultContainer: {
     backgroundColor: "#ffffff",
-    borderRadius: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     marginBottom: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -317,16 +345,29 @@ const styles = StyleSheet.create({
   doneButton: {
     backgroundColor: "#2f855a",
     paddingVertical: 15,
-    width: width * 0.6,
+    width: "100%",
     borderRadius: 30,
     alignItems: "center",
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   doneButtonText: {
     fontSize: 20,
     color: "#fff",
     fontWeight: "bold",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    backgroundColor: "#419E68",
+    marginTop: 30,
+    height: 60,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
   },
 });
 

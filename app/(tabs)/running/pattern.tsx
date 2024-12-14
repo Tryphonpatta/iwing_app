@@ -197,9 +197,9 @@ const PatternScreen = () => {
     <View style={styles.screen}>
       {/* Header with Back Icon */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setShowRunScreen(true)}>
+        {/* <TouchableOpacity onPress={() => setShowRunScreen(true)}>
           <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.title}>Pattern Mode</Text>
       </View>
 
@@ -230,7 +230,7 @@ const PatternScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={{ flexDirection: "row", alignItems: "center" }}
           onPress={() => setShowSetting(true)}
         >
@@ -238,7 +238,7 @@ const PatternScreen = () => {
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
             Settings
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.container}>
