@@ -20,55 +20,35 @@ const modes = [
   {
     id: 1,
     icon: "hand-right-outline",
-    description: "Hand-Right: การทดสอบผู้ถนัดด้านขวามือ.",
+    description: "ถนัดขวา: การทดสอบผู้ถนัดด้านขวามือ.",
   },
   {
     id: 2,
     icon: "hand-left-outline",
-    description: "Hand-Left: การทดสอบผู้ถนัดด้านซ้ายมือ.",
+    description: "ถนัดซ้าย: การทดสอบผู้ถนัดด้านซ้ายมือ.",
   },
-  { id: 3, icon: "dice", description: "Random: การทดสอบแบบสุ่มตำแหน่ง." },
+  { id: 3, icon: "dice", description: "สุ่ม: การทดสอบแบบสุ่มตำแหน่ง." },
 ];
 
 const itemWidth = width * 0.8; // Make each item 80% of the screen width
 const itemSpacing = width * 0.1;
-
-const functionsOptions = [
-  { id: "f1", label: "Center" },
-  // { id: 'f3', label: 'Function 3' },
-];
-
-const soundsOptions = [
-  { id: "s1", label: "Hit" },
-  { id: "s2", label: "Mobile Phone" },
-  // { id: 's3', label: 'Sound 3' },
-];
 
 const PatternScreen = () => {
   const [R1, setR1] = useState(0);
   const [R2, setR2] = useState(0);
   const [L1, setL1] = useState(0);
   const [L2, setL2] = useState(0);
+
   const [goField, setShowField] = useState(false);
   const [showRunScreen, setShowRunScreen] = useState(false);
+
   const [selectedMode, setSelectedMode] = useState(modes[0].id);
-  const [selectedFunction, setSelectedFunction] = useState(
-    functionsOptions[0].id
-  );
-  const [selectedSound, setSelectedSound] = useState(soundsOptions[0].id);
+
+  // --- NEW: threshold state ---
+  const [threshold, setThreshold] = useState(1);
+
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showSetting, setShowSetting] = useState(false);
-
-  const [activeSettingsTab, setActiveSettingsTab] = useState("functions"); // 'functions' or 'sounds'
-
-  // States for storing which checkboxes are selected
-  const [selectedFunctions, setSelectedFunctions] = useState(() =>
-    functionsOptions.reduce((acc, curr) => ({ ...acc, [curr.id]: false }), {})
-  );
-
-  const [selectedSounds, setSelectedSounds] = useState(() =>
-    soundsOptions.reduce((acc, curr) => ({ ...acc, [curr.id]: false }), {})
-  );
 
   useEffect(() => {
     setModeValues(selectedMode);
@@ -114,13 +94,7 @@ const PatternScreen = () => {
   }
 
   if (goField) {
-    const selectedFunctionIds = Object.keys(selectedFunctions).filter(
-      (id) => selectedFunctions[id]
-    );
-    const selectedSoundIds = Object.keys(selectedSounds).filter(
-      (id) => selectedSounds[id]
-    );
-
+    // Pass threshold along to Field if you need it there
     return (
       <Field
         R1={selectedMode === 3 ? R1 : undefined}
@@ -128,13 +102,6 @@ const PatternScreen = () => {
         L1={L1}
         L2={selectedMode === 3 ? L2 : undefined}
         mode={selectedMode}
-        op_func={{
-          center: selectedFunctionIds.includes("f1"),
-        }}
-        op_sound={{
-          hit: selectedSoundIds.includes("s1"),
-          mobile: selectedSoundIds.includes("s2"),
-        }}
       />
     );
   }
@@ -168,38 +135,10 @@ const PatternScreen = () => {
     </TouchableOpacity>
   );
 
-  const toggleFunctionSelection = (id: any) => {
-    setSelectedFunctions((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const toggleSoundSelection = (id) => {
-    setSelectedSounds((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const renderCheckboxList = (options, selectedState, toggleFn) => {
-    return options.map((option) => (
-      <TouchableOpacity
-        key={option.id}
-        style={styles.checkboxContainer}
-        onPress={() => toggleFn(option.id)}
-      >
-        <Ionicons
-          name={selectedState[option.id] ? "checkbox" : "square-outline"}
-          size={24}
-          color="#2f855a"
-        />
-        <Text style={styles.checkboxLabel}>{option.label}</Text>
-      </TouchableOpacity>
-    ));
-  };
-
   return (
     <View style={styles.screen}>
-      {/* Header with Back Icon */}
+      {/* Header */}
       <View style={styles.header}>
-        {/* <TouchableOpacity onPress={() => setShowRunScreen(true)}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity> */}
         <Text style={styles.title}>Pattern Mode</Text>
       </View>
 
@@ -220,29 +159,25 @@ const PatternScreen = () => {
           }}
           onPress={() => setShowInfoModal(true)}
         >
-          <Ionicons
-            name="information-circle-outline"
-            size={28}
-            color="#2f855a"
-          />
+          <Ionicons name="information-circle-outline" size={28} color="#2f855a" />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
-            Info
+            ข้อมูล
           </Text>
         </TouchableOpacity>
 
-        {/* <TouchableOpacity
+        <TouchableOpacity
           style={{ flexDirection: "row", alignItems: "center" }}
           onPress={() => setShowSetting(true)}
         >
-          <Ionicons name="settings-outline" size={28} color="#2f855a" />
+          <Ionicons name="flash" size={28} color="#2f855a" />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
-            Settings
+            ความแรง
           </Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.selectText}>SELECT</Text>
+        <Text style={styles.selectText}>เลือกโหมด</Text>
         <View style={styles.modeSelector}>
           <FlatList
             data={modes}
@@ -259,8 +194,8 @@ const PatternScreen = () => {
           />
         </View>
 
+        {/* Spinners for R/L counts */}
         <View style={styles.spinnerGridContainer}>
-          {/* Conditionally render inputs based on selected mode */}
           {(selectedMode === 1 || selectedMode === 2) && (
             <View style={styles.spinnerGridRow}>
               <View style={styles.spinnerGridItem}>
@@ -274,7 +209,7 @@ const PatternScreen = () => {
                   skin="clean"
                   color="#2f855a"
                 />
-                <Text style={styles.spinnerGridLabel}>Round</Text>
+                <Text style={styles.spinnerGridLabel}>รอบ</Text>
               </View>
             </View>
           )}
@@ -343,7 +278,7 @@ const PatternScreen = () => {
 
         {/* Start Button */}
         <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-          <Text style={styles.startButtonText}>Start</Text>
+          <Text style={styles.startButtonText}>เริ่มเกม</Text>
         </TouchableOpacity>
 
         {/* Info Modal */}
@@ -383,67 +318,20 @@ const PatternScreen = () => {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Settings</Text>
+              <Text style={styles.modalTitle}>Set Thresholds</Text>
 
-              {/* Tabs for Settings */}
-              <View style={styles.tabContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
-                    activeSettingsTab === "functions" && styles.activeTabButton,
-                  ]}
-                  onPress={() => setActiveSettingsTab("functions")}
-                >
-                  <Text
-                    style={[
-                      styles.tabButtonText,
-                      activeSettingsTab === "functions" &&
-                        styles.activeTabButtonText,
-                    ]}
-                  >
-                    Functions
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
-                    activeSettingsTab === "sounds" && styles.activeTabButton,
-                  ]}
-                  onPress={() => setActiveSettingsTab("sounds")}
-                >
-                  <Text
-                    style={[
-                      styles.tabButtonText,
-                      activeSettingsTab === "sounds" &&
-                        styles.activeTabButtonText,
-                    ]}
-                  >
-                    Sounds
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Displaying checkbox lists based on active tab */}
-              {activeSettingsTab === "functions" && (
-                <View style={{ marginTop: 20 }}>
-                  {renderCheckboxList(
-                    functionsOptions,
-                    selectedFunctions,
-                    toggleFunctionSelection
-                  )}
-                </View>
-              )}
-
-              {activeSettingsTab === "sounds" && (
-                <View style={{ marginTop: 20 }}>
-                  {renderCheckboxList(
-                    soundsOptions,
-                    selectedSounds,
-                    toggleSoundSelection
-                  )}
-                </View>
-              )}
+              {/* Only one input for threshold now */}
+              <Text style={styles.modalText}>Threshold</Text>
+              <InputSpinner
+                max={100}
+                min={0}
+                step={5}
+                value={threshold}
+                onChange={(num) => setThreshold(num)}
+                style={[{justifyContent: "center"}]}
+                skin="clean"
+                color="#2f855a"
+              />
 
               <TouchableOpacity
                 style={styles.closeButton}
@@ -478,7 +366,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: "white",
     textAlign: "center",
@@ -600,37 +488,6 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#fff",
     textAlign: "center",
-  },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-  },
-  tabButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  activeTabButton: {
-    borderBottomWidth: 2,
-    borderColor: "#2f855a",
-  },
-  tabButtonText: {
-    fontSize: 16,
-    color: "#777",
-  },
-  activeTabButtonText: {
-    color: "#2f855a",
-    fontWeight: "bold",
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  checkboxLabel: {
-    marginLeft: 10,
-    fontSize: 16,
   },
 });
 

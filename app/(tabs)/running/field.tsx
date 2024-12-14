@@ -355,15 +355,19 @@ const Field = ({ R1, R2, L1, L2, mode, op_func, op_sound }: FieldProps) => {
   };
 
   if (showResultScreen) {
-    const totalTime = interactionTimes.reduce(
-      (acc, interaction) => acc + interaction.time,
-      0
-    );
-    // setShowResultScreen(false);
-    return (
-      <ResultScreen interactionTimes={interactionTimes} totalTime={totalTime} />
-    );
-  }
+  const totalTime = interactionTimes.reduce(
+    (acc, interaction) => acc + interaction.time,
+    0
+  );
+
+  return (
+    <ResultScreen
+      interactionTimes={interactionTimes}
+      totalTime={totalTime}
+      onClose={() => setShowResultScreen(false)}
+    />
+  );
+}
 
   return (
     <View style={styles.containerField}>

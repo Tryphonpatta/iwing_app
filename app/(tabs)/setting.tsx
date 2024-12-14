@@ -15,6 +15,7 @@ import { Device } from "react-native-ble-plx";
 import tw from "twrnc";
 import { base64toDecManu } from "@/util/encode";
 import { useBleManager } from "./context/blecontext";
+import { Ionicons } from "@expo/vector-icons";
 
 const BLE = () => {
   const {
@@ -164,12 +165,61 @@ const BLE = () => {
     console.log("state", connectedDevice);
   }, [connectedDevice]);
 
+  const statusBattery = async (device : any) => {
+    let rawBattery = await device?.readBattery();
+  
+    if (rawBattery === "CHARGING") {
+      // Return a React element (icon) along with any text or color props
+      return {
+        icon: <Ionicons name="battery-charging" size={16} color="#FFD700" />,
+        text: "Charging",
+        color: "#FFD700", // Yellow
+      };
+    }
+  
+    const batteryVal = parseFloat(String(rawBattery));
+    if (batteryVal < 20) {
+      return { 
+        icon: <Ionicons name="battery-dead" size={16} color="#FF0000" />, 
+        text: `${batteryVal.toFixed(2)}%`, 
+        color: "#FF0000" 
+      }; // Red
+    }
+  
+    return { 
+      icon: <Ionicons name="battery-full" size={16} color="#4CAF50" />, 
+      text: `${batteryVal.toFixed(2)}%`, 
+      color: "#4CAF50" 
+    }; // Green
+  };
+
   // DeviceItem component
   const DeviceItem: React.FC<{ device: Device }> = ({ device }) => {
     const isConnect = connectedDevice.find((m) => m?.device.id === device.id);
     const isConnectingOrDisconnecting = connectingDevicesRef.current.has(
       device.id
     );
+
+    // Track our computed battery status
+    const [batteryInfo, setBatteryInfo] = useState<{
+      icon: JSX.Element;
+      text: string;
+      color: string;
+    }>();
+
+    useEffect(() => {
+      let mounted = true;
+      // If device is connected, or however your logic says "we want battery info now"
+      statusBattery(device).then((info) => {
+        if (mounted && info) {
+          setBatteryInfo(info);
+        }
+      });
+  
+      return () => {
+        mounted = false;
+      };
+    }, [device]);
 
     return (
       <View
@@ -208,15 +258,8 @@ const BLE = () => {
               : "Disconnected"}
           </Text>
 
-          <Text style={[tw`text-sm`, styles.defaultBatteryText]}>
-            Battery Voltage:{" "}
-            {/* {device?.manufacturerData
-							? base64toDecManu(device?.manufacturerData)
-							: "N/A"} */}
-            {(
-              (base64toDecManu(device?.manufacturerData as string) / 30000) *
-              100
-            ).toFixed(2) + " %"}
+          <Text style={[tw`text-sm`, { color: batteryInfo?.color ?? "#4CAF50" }]}>
+            Battery Voltage: {batteryInfo?.icon} {batteryInfo?.text ?? "N/A"}
           </Text>
         </View>
 
