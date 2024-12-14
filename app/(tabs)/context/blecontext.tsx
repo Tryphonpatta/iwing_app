@@ -310,6 +310,7 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
         tempDevices[index]?.monitorVibration(),
         tempDevices[index]?.readVersion(),
         tempDevices[index]?.readBattery(),
+        tempDevices[index]?.monitorBattery(),
         tempDevices[index]?.changeRest(),
       ]);
       // await tempDevices[index]?.monitorVibration();
