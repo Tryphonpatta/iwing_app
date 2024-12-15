@@ -301,32 +301,32 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     return array;
   };
 
-  useEffect(() => {
-    if (circleSequence.length === 0) return;
-    console.log("change");
-    if (!gameState.centerActive && currentIndex < circleSequence.length) {
-      const nextCircle = circleSequence[currentIndex];
+  // useEffect(() => {
+  //   if (circleSequence.length === 0) return;
+  //   console.log("change");
+  //   if (!gameState.centerActive && currentIndex < circleSequence.length) {
+  //     const nextCircle = circleSequence[currentIndex];
 
-      if (currentIndex === 0 && lastTimestamp === null) {
-        setLastTimestamp(Date.now());
-      }
+  //     if (currentIndex === 0 && lastTimestamp === null) {
+  //       setLastTimestamp(Date.now());
+  //     }
 
-      setCircleColors((prevColors) => ({
-        ...prevColors,
-        R1: "red",
-        R2: "red",
-        L1: "red",
-        L2: "red",
-        [nextCircle]: "green",
-      }));
-      setGameState((prevState) => ({
-        ...prevState,
-        currentGreen: nextCircle,
-      }));
-    } else if (currentIndex >= circleSequence.length) {
-      handleStopAndShowResult();
-    }
-  }, [gameState.centerActive, currentIndex, circleSequence]);
+  //     setCircleColors((prevColors) => ({
+  //       ...prevColors,
+  //       R1: "red",
+  //       R2: "red",
+  //       L1: "red",
+  //       L2: "red",
+  //       [nextCircle]: "green",
+  //     }));
+  //     setGameState((prevState) => ({
+  //       ...prevState,
+  //       currentGreen: nextCircle,
+  //     }));
+  //   } else if (currentIndex >= circleSequence.length) {
+  //     handleStopAndShowResult();
+  //   }
+  // }, [gameState.centerActive, currentIndex, circleSequence]);
 
   const handleCenterPress = () => {
     if (gameState.centerActive) {
