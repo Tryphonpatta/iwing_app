@@ -250,6 +250,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
             };
           });
           isStillMiss = false;
+          await Promise.all([connectedDevice[4]?.beep(), sound.replayAsync()]);
         } else {
           isStillMiss = true;
           index++;
