@@ -83,69 +83,69 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   }, []);
   useEffect(() => {
     centerActiveRef.current = gameState.centerActive;
-    if (gameState.centerActive && !isCenterStillCall.current) {
-      isCenterStillCall.current = true;
-      isCenter();
-      isCenterStillCall.current = false;
-    }
+    // if (gameState.centerActive && !isCenterStillCall.current) {
+    //   isCenterStillCall.current = true;
+    //   isCenter();
+    //   isCenterStillCall.current = false;
+    // }
   }, [gameState.centerActive]);
 
-  const isCenter = async () => {
-    try {
-      // Create an array of promises, each representing the vibration detection for each device
-      // console.log("connectedDevice", connectedDevice);
+  // const isCenter = async () => {
+  //   try {
+  //     // Create an array of promises, each representing the vibration detection for each device
+  //     // console.log("connectedDevice", connectedDevice);
 
-      console.log("wait center");
-      // Use Promise.race() to wait for the first device to resolve
-      const dictCircle = new Map();
-      dictCircle.set("R1", 1);
-      dictCircle.set("R2", 3);
-      dictCircle.set("L1", 0);
-      dictCircle.set("L2", 2);
-      const nextId =
-        currentIndex + 1 >= circleSequence.length
-          ? -1
-          : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
-      console.log("nextId", nextId);
-      if (nextId !== -1) {
-        let isCancelled = false;
-        const vibrationPromises = [
-          connectedDevice[nextId]?.waitForVibration().then(() => {
-            if (!isCancelled) {
-              isCancelled = true; // Cancel further handling of other promises
-              return nextId;
-            }
-          }),
-          connectedDevice[4]?.waitForVibration().then(() => {
-            if (!isCancelled) {
-              isCancelled = true; // Cancel further handling of other promises
-              return 4;
-            }
-          }),
-        ];
-        const firstResolveIndex = await Promise.race(vibrationPromises);
-        console.log("firstResolve", firstResolveIndex);
-        if (firstResolveIndex === 4) {
-          handleReturnToCenter();
-        } else {
-          console.log("missmissmissmissmissmissmissmiss");
-          await Promise.all([
-            connectedDevice[firstResolveIndex as number]?.beep(),
-            soundMiss.replayAsync(),
-          ]);
-          setCurrentIndex((prevIndex) => prevIndex + 1);
-          handleReturnToCenter(true);
-        }
-      } else {
-        await connectedDevice[4]?.waitForVibration();
-        isStillMiss.current = false;
-        handleReturnToCenter();
-      }
-      console.log("nextId", nextId);
-    } catch (error) {
-      console.error("Failed to read characteristic:", error);
-    }
-  };
+  //     console.log("wait center");
+  //     // Use Promise.race() to wait for the first device to resolve
+  //     const dictCircle = new Map();
+  //     dictCircle.set("R1", 1);
+  //     dictCircle.set("R2", 3);
+  //     dictCircle.set("L1", 0);
+  //     dictCircle.set("L2", 2);
+  //     const nextId =
+  //       currentIndex + 1 >= circleSequence.length
+  //         ? -1
+  //         : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
+  //     console.log("nextId", nextId);
+  //     if (nextId !== -1) {
+  //       let isCancelled = false;
+  //       const vibrationPromises = [
+  //         connectedDevice[nextId]?.waitForVibration().then(() => {
+  //           if (!isCancelled) {
+  //             isCancelled = true; // Cancel further handling of other promises
+  //             return nextId;
+  //           }
+  //         }),
+  //         connectedDevice[4]?.waitForVibration().then(() => {
+  //           if (!isCancelled) {
+  //             isCancelled = true; // Cancel further handling of other promises
+  //             return 4;
+  //           }
+  //         }),
+  //       ];
+  //       const firstResolveIndex = await Promise.race(vibrationPromises);
+  //       console.log("firstResolve", firstResolveIndex);
+  //       if (firstResolveIndex === 4) {
+  //         handleReturnToCenter();
+  //       } else {
+  //         console.log("missmissmissmissmissmissmissmiss");
+  //         await Promise.all([
+  //           connectedDevice[firstResolveIndex as number]?.beep(),
+  //           soundMiss.replayAsync(),
+  //         ]);
+  //         setCurrentIndex((prevIndex) => prevIndex + 1);
+  //         handleReturnToCenter(true);
+  //       }
+  //     } else {
+  //       await connectedDevice[4]?.waitForVibration();
+  //       isStillMiss.current = false;
+  //       handleReturnToCenter();
+  //     }
+  //     console.log("nextId", nextId);
+  //   } catch (error) {
+  //     console.error("Failed to read characteristic:", error);
+  //   }
+  // };
 
   // Parse counts
   const R1Count = R1 || 0;
@@ -157,14 +157,14 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
 
   useEffect(() => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
-    let sequence: CircleKey[] = [];
+    let sequence: number[] = [];
     for (let i = 0; i < 4; i++) {
       connectedDevice[i]?.setThreshold(threshold);
       connectedDevice[i]?.changeMode(0, 0, 0, 0);
     }
     if (mode === 1) {
       // Mode ขวา: R1 R2 L2 L1
-      const sequenceTemp: CircleKey[] = ["R1", "R2", "L2", "L1"];
+      const sequenceTemp: number[] = [1, 3, 2, 0];
       for (let i = 0; i < L1Count; i++) {
         for (let j = 0; j < sequenceTemp.length; j++) {
           sequence.push(sequenceTemp[j]);
@@ -172,7 +172,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
       }
     } else if (mode === 2) {
       // Mode ซ้าย: L1 L2 R2 R1
-      const sequenceTemp: CircleKey[] = ["L1", "L2", "R2", "R1"];
+      const sequenceTemp: number[] = [0, 2, 3, 1];
       for (let i = 0; i < L1Count; i++) {
         for (let j = 0; j < sequenceTemp.length; j++) {
           sequence.push(sequenceTemp[j]);
@@ -180,18 +180,119 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
       }
     } else {
       // Default random sequence based on counts for other modes
-      for (let i = 0; i < L1Count; i++) sequence.push("L1");
-      for (let i = 0; i < L2Count; i++) sequence.push("L2");
-      for (let i = 0; i < R1Count; i++) sequence.push("R1");
-      for (let i = 0; i < R2Count; i++) sequence.push("R2");
+      for (let i = 0; i < L1Count; i++) sequence.push(0);
+      for (let i = 0; i < L2Count; i++) sequence.push(3);
+      for (let i = 0; i < R1Count; i++) sequence.push(1);
+      for (let i = 0; i < R2Count; i++) sequence.push(3);
 
       sequence = shuffleArray(sequence);
     }
     console.log(sequence);
-    setCircleSequence(sequence);
-  }, [mode, L1Count, L2Count, R1Count, R2Count]);
+    play(sequence);
+  }, []);
 
-  const shuffleArray = (array: CircleKey[]) => {
+  const play = async (sequence: number[]) => {
+    let lastTimestamp = Date.now();
+    let isStillMiss = false;
+    let index = 1;
+    let pos =
+      sequence[0] == 0
+        ? "L1"
+        : sequence[0] == 1
+        ? "R1"
+        : sequence[0] == 2
+        ? "L2"
+        : "R2";
+    setCircleColors((prevColors) => {
+      return {
+        ...prevColors,
+        [pos]: "green",
+      };
+    });
+    await connectedDevice[sequence[0]]?.waitForVibration();
+    await Promise.all([connectedDevice[0]?.beep(), sound.replayAsync()]);
+    setCircleColors((prevColors) => {
+      return {
+        ...prevColors,
+        [pos]: "red",
+        Center: "yellow",
+      };
+    });
+    while (index < sequence.length) {
+      if (index < sequence.length - 1) {
+        const nextId = sequence[index + 1];
+        const vibrationPromises = [
+          connectedDevice[nextId]?.waitForVibration().then(() => {
+            return nextId;
+          }),
+          connectedDevice[4]?.waitForVibration().then(() => {
+            return 4;
+          }),
+        ];
+        const firstResolveIndex = await Promise.race(vibrationPromises);
+        const currentTime = Date.now();
+        const timeDiff = (currentTime - lastTimestamp) / 1000;
+        if (firstResolveIndex === 4) {
+          pos =
+            nextId == 0 ? "L1" : nextId == 1 ? "R1" : nextId == 2 ? "L2" : "R2";
+          setInteractionTimes((prevTimes) => [
+            ...prevTimes,
+            {
+              description: `${pos} to Center`,
+              time: timeDiff,
+            },
+          ]);
+          setCircleColors((prevColors) => {
+            return {
+              ...prevColors,
+              [pos]: "green",
+              Center: "blue",
+            };
+          });
+          isStillMiss = false;
+        } else {
+          isStillMiss = true;
+          index++;
+          setCircleColors((prevColors) => {
+            return {
+              L1: "red",
+              R1: "red",
+              L2: "red",
+              R2: "red",
+              Center: "yellow",
+            };
+          });
+          setInteractionTimes((prevTimes) => [
+            ...prevTimes,
+            {
+              description: `Miss ${pos} to Center and Hit ${
+                nextId == 0
+                  ? "L1"
+                  : nextId == 1
+                  ? "R1"
+                  : nextId == 2
+                  ? "L2"
+                  : "R2"
+              }`,
+              time: timeDiff,
+            },
+          ]);
+          await Promise.all([
+            connectedDevice[firstResolveIndex as number]?.beep(),
+            soundMiss.replayAsync(),
+          ]);
+        }
+      } else {
+        await connectedDevice[4]?.waitForVibration();
+        isStillMiss = false;
+      }
+      lastTimestamp = Date.now();
+      index++;
+    }
+    handleStopAndShowResult();
+  };
+
+  const shuffleArray = (array: number[]) => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -341,11 +442,11 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   };
 
   const handleStopAndShowResult = () => {
-    stopActiveRef.current = true; // Stop all async loops
-    setGameState((prevState) => ({
-      ...prevState,
-      centerActive: false, // Ensure centerActive is reset
-    }));
+    // stopActiveRef.current = true; // Stop all async loops
+    // setGameState((prevState) => ({
+    //   ...prevState,
+    //   centerActive: false, // Ensure centerActive is reset
+    // }));
     setShowResultScreen(true);
   };
 
