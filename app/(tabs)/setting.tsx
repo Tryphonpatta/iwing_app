@@ -230,7 +230,7 @@ const BLE = () => {
           style={tw`w-20 h-20`}
         />
 
-        <View style={tw`ml-4`}>
+        <View style={[tw`ml-4`, { flexWrap: "wrap", width: "90%" }]}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
             Device ID: {connectDevice.device.id ?? "N/A"}
           </Text>

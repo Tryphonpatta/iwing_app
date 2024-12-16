@@ -47,6 +47,11 @@ const PatternScreen = () => {
   // --- NEW: threshold state ---
   const [threshold, setThreshold] = useState(1);
 
+  const [threL1, setThresholdL1] = useState(1);
+  const [threR1, setThresholdR1] = useState(1);
+  const [threL2, setThresholdL2] = useState(1);
+  const [threR2, setThresholdR2] = useState(1);
+
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showSetting, setShowSetting] = useState(false);
 
@@ -102,7 +107,10 @@ const PatternScreen = () => {
         L1={L1}
         L2={selectedMode === 3 ? L2 : undefined}
         mode={selectedMode}
-        threshold={threshold}
+        threL1={threL1}
+        threL2={threL2}
+        threR1={threR1}
+        threR2={threR2}
       />
     );
   }
@@ -322,26 +330,70 @@ const PatternScreen = () => {
           onRequestClose={() => setShowSetting(false)}
         >
           <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Set Thresholds</Text>
+            <View style={[styles.modalContent, { backgroundColor: "#fafdfa" }]}>
+              <Text style={styles.modalTitle}>ตั้งค่าความแรง</Text>
 
-              {/* Only one input for threshold now */}
-              <Text style={styles.modalText}>Threshold</Text>
-              <InputSpinner
-                max={100}
-                min={0}
-                step={5}
-                value={threshold}
-                onChange={(num) => setThreshold(num)}
-                style={[{ justifyContent: "center" }]}
-                skin="clean"
-                color="#2f855a"
-              />
+              <View style={styles.spinnerGridRow}>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={threL1}
+                    onChange={(num) => setThresholdL1(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>L1</Text>
+                </View>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={threR1}
+                    onChange={(num) => setThresholdR1(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>R1</Text>
+                </View>
+              </View>
+              <View style={styles.spinnerGridRow}>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={threL2}
+                    onChange={(num) => setThresholdL2(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>L2</Text>
+                </View>
+                <View style={styles.spinnerGridItem}>
+                  <InputSpinner
+                    max={100}
+                    min={0}
+                    step={1}
+                    value={threR2}
+                    onChange={(num) => setThresholdR2(num)}
+                    style={styles.spinner}
+                    skin="clean"
+                    color="#2f855a"
+                  />
+                  <Text style={styles.spinnerGridLabel}>R2</Text>
+                </View>
+              </View>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowSetting(false)}
               >
-                <Text style={styles.closeButtonText}>Close</Text>
+                <Text style={styles.closeButtonText}>ยืนยัน</Text>
               </TouchableOpacity>
             </View>
           </View>

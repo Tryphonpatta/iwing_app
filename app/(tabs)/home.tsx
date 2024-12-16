@@ -214,7 +214,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Device 1</Text>
+              <Text style={styles.buttonText}>L 1</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -233,7 +233,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Device 2</Text>
+              <Text style={styles.buttonText}>R 1</Text>
             </TouchableOpacity>
           </View>
           <View
@@ -267,7 +267,7 @@ export default function Home() {
                   }
                 }}
               >
-                <Text style={styles.buttonText}>Device Center</Text>
+                <Text style={styles.buttonText}>Center</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -289,7 +289,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Device 3</Text>
+              <Text style={styles.buttonText}>L 2</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
@@ -308,7 +308,7 @@ export default function Home() {
                 }
               }}
             >
-              <Text style={styles.buttonText}>Device 4</Text>
+              <Text style={styles.buttonText}>R 2</Text>
             </TouchableOpacity>
           </View>
         </View>
