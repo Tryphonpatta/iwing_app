@@ -24,18 +24,42 @@ type FieldProps = {
   L1: number | undefined;
   L2: number | undefined;
   mode: number;
-  threshold: number;
+  threL1: number;
+  threL2: number;
+  threR1: number;
+  threR2: number;
 };
 
 type Interaction = {
   description: string;
-  time: number; // in seconds
+  time: number;
 };
 const sound = new Audio.Sound();
 const soundMiss = new Audio.Sound();
 
-const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
-  const { connectedDevice } = useBleManager();
+const Field = ({
+  R1,
+  R2,
+  L1,
+  L2,
+  mode,
+  threL1,
+  threL2,
+  threR1,
+  threR2,
+}: FieldProps) => {
+  const {
+    connectToDevice,
+    allDevices,
+    connectedDevice,
+    requestPermissions,
+    scanForPeripherals,
+    startStreamingData,
+    writeCharacteristic,
+    swapConnectedDevice,
+    disconnectDevice,
+    monitorCharacteristic,
+  } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -68,8 +92,12 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     Miss.current = 0;
     let sequence: number[] = [];
+    connectedDevice[0]?.setThreshold(threL1); //L1
+    connectedDevice[1]?.setThreshold(threR1); //R1
+    connectedDevice[2]?.setThreshold(threL2); //L2
+    connectedDevice[3]?.setThreshold(threR2); //R2
     for (let i = 0; i < 4; i++) {
-      connectedDevice[i]?.setThreshold(threshold);
+      // connectedDevice[i]?.setThreshold(threshold);
       connectedDevice[i]?.changeMode(0, 0, 0, 0);
     }
     if (mode === 1) {
