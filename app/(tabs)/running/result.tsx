@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   ScrollView,
   Alert,
   Platform,
@@ -14,8 +13,6 @@ import * as FileSystem from "expo-file-system";
 import PatternScreen from "./pattern";
 import { Ionicons } from "@expo/vector-icons";
 
-const { width } = Dimensions.get("window");
-
 type Interaction = {
   description: string;
   time: number;
@@ -23,60 +20,66 @@ type Interaction = {
 
 type ResultScreenProps = {
   interactionTimes?: Interaction[];
-  totalTime?: number;
+  totalHit?: number;
   onClose: () => void;
   miss: number;
 };
 
 const ResultScreen = ({
   interactionTimes = [],
-  totalTime = 0,
+  totalHit = 0,
   miss,
 }: ResultScreenProps) => {
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [filters, setFilters] = useState({
-    centerTo: true,
+    HitTo: true,
     toCenter: true,
+    MissHit: true,
   });
 
-  const totalHitTime = interactionTimes
-    .filter((interaction) => interaction.description.startsWith("Center to"))
-    .reduce((acc, interaction) => acc + interaction.time, 0);
+  let totalTime = 0;
 
-  const totalBackCenterTime = interactionTimes
-    .filter((interaction) => interaction.description.endsWith("to Center"))
-    .reduce((acc, interaction) => acc + interaction.time, 0);
+  // const totalHitTime = interactionTimes
+  //   .filter((interaction) => interaction.description.startsWith("Hit to"))
+  //   .reduce((acc, interaction) => acc + interaction.time, 0);
 
-  const progress = totalTime > 0 ? Math.min(totalHitTime / totalTime, 1) : 0;
+    for(let i=0;i<interactionTimes.length;i++){
+      totalTime += interactionTimes[i].time
+    }
+
+  const progress = totalTime > 0 ? Math.min(1 - (miss / totalHit), 1) : 0;
 
   const radius = 60;
   const strokeWidth = 10;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - progress * circumference;
-  console.log("result", interactionTimes);
+  // console.log("result", interactionTimes);
   const handleDonePress = () => {
     setShowRunScreen(true);
   };
 
-  const toggleFilter = (filter: "centerTo" | "toCenter") => {
+  const toggleFilter = (filter: "HitTo" | "toCenter" | "MissHit") => {
     setFilters((prevFilters) => {
       const updatedFilters = { ...prevFilters, [filter]: !prevFilters[filter] };
       // Ensure at least one filter is selected
-      if (!updatedFilters.centerTo && !updatedFilters.toCenter) {
-        updatedFilters.centerTo = true;
+      if (!updatedFilters.HitTo && !updatedFilters.toCenter && !updatedFilters.MissHit) {
+        updatedFilters.HitTo = true;
         updatedFilters.toCenter = true;
+        updatedFilters.MissHit = true;
       }
       return updatedFilters;
     });
   };
 
   const filteredInteractions = interactionTimes.filter((interaction) => {
-    const isCenterTo = interaction.description.startsWith("");
-    const isToCenter = interaction.description.endsWith("");
+    const isHitTo = interaction.description.startsWith("Hit to");
+    const isToCenter = interaction.description.endsWith("To Center");
+    const isMissHit = interaction.description.startsWith("Miss");
 
-    if (filters.centerTo && isCenterTo) return true;
+    if (filters.HitTo && isHitTo) return true;
     if (filters.toCenter && isToCenter) return true;
+    if (filters.MissHit && isMissHit) return true;
 
     return false;
   });
@@ -181,7 +184,7 @@ const ResultScreen = ({
         >
           <Ionicons name="save-outline" size={28} color="#2f855a" />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
-            Save
+            บันทึก
           </Text>
         </TouchableOpacity>
       </View>
@@ -215,28 +218,44 @@ const ResultScreen = ({
             dy=".3em"
             fontSize="16"
             fill="#333"
+            fontWeight= "500"
           >
-            {`Hit ${(progress * 100).toFixed(2)}%`}
+            {`${(progress * 100).toFixed(2)}%`}
           </SvgText>
         </Svg>
 
-        <View style={[styles.row, styles.totalTimeContainer]}>
-          <Text style={styles.label}>Total Time:</Text>
-          <Text style={styles.value}>{totalTime.toFixed(2)} s</Text>
+        <View style={styles.container}>
+          <View style={styles.boxContainer}>
+            <View style={[styles.headerBox, {backgroundColor: "#419E68"}]}>
+              <Text style={[styles.titleText, { color: "#ffffff" }]}>เวลารวม</Text>
+            </View>
+            <View style={styles.contentBox}>
+              <Text style={styles.contentText}>{totalTime.toFixed(2)} วินาที</Text>
+            </View>
+          </View>
+
+          <View style={styles.boxContainer}>
+            <View style={[styles.headerBox, { backgroundColor: "#E74C3C" }]}>
+              <Text style={[styles.titleText, { color: "#ffffff" }]}>ครั้งที่พลาด</Text>
+            </View>
+            <View style={styles.contentBox}>
+              <Text style={styles.contentText}>{miss.toFixed(0)} ครั้ง</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.filterContainer}>
           <TouchableOpacity
-            onPress={() => toggleFilter("centerTo")}
+            onPress={() => toggleFilter("HitTo")}
             style={styles.checkboxContainer}
           >
             <View
               style={[
                 styles.checkboxSquare,
-                filters.centerTo && styles.checkboxChecked,
+                filters.HitTo && styles.checkboxChecked,
               ]}
             />
-            <Text style={styles.checkboxLabel}>CenterTo</Text>
+            <Text style={styles.checkboxLabel}>HitTo</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => toggleFilter("toCenter")}
@@ -249,6 +268,18 @@ const ResultScreen = ({
               ]}
             />
             <Text style={styles.checkboxLabel}>ToCenter</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => toggleFilter("MissHit")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.MissHit && styles.checkboxChecked,
+              ]}
+            />
+            <Text style={styles.checkboxLabel}>MissHit</Text>
           </TouchableOpacity>
         </View>
 
@@ -277,10 +308,6 @@ const ResultScreen = ({
         <TouchableOpacity style={styles.doneButton} onPress={handleDonePress}>
           <Text style={styles.doneButtonText}>Finish</Text>
         </TouchableOpacity>
-
-        {/* <TouchableOpacity style={styles.doneButton} onPress={saveToCSV}>
-          <Text style={styles.doneButtonText}>Save to CSV</Text>
-        </TouchableOpacity> */}
       </View>
     </>
   );
@@ -340,7 +367,7 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "70%",
+    width: "80%",
     marginBottom: 10,
   },
   resultContainer: {
@@ -373,6 +400,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     flex: 1,
     paddingRight: 15,
+    fontWeight: "600"
   },
   doneButton: {
     backgroundColor: "#2f855a",
@@ -386,6 +414,44 @@ const styles = StyleSheet.create({
   doneButtonText: {
     fontSize: 20,
     color: "#fff",
+    fontWeight: "bold",
+  },
+  container: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  boxContainer: {
+    flex: 1,
+    // borderWidth: 2,
+    // borderColor: "#000",
+    marginHorizontal: 2,
+  },
+  headerBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 5,
+    // backgroundColor: "#E74C3C"
+    // borderTopWidth: 2,
+    // borderLeftWidth: 2,
+    borderWidth: 2,
+  },
+  contentBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    backgroundColor: "#ffffff"
+  },
+  titleText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  contentText: {
+    fontSize: 18,
     fontWeight: "bold",
   },
   header: {

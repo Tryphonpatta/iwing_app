@@ -210,7 +210,7 @@ export default function Home() {
               onPress={() => {
                 if (connectedDevice[0] != null) {
                   setSelectedModule(1);
-                  toggleModal("Device 1 Content");
+                  toggleModal("Device 1");
                 }
               }}
             >
@@ -229,7 +229,7 @@ export default function Home() {
               onPress={() => {
                 if (connectedDevice[1] != null) {
                   setSelectedModule(2);
-                  toggleModal("Device 2 Content");
+                  toggleModal("Device 2");
                 }
               }}
             >
@@ -263,7 +263,7 @@ export default function Home() {
                 onPress={() => {
                   if (connectedDevice[4] != null) {
                     setSelectedModule(5);
-                    toggleModal("Device 5 Content");
+                    toggleModal("Device 5");
                   }
                 }}
               >
@@ -285,7 +285,7 @@ export default function Home() {
               onPress={() => {
                 if (connectedDevice[2] != null) {
                   setSelectedModule(3);
-                  toggleModal("Device 3 Content");
+                  toggleModal("Device 3");
                 }
               }}
             >
@@ -304,7 +304,7 @@ export default function Home() {
               onPress={() => {
                 if (connectedDevice[3] != null) {
                   setSelectedModule(4);
-                  toggleModal("Device 4 Content");
+                  toggleModal("Device 4");
                 }
               }}
             >
@@ -326,42 +326,34 @@ export default function Home() {
             <Ionicons name="checkmark-circle" size={50} color="green" />
             <Text style={styles.modalText}>{modalContent}</Text>
             <View style={styles.dividerLine} />
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: "blue" }]}
-              onPress={async () => {
-                if (
-                  selectedModule &&
-                  connectedDevice[selectedModule - 1] != null &&
-                  selectedModule - 1 === 4
-                ) {
-                  console.log("set Default");
-                  await connectedDevice[selectedModule - 1]?.changeMode(
-                    0,
-                    0,
-                    1,
-                    2
-                  );
-                } else if (selectedModule) {
-                  await connectedDevice[selectedModule - 1]?.changeMode(
-                    0,
-                    1,
-                    0,
-                    0
-                  );
-                }
-              }}
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  { color: "#fff", fontWeight: "bold" },
-                ]}
+            {selectedModule === 5 && (
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: "blue" }]}
+                onPress={async () => {
+                  if (
+                    selectedModule &&
+                    connectedDevice[selectedModule - 1] != null &&
+                    selectedModule - 1 === 4
+                  ) {
+                    console.log("set Default");
+                    await connectedDevice[selectedModule - 1]?.changeMode(0, 0, 1, 2);
+                  } else if (selectedModule) {
+                    await connectedDevice[selectedModule - 1]?.changeMode(0, 1, 0, 0);
+                  }
+                }}
               >
-                Set Default
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.buttonText,
+                    { color: "#fff", fontWeight: "bold" },
+                  ]}
+                >
+                  Set Default
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: "green" }]}
+              style={[styles.button, { backgroundColor: "red" }]}
               onPress={async () => {
                 if (
                   selectedModule &&
@@ -379,7 +371,7 @@ export default function Home() {
                   { color: "#fff", fontWeight: "bold" },
                 ]}
               >
-                disconnect
+                Disconnect
               </Text>
             </TouchableOpacity>
             <SelectList
@@ -407,7 +399,7 @@ export default function Home() {
               <TouchableOpacity
                 style={[
                   styles.button,
-                  { backgroundColor: "red", marginRight: 8 },
+                  { backgroundColor: "green", marginRight: 8 },
                 ]} // Adjust marginRight to add spacing between buttons
                 onPress={() => {
                   // console.log(module);

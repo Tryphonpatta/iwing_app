@@ -246,7 +246,7 @@ const BLE = () => {
           style={tw`w-20 h-20`}
         />
 
-        <View style={[tw`ml-4`, { flexWrap: "wrap", width: "90%" }]}>
+        <View style={[tw`ml-4 mr-20`]}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
             Device ID: {connectDevice.device.id ?? "N/A"}
           </Text>
@@ -385,7 +385,9 @@ const BLE = () => {
         <Text style={tw`text-lg font-bold text-black bg-white rounded-lg p-2`}>
           Disconnected Devices
         </Text>
+        
       </View>
+      
       <FlatList
         data={disconnectedDevice.map(({ device }) => device)}
         keyExtractor={(item) => item.id}

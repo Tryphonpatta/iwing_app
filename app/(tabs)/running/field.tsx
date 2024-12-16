@@ -132,7 +132,7 @@ const Field = ({
   const play = async (sequence: number[]) => {
     console.log("sequence", sequence);
     let lastTimestamp = Date.now();
-    let isStillMiss = false;
+
     let index = 0;
     let pos =
       sequence[0] == 0
@@ -162,7 +162,7 @@ const Field = ({
         let timeDiff = (Date.now() - lastTimestamp) / 1000;
         console.log("timeDiff", timeDiff);
         interactionTimes.current.push({
-          description: `Hit ${pos}`,
+          description: `Hit to ${pos}`,
           time: timeDiff,
         });
         await Promise.all([
@@ -308,7 +308,7 @@ const Field = ({
   ) : (
     <ResultScreen
       interactionTimes={interactionTimes.current}
-      totalTime={50}
+      totalHit={interactionTimes.current.length}
       miss={Miss.current}
       onClose={() => setShowResultScreen(false)}
     />
