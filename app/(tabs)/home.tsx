@@ -331,7 +331,8 @@ export default function Home() {
               onPress={async () => {
                 if (
                   selectedModule &&
-                  connectedDevice[selectedModule - 1] != null
+                  connectedDevice[selectedModule - 1] != null &&
+                  selectedModule - 1 === 4
                 ) {
                   console.log("set Default");
                   await connectedDevice[selectedModule - 1]?.changeMode(
@@ -339,6 +340,13 @@ export default function Home() {
                     0,
                     1,
                     2
+                  );
+                } else if (selectedModule) {
+                  await connectedDevice[selectedModule - 1]?.changeMode(
+                    0,
+                    1,
+                    0,
+                    0
                   );
                 }
               }}

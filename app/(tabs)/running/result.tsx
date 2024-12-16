@@ -25,11 +25,13 @@ type ResultScreenProps = {
   interactionTimes?: Interaction[];
   totalTime?: number;
   onClose: () => void;
+  miss: number;
 };
 
 const ResultScreen = ({
   interactionTimes = [],
   totalTime = 0,
+  miss,
 }: ResultScreenProps) => {
   const [showRunScreen, setShowRunScreen] = useState(false);
   const [filters, setFilters] = useState({
@@ -52,7 +54,7 @@ const ResultScreen = ({
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - progress * circumference;
-
+  console.log("result", interactionTimes);
   const handleDonePress = () => {
     setShowRunScreen(true);
   };
@@ -70,8 +72,8 @@ const ResultScreen = ({
   };
 
   const filteredInteractions = interactionTimes.filter((interaction) => {
-    const isCenterTo = interaction.description.startsWith("Center to");
-    const isToCenter = interaction.description.endsWith("to Center");
+    const isCenterTo = interaction.description.startsWith("");
+    const isToCenter = interaction.description.endsWith("");
 
     if (filters.centerTo && isCenterTo) return true;
     if (filters.toCenter && isToCenter) return true;
@@ -85,10 +87,14 @@ const ResultScreen = ({
 
       if (Platform.OS === "android") {
         // Request directory permissions using StorageAccessFramework
-        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
         if (!permissions.granted) {
-          Alert.alert("Permission Denied", "Cannot save file without directory permissions.");
+          Alert.alert(
+            "Permission Denied",
+            "Cannot save file without directory permissions."
+          );
           return;
         }
 
@@ -101,9 +107,14 @@ const ResultScreen = ({
       // Prepare CSV content
       const csvHeader = "Description,Time (s)\n";
       const csvRows = interactionTimes
-        .map((interaction) => `${interaction.description},${interaction.time.toFixed(2)}`)
+        .map(
+          (interaction) =>
+            `${interaction.description},${interaction.time.toFixed(2)}`
+        )
         .join("\n");
-      const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(2)}`;
+      const csvContent = `${csvHeader}${csvRows}\nTotal Time,${totalTime.toFixed(
+        2
+      )}`;
 
       // Define the file name
       const fileName = "interaction_times.csv";
@@ -119,9 +130,13 @@ const ResultScreen = ({
         );
 
         // Write the CSV content to the file
-        await FileSystem.StorageAccessFramework.writeAsStringAsync(fileUri, csvContent, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          csvContent,
+          {
+            encoding: FileSystem.EncodingType.UTF8,
+          }
+        );
       } else {
         // For iOS or other platforms, use the standard FileSystem.writeAsStringAsync
         fileUri = `${directoryUri}${fileName}`;
@@ -164,16 +179,12 @@ const ResultScreen = ({
           }}
           onPress={saveToCSV}
         >
-          <Ionicons
-            name="save-outline"
-            size={28}
-            color="#2f855a"
-          />
+          <Ionicons name="save-outline" size={28} color="#2f855a" />
           <Text style={{ fontSize: 16, color: "#2f855a", marginLeft: 5 }}>
             Save
           </Text>
         </TouchableOpacity>
-        </View>
+      </View>
 
       <View style={styles.containerResult}>
         {/* Circular Progress Indicator */}
@@ -215,12 +226,28 @@ const ResultScreen = ({
         </View>
 
         <View style={styles.filterContainer}>
-          <TouchableOpacity onPress={() => toggleFilter("centerTo")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.centerTo && styles.checkboxChecked]} />
+          <TouchableOpacity
+            onPress={() => toggleFilter("centerTo")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.centerTo && styles.checkboxChecked,
+              ]}
+            />
             <Text style={styles.checkboxLabel}>CenterTo</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFilter("toCenter")} style={styles.checkboxContainer}>
-            <View style={[styles.checkboxSquare, filters.toCenter && styles.checkboxChecked]} />
+          <TouchableOpacity
+            onPress={() => toggleFilter("toCenter")}
+            style={styles.checkboxContainer}
+          >
+            <View
+              style={[
+                styles.checkboxSquare,
+                filters.toCenter && styles.checkboxChecked,
+              ]}
+            />
             <Text style={styles.checkboxLabel}>ToCenter</Text>
           </TouchableOpacity>
         </View>
@@ -231,12 +258,17 @@ const ResultScreen = ({
               <View
                 style={[
                   styles.row,
-                  { backgroundColor: index % 2 === 0 ? "transparent" : "#f0f0f0" },
+                  {
+                    backgroundColor:
+                      index % 2 === 0 ? "transparent" : "#f0f0f0",
+                  },
                 ]}
                 key={index}
               >
                 <Text style={styles.label}>{interaction.description}:</Text>
-                <Text style={styles.value}>{interaction.time.toFixed(2)} s</Text>
+                <Text style={styles.value}>
+                  {interaction.time.toFixed(2)} s
+                </Text>
               </View>
             ))}
           </View>

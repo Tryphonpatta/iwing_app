@@ -62,7 +62,10 @@ const BLE = () => {
       .map((device) => ({ device, addedAt: now }));
 
     if (newDisconnectedDevice.length > 0) {
-      setDisconnectedDevice((prevDevices) => [...prevDevices, ...newDisconnectedDevice]);
+      setDisconnectedDevice((prevDevices) => [
+        ...prevDevices,
+        ...newDisconnectedDevice,
+      ]);
     }
   }, [allDevices, connectedDevice]);
 
@@ -100,7 +103,10 @@ const BLE = () => {
 
         // Mark as disconnected
         if (!disconnectedDevice.find((d) => d.device.id === device.id)) {
-          setDisconnectedDevice((prev) => [...prev, { device, addedAt: Date.now() }]);
+          setDisconnectedDevice((prev) => [
+            ...prev,
+            { device, addedAt: Date.now() },
+          ]);
         }
       } else {
         // Connect
@@ -117,7 +123,9 @@ const BLE = () => {
         setIsModalVisible(false);
 
         // Remove from disconnected list if present
-        setDisconnectedDevice((prev) => prev.filter((d) => d.device.id !== device.id));
+        setDisconnectedDevice((prev) =>
+          prev.filter((d) => d.device.id !== device.id)
+        );
       }
     } catch (error) {
       console.log("Failed to connect/disconnect:", device.id, error);
@@ -151,7 +159,9 @@ const BLE = () => {
   /**
    * A function to compute battery info for a ConnectedDevice.
    */
-  const statusBattery = async (connectDevice: ConnectedDevice): Promise<BatteryInfo | undefined> => {
+  const statusBattery = async (
+    connectDevice: ConnectedDevice
+  ): Promise<BatteryInfo | undefined> => {
     const rawBattery = connectDevice.battery;
 
     const isCharging = false;
@@ -165,18 +175,18 @@ const BLE = () => {
     }
 
     // if (typeof rawBattery === "number") {
-      if (rawBattery < 20) {
-        return {
-          icon: <Ionicons name="battery-dead" size={16} color="#FF0000" />,
-          text: `${rawBattery.toFixed(2)}%`,
-          color: "#FF0000",
-        };
-      }
+    if (rawBattery < 20) {
       return {
-        icon: <Ionicons name="battery-full" size={16} color="#4CAF50" />,
+        icon: <Ionicons name="battery-dead" size={16} color="#FF0000" />,
         text: `${rawBattery.toFixed(2)}%`,
-        color: "#4CAF50",
+        color: "#FF0000",
       };
+    }
+    return {
+      icon: <Ionicons name="battery-full" size={16} color="#4CAF50" />,
+      text: `${rawBattery.toFixed(2)}%`,
+      color: "#4CAF50",
+    };
     // }
 
     // If battery is undefined
@@ -203,9 +213,13 @@ const BLE = () => {
     connectingDevicesRef,
     connectedDevice,
   }) => {
-    const isConnect = connectedDevice.some((m) => m?.device.id === connectDevice.device.id);
-    console.log(connectDevice.battery)
-    const isConnectingOrDisconnecting = connectingDevicesRef.current.has(connectDevice.device.id);
+    const isConnect = connectedDevice.some(
+      (m) => m?.device.id === connectDevice.device.id
+    );
+    // console.log(connectDevice.battery)
+    const isConnectingOrDisconnecting = connectingDevicesRef.current.has(
+      connectDevice.device.id
+    );
 
     // useEffect(() => {
     //   let mounted = true;
@@ -224,7 +238,9 @@ const BLE = () => {
     // }, [isConnect, connectDevice]);
 
     return (
-      <View style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}>
+      <View
+        style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+      >
         <Image
           source={require("../../assets/images/device.png")}
           style={tw`w-20 h-20`}
@@ -256,23 +272,22 @@ const BLE = () => {
               : "Disconnected"}
           </Text>
 
-          <Text 
+          <Text
             style={[
-              tw`text-sm`, 
-              { 
-                color: connectDevice?.isCharging 
+              tw`text-sm`,
+              {
+                color: connectDevice?.isCharging
                   ? "#FFD700" // Yellow for charging
-                  : connectDevice?.battery < 20 
+                  : connectDevice?.battery < 20
                   ? "#FF0000" // Red for low battery
-                  : "#4CAF50" // Green for normal battery level
-              }
+                  : "#4CAF50", // Green for normal battery level
+              },
             ]}
           >
-            {connectDevice?.isCharging 
-              ? "Battery Charging" 
+            {connectDevice?.isCharging
+              ? "Battery Charging"
               : `Battery Voltage: ${connectDevice?.battery?.toFixed(2)}`}
           </Text>
-
         </View>
 
         <TouchableOpacity
@@ -305,7 +320,9 @@ const BLE = () => {
     const isConnecting = connectingDevicesRef.current.has(device.id);
 
     return (
-      <View style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}>
+      <View
+        style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+      >
         <Image
           source={require("../../assets/images/device.png")}
           style={tw`w-20 h-20`}
@@ -358,7 +375,9 @@ const BLE = () => {
             connectedDevice={connectedDevice}
           />
         )}
-        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>No connected devices</Text>}
+        ListEmptyComponent={
+          <Text style={tw`mx-4 my-2`}>No connected devices</Text>
+        }
       />
 
       {/* Disconnected Devices */}
@@ -377,7 +396,9 @@ const BLE = () => {
             connectingDevicesRef={connectingDevicesRef}
           />
         )}
-        ListEmptyComponent={<Text style={tw`mx-4 my-2`}>No disconnected devices</Text>}
+        ListEmptyComponent={
+          <Text style={tw`mx-4 my-2`}>No disconnected devices</Text>
+        }
       />
 
       {/* Scan Button */}

@@ -212,6 +212,11 @@ export class ConnectedDevice {
     this.isActive = false;
   }
 
+  async forceVibration() {
+    this.vibration = true;
+    this.vibrationListener.forEach((listener) => listener(true));
+  }
+
   async changeActive() {
     if (this.isActive) return;
     this.isActive = true;
@@ -223,7 +228,7 @@ export class ConnectedDevice {
   async readBattery() {
     const battery = await this.readCharacteristic(CHARACTERISTIC.BATT_VOLTAGE);
     if (!battery) return;
-    console.log("Battery: ", battery);
+    // console.log("Battery: ", battery);
   }
 
   async setThreshold(threshold: number) {
@@ -468,15 +473,16 @@ export const BleProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const disconnectDevice = async (device: Device) => {
+    const tempDevices = connectedDevice;
+    const index = tempDevices.findIndex((d) => d?.device.id === device.id);
+    tempDevices[index] = null;
+    setConnectedDevice(tempDevices);
     try {
       await device.cancelConnection();
       console.log("Disconnected from device");
       console.log(connectedDevice);
-      const tempDevices = connectedDevice;
-      const index = tempDevices.findIndex((d) => d?.device.id === device.id);
-      tempDevices[index] = null;
+
       console.log(tempDevices);
-      setConnectedDevice(tempDevices);
     } catch (e) {
       console.log("Failed to disconnect from device", e);
     }

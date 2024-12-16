@@ -35,18 +35,7 @@ const sound = new Audio.Sound();
 const soundMiss = new Audio.Sound();
 
 const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
-  const {
-    connectToDevice,
-    allDevices,
-    connectedDevice,
-    requestPermissions,
-    scanForPeripherals,
-    startStreamingData,
-    writeCharacteristic,
-    swapConnectedDevice,
-    disconnectDevice,
-    monitorCharacteristic,
-  } = useBleManager();
+  const { connectedDevice } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
     R2: "red",
@@ -54,23 +43,9 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     L2: "red",
     Center: "blue",
   });
-  const [miss, setMiss] = useState(0);
-  const isStillMiss = useRef(false);
-  const isCenterStillCall = useRef(false);
-  const isCheckHitStillCall = useRef(false);
   const [showResultScreen, setShowResultScreen] = useState(false);
-  const [gameState, setGameState] = useState({
-    currentGreen: null as CircleKey | null,
-    centerActive: false,
-  });
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [interactionTimes, setInteractionTimes] = useState<Interaction[]>([]);
-  const [lastTimestamp, setLastTimestamp] = useState<number | null>(null);
-
-  // References to manage async loops
-  const centerActiveRef = useRef(gameState.centerActive);
-  const hitActiveRef = useRef(false);
-  const stopActiveRef = useRef(false);
+  const interactionTimes = useRef<Interaction[]>([]);
+  const Miss = useRef(0 as number);
 
   // Update centerActiveRef when gameState.centerActive changes
   useEffect(() => {
@@ -81,73 +56,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
       soundMiss.loadAsync(require("../../../assets/audio/wrong.wav"));
     soundMiss.setVolumeAsync(1);
   }, []);
-  useEffect(() => {
-    centerActiveRef.current = gameState.centerActive;
-    // if (gameState.centerActive && !isCenterStillCall.current) {
-    //   isCenterStillCall.current = true;
-    //   isCenter();
-    //   isCenterStillCall.current = false;
-    // }
-  }, [gameState.centerActive]);
 
-  // const isCenter = async () => {
-  //   try {
-  //     // Create an array of promises, each representing the vibration detection for each device
-  //     // console.log("connectedDevice", connectedDevice);
-
-  //     console.log("wait center");
-  //     // Use Promise.race() to wait for the first device to resolve
-  //     const dictCircle = new Map();
-  //     dictCircle.set("R1", 1);
-  //     dictCircle.set("R2", 3);
-  //     dictCircle.set("L1", 0);
-  //     dictCircle.set("L2", 2);
-  //     const nextId =
-  //       currentIndex + 1 >= circleSequence.length
-  //         ? -1
-  //         : (dictCircle.get(circleSequence[currentIndex + 1]) as number);
-  //     console.log("nextId", nextId);
-  //     if (nextId !== -1) {
-  //       let isCancelled = false;
-  //       const vibrationPromises = [
-  //         connectedDevice[nextId]?.waitForVibration().then(() => {
-  //           if (!isCancelled) {
-  //             isCancelled = true; // Cancel further handling of other promises
-  //             return nextId;
-  //           }
-  //         }),
-  //         connectedDevice[4]?.waitForVibration().then(() => {
-  //           if (!isCancelled) {
-  //             isCancelled = true; // Cancel further handling of other promises
-  //             return 4;
-  //           }
-  //         }),
-  //       ];
-  //       const firstResolveIndex = await Promise.race(vibrationPromises);
-  //       console.log("firstResolve", firstResolveIndex);
-  //       if (firstResolveIndex === 4) {
-  //         handleReturnToCenter();
-  //       } else {
-  //         console.log("missmissmissmissmissmissmissmiss");
-  //         await Promise.all([
-  //           connectedDevice[firstResolveIndex as number]?.beep(),
-  //           soundMiss.replayAsync(),
-  //         ]);
-  //         setCurrentIndex((prevIndex) => prevIndex + 1);
-  //         handleReturnToCenter(true);
-  //       }
-  //     } else {
-  //       await connectedDevice[4]?.waitForVibration();
-  //       isStillMiss.current = false;
-  //       handleReturnToCenter();
-  //     }
-  //     console.log("nextId", nextId);
-  //   } catch (error) {
-  //     console.error("Failed to read characteristic:", error);
-  //   }
-  // };
-
-  // Parse counts
   const R1Count = R1 || 0;
   const R2Count = R2 || 0;
   const L1Count = L1 || 0;
@@ -157,6 +66,7 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
 
   useEffect(() => {
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
+    Miss.current = 0;
     let sequence: number[] = [];
     for (let i = 0; i < 4; i++) {
       connectedDevice[i]?.setThreshold(threshold);
@@ -192,9 +102,10 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
   }, []);
 
   const play = async (sequence: number[]) => {
+    console.log("sequence", sequence);
     let lastTimestamp = Date.now();
     let isStillMiss = false;
-    let index = 1;
+    let index = 0;
     let pos =
       sequence[0] == 0
         ? "L1"
@@ -203,24 +114,44 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
         : sequence[0] == 2
         ? "L2"
         : "R2";
-    setCircleColors((prevColors) => {
-      return {
-        ...prevColors,
-        [pos]: "green",
-      };
-    });
-    await connectedDevice[sequence[0]]?.waitForVibration();
-    await Promise.all([connectedDevice[0]?.beep(), sound.replayAsync()]);
-    setCircleColors((prevColors) => {
-      return {
-        ...prevColors,
-        [pos]: "red",
-        Center: "yellow",
-      };
-    });
+    let isNeedToHit = true;
     while (index < sequence.length) {
-      if (index < sequence.length - 1) {
-        const nextId = sequence[index + 1];
+      lastTimestamp = Date.now();
+      if (isNeedToHit) {
+        pos =
+          sequence[index] == 0
+            ? "L1"
+            : sequence[index] == 1
+            ? "R1"
+            : sequence[index] == 2
+            ? "L2"
+            : "R2";
+        setCircleColors((prevColors) => ({
+          ...prevColors,
+          [pos]: "green",
+        }));
+        await connectedDevice[sequence[index]]?.waitForVibration();
+        let timeDiff = (Date.now() - lastTimestamp) / 1000;
+        console.log("timeDiff", timeDiff);
+        interactionTimes.current.push({
+          description: `Hit ${pos}`,
+          time: timeDiff,
+        });
+        await Promise.all([
+          connectedDevice[sequence[index]]?.beep(),
+          sound.replayAsync(),
+        ]);
+        isNeedToHit = false;
+        setCircleColors((prevColors) => ({
+          ...prevColors,
+          [pos]: "red",
+          Center: "yellow",
+        }));
+        index++;
+      } else {
+        const nextId = sequence[index];
+        const nextPos =
+          nextId == 0 ? "L1" : nextId == 1 ? "R1" : nextId == 2 ? "L2" : "R2";
         const vibrationPromises = [
           connectedDevice[nextId]?.waitForVibration().then(() => {
             return nextId;
@@ -230,65 +161,42 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
           }),
         ];
         const firstResolveIndex = await Promise.race(vibrationPromises);
-        const currentTime = Date.now();
-        const timeDiff = (currentTime - lastTimestamp) / 1000;
-        if (firstResolveIndex === 4) {
+        if (firstResolveIndex == 4) {
+          let timeDiff = (Date.now() - lastTimestamp) / 1000;
+          Promise.all([connectedDevice[4]?.beep(), sound.replayAsync()]);
           pos =
-            nextId == 0 ? "L1" : nextId == 1 ? "R1" : nextId == 2 ? "L2" : "R2";
-          setInteractionTimes((prevTimes) => [
-            ...prevTimes,
-            {
-              description: `${pos} to Center`,
-              time: timeDiff,
-            },
-          ]);
-          setCircleColors((prevColors) => {
-            return {
-              ...prevColors,
-              [pos]: "green",
-              Center: "blue",
-            };
+            sequence[index] == 0
+              ? "L1"
+              : sequence[index] == 1
+              ? "R1"
+              : sequence[index] == 2
+              ? "L2"
+              : "R2";
+          setCircleColors((prevColors) => ({
+            ...prevColors,
+            [pos]: "green",
+            Center: "blue",
+          }));
+          isNeedToHit = true;
+          interactionTimes.current.push({
+            description: `To Center`,
+            time: timeDiff,
           });
-          isStillMiss = false;
-          await Promise.all([connectedDevice[4]?.beep(), sound.replayAsync()]);
         } else {
-          isStillMiss = true;
-          index++;
-          setCircleColors((prevColors) => {
-            return {
-              L1: "red",
-              R1: "red",
-              L2: "red",
-              R2: "red",
-              Center: "yellow",
-            };
-          });
-          setInteractionTimes((prevTimes) => [
-            ...prevTimes,
-            {
-              description: `Miss ${pos} to Center and Hit ${
-                nextId == 0
-                  ? "L1"
-                  : nextId == 1
-                  ? "R1"
-                  : nextId == 2
-                  ? "L2"
-                  : "R2"
-              }`,
-              time: timeDiff,
-            },
-          ]);
-          await Promise.all([
+          let timeDiff = (Date.now() - lastTimestamp) / 1000;
+          Promise.all([
             connectedDevice[firstResolveIndex as number]?.beep(),
             soundMiss.replayAsync(),
           ]);
+          isNeedToHit = false;
+          interactionTimes.current.push({
+            description: `Miss Center and Hit ${nextPos}`,
+            time: timeDiff,
+          });
+          Miss.current++;
+          index++;
         }
-      } else {
-        await connectedDevice[4]?.waitForVibration();
-        isStillMiss = false;
       }
-      lastTimestamp = Date.now();
-      index++;
     }
     handleStopAndShowResult();
   };
@@ -301,172 +209,12 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
     return array;
   };
 
-  // useEffect(() => {
-  //   if (circleSequence.length === 0) return;
-  //   console.log("change");
-  //   if (!gameState.centerActive && currentIndex < circleSequence.length) {
-  //     const nextCircle = circleSequence[currentIndex];
-
-  //     if (currentIndex === 0 && lastTimestamp === null) {
-  //       setLastTimestamp(Date.now());
-  //     }
-
-  //     setCircleColors((prevColors) => ({
-  //       ...prevColors,
-  //       R1: "red",
-  //       R2: "red",
-  //       L1: "red",
-  //       L2: "red",
-  //       [nextCircle]: "green",
-  //     }));
-  //     setGameState((prevState) => ({
-  //       ...prevState,
-  //       currentGreen: nextCircle,
-  //     }));
-  //   } else if (currentIndex >= circleSequence.length) {
-  //     handleStopAndShowResult();
-  //   }
-  // }, [gameState.centerActive, currentIndex, circleSequence]);
-
-  const handleCenterPress = () => {
-    if (gameState.centerActive) {
-      setGameState((prevState) => ({
-        ...prevState,
-        centerActive: false,
-      }));
-      handleReturnToCenter();
-    }
-  };
-
-  const handleReturnToCenter = (miss = false) => {
-    const currentTime = Date.now();
-    if (lastTimestamp !== null && gameState.currentGreen !== null) {
-      const timeDiff = (currentTime - lastTimestamp) / 1000;
-      if (!miss)
-        setInteractionTimes((prevTimes) => [
-          ...prevTimes,
-          {
-            description: `${gameState.currentGreen} to Center`,
-            time: timeDiff,
-          },
-        ]);
-      else {
-        const nextState =
-          circleSequence[
-            (gameState.currentGreen === "R1"
-              ? 1
-              : gameState.currentGreen === "R2"
-              ? 3
-              : gameState.currentGreen === "L1"
-              ? 0
-              : 2) + 1
-          ];
-        setInteractionTimes((prevTimes) => [
-          ...prevTimes,
-          {
-            description: `Miss ${gameState.currentGreen} to Center and Hit ${nextState}`,
-            time: timeDiff,
-          },
-        ]);
-      }
-    }
-    setLastTimestamp(currentTime);
-    setCircleColors((prevColors) => ({ ...prevColors, Center: "blue" }));
-    setGameState((prevState) => ({
-      ...prevState,
-      centerActive: false,
-    }));
-    setCurrentIndex((prevIndex) => prevIndex + 1);
-  };
-
-  useEffect(() => {
-    const circle = gameState.currentGreen;
-    if (!circle) return;
-
-    const id =
-      circle === "R1" ? 1 : circle === "R2" ? 3 : circle === "L1" ? 0 : 2;
-
-    if (isCheckHitStillCall.current) return;
-    isCheckHitStillCall.current = true;
-    checkHit(id);
-    isCheckHitStillCall.current = false;
-    // const device = connectedDevice[id]?.device;
-
-    // if (!device) {
-    //   console.error("Device not connected for hit monitoring.");
-    //   return;
-    // }
-    // console.log(`connectDevice ${connectedDevice[id]?.vibration}`);
-    // if (connectedDevice[id]?.vibration) {
-    //   handleHitDetected();
-    // }
-  }, [gameState.currentGreen]);
-
-  const checkHit = async (id: number) => {
-    // console.log("checkHit", id);
-    await connectedDevice[id]?.waitForVibration();
-    if (!isStillMiss.current) {
-      await Promise.all([connectedDevice[id]?.beep(), sound.replayAsync()]);
-    } else {
-      await Promise.all([connectedDevice[id]?.beep(), soundMiss.replayAsync()]);
-    }
-
-    // console.log("hit detected", id);
-    handleHitDetected();
-  };
-
-  const handleHitDetected = () => {
-    if (gameState.currentGreen) {
-      handleCirclePress(gameState.currentGreen);
-    }
-  };
-
-  const handleCirclePress = (circle: CircleKey) => {
-    if (circleColors[circle] === "green") {
-      const currentTime = Date.now();
-      if (lastTimestamp !== null) {
-        const timeDiff = (currentTime - lastTimestamp) / 1000;
-        setInteractionTimes((prevTimes) => [
-          ...prevTimes,
-          { description: `Center to ${circle}`, time: timeDiff },
-        ]);
-      }
-      setLastTimestamp(currentTime);
-      setCircleColors((prevColors) => ({
-        ...prevColors,
-        [circle]: "red",
-        Center: "yellow",
-      }));
-      setGameState((prevState) => ({ ...prevState, centerActive: true }));
-      hitActiveRef.current = false;
-    }
-  };
-
   const handleStopAndShowResult = () => {
-    // stopActiveRef.current = true; // Stop all async loops
-    // setGameState((prevState) => ({
-    //   ...prevState,
-    //   centerActive: false, // Ensure centerActive is reset
-    // }));
+    console.log("interactionTimes", interactionTimes.current);
     setShowResultScreen(true);
   };
 
-  if (showResultScreen) {
-    const totalTime = interactionTimes.reduce(
-      (acc, interaction) => acc + interaction.time,
-      0
-    );
-
-    return (
-      <ResultScreen
-        interactionTimes={interactionTimes}
-        totalTime={totalTime}
-        onClose={() => setShowResultScreen(false)}
-      />
-    );
-  }
-
-  return (
+  return !showResultScreen ? (
     <View style={styles.containerField}>
       <View style={styles.circleContainer}>
         <TouchableOpacity
@@ -474,7 +222,9 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
             styles.circle,
             { top: 20, left: 20, backgroundColor: circleColors.L1 },
           ]}
-          onPress={() => handleCirclePress("L1")}
+          onPress={() => {
+            connectedDevice[0]?.forceVibration();
+          }}
         >
           <Text style={styles.text}>L1</Text>
         </TouchableOpacity>
@@ -483,7 +233,9 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
             styles.circle,
             { top: 20, right: 20, backgroundColor: circleColors.R1 },
           ]}
-          onPress={() => handleCirclePress("R1")}
+          onPress={() => {
+            connectedDevice[1]?.forceVibration();
+          }}
         >
           <Text style={styles.text}>R1</Text>
         </TouchableOpacity>
@@ -492,7 +244,9 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
             styles.circle,
             { bottom: 20, left: 20, backgroundColor: circleColors.L2 },
           ]}
-          onPress={() => handleCirclePress("L2")}
+          onPress={() => {
+            connectedDevice[2]?.forceVibration();
+          }}
         >
           <Text style={styles.text}>L2</Text>
         </TouchableOpacity>
@@ -501,13 +255,17 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
             styles.circle,
             { bottom: 20, right: 20, backgroundColor: circleColors.R2 },
           ]}
-          onPress={() => handleCirclePress("R2")}
+          onPress={() => {
+            connectedDevice[3]?.forceVibration();
+          }}
         >
           <Text style={styles.text}>R2</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.circle, { backgroundColor: circleColors.Center }]}
-          onPress={handleCenterPress}
+          onPress={() => {
+            connectedDevice[4]?.forceVibration();
+          }}
         >
           <Text style={styles.text}>Center</Text>
         </TouchableOpacity>
@@ -519,6 +277,13 @@ const Field = ({ R1, R2, L1, L2, mode, threshold }: FieldProps) => {
         <Text style={styles.stopButtonText}>Stop</Text>
       </TouchableOpacity>
     </View>
+  ) : (
+    <ResultScreen
+      interactionTimes={interactionTimes.current}
+      totalTime={50}
+      miss={Miss.current}
+      onClose={() => setShowResultScreen(false)}
+    />
   );
 };
 

@@ -38,7 +38,7 @@ const PatternScreen = () => {
   const [R2, setR2] = useState(0);
   const [L1, setL1] = useState(0);
   const [L2, setL2] = useState(0);
-
+  const [isPlaying, setIsPlaying] = useState(false);
   const [goField, setShowField] = useState(false);
   const [showRunScreen, setShowRunScreen] = useState(false);
 
@@ -89,23 +89,19 @@ const PatternScreen = () => {
     // For Mode 3, retain existing values
   };
 
-  if (showRunScreen) {
-    return <RunScreen />;
-  }
-
-  if (goField) {
-    // Pass threshold along to Field if you need it there
-    return (
-      <Field
-        R1={selectedMode === 3 ? R1 : undefined}
-        R2={selectedMode === 3 ? R2 : undefined}
-        L1={L1}
-        L2={selectedMode === 3 ? L2 : undefined}
-        mode={selectedMode}
-        threshold={threshold}
-      />
-    );
-  }
+  // if (goField) {
+  //   // Pass threshold along to Field if you need it there
+  //   return (
+  //     <Field
+  //       R1={selectedMode === 3 ? R1 : undefined}
+  //       R2={selectedMode === 3 ? R2 : undefined}
+  //       L1={L1}
+  //       L2={selectedMode === 3 ? L2 : undefined}
+  //       mode={selectedMode}
+  //       threshold={threshold}
+  //     />
+  //   );
+  // }
 
   const renderModeIcon = ({ item }: any) => (
     <TouchableOpacity
@@ -136,7 +132,7 @@ const PatternScreen = () => {
     </TouchableOpacity>
   );
 
-  return (
+  return !goField ? (
     <View style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
@@ -348,6 +344,15 @@ const PatternScreen = () => {
         </Modal>
       </View>
     </View>
+  ) : (
+    <Field
+      R1={selectedMode === 3 ? R1 : undefined}
+      R2={selectedMode === 3 ? R2 : undefined}
+      L1={L1}
+      L2={selectedMode === 3 ? L2 : undefined}
+      mode={selectedMode}
+      threshold={threshold}
+    />
   );
 };
 
