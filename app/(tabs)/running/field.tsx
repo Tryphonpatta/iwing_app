@@ -8,10 +8,6 @@ import {
 } from "react-native";
 import ResultScreen from "./result"; // Adjust the import path as needed
 import { useBleManager } from "../context/blecontext"; // Use context to access readCharacteristic
-import { CHARACTERISTIC } from "@/enum/characteristic";
-import { Device } from "react-native-ble-plx";
-import { hexToBase64 } from "@/util/encode";
-import { List } from "@ui-kitten/components";
 import { Audio } from "expo-av";
 
 const { width, height } = Dimensions.get("window");
@@ -49,16 +45,7 @@ const Field = ({
   threR2,
 }: FieldProps) => {
   const {
-    connectToDevice,
-    allDevices,
     connectedDevice,
-    requestPermissions,
-    scanForPeripherals,
-    startStreamingData,
-    writeCharacteristic,
-    swapConnectedDevice,
-    disconnectDevice,
-    monitorCharacteristic,
   } = useBleManager();
   const [circleColors, setCircleColors] = useState({
     R1: "red",
@@ -70,6 +57,8 @@ const Field = ({
   const [showResultScreen, setShowResultScreen] = useState(false);
   const interactionTimes = useRef<Interaction[]>([]);
   const Miss = useRef(0 as number);
+
+  const [isStopped, setIsStopped] = useState(false);
 
   // Update centerActiveRef when gameState.centerActive changes
   useEffect(() => {
@@ -89,6 +78,7 @@ const Field = ({
   const [circleSequence, setCircleSequence] = useState<CircleKey[]>([]);
 
   useEffect(() => {
+    console.log(`threR1: `,threR1);
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     Miss.current = 0;
     let sequence: number[] = [];
@@ -143,7 +133,9 @@ const Field = ({
         ? "L2"
         : "R2";
     let isNeedToHit = true;
-    while (index < sequence.length) {
+    while (index < sequence.length && !isStopped) {
+      if (isStopped) break;
+      console.log()
       lastTimestamp = Date.now();
       if (isNeedToHit) {
         pos =
@@ -239,6 +231,7 @@ const Field = ({
 
   const handleStopAndShowResult = () => {
     console.log("interactionTimes", interactionTimes.current);
+    setIsStopped(true);
     setShowResultScreen(true);
   };
 
@@ -310,7 +303,11 @@ const Field = ({
       interactionTimes={interactionTimes.current}
       totalHit={interactionTimes.current.length}
       miss={Miss.current}
-      onClose={() => setShowResultScreen(false)}
+      onClose={() =>  {
+        setIsStopped(false);
+        setShowResultScreen(false)
+      }
+      }
     />
   );
 };

@@ -24,10 +24,7 @@ export const isCenter = async (
   module: ModuleHome[],
   readCharacteristic: Function
 ) => {
-  // if (module[3] == null || module[2] == null) {
-  //   console.log("Module not found");
-  //   return { left: -1, right: -1 };
-  // }
+
   const right = await readCharacteristic(
     module[3]?.deviceId as string,
     CHARACTERISTIC.IWING_TRAINERPAD,
@@ -40,24 +37,6 @@ export const isCenter = async (
   );
   return { left, right };
 };
-
-// export const isHit = async (
-//   module: ModuleHome[],
-//   readCharacteristic: Function,
-//   id: number
-// ) => {
-//   try {
-//     const hit = await readCharacteristic(
-//       module[id]?.deviceId as string,
-//       CHARACTERISTIC.IWING_TRAINERPAD,
-//       CHARACTERISTIC.IR_RX
-//     );
-//     console.log(hit);
-//     return hit ? hit == 255 : false;
-//   } catch (e) {
-//     console.log("Error: ", e);
-//   }
-// };
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -77,20 +56,6 @@ export default function Home() {
   const [isCalibrating, setIsCalibrating] = React.useState(false);
   const isCalibratingRef = React.useRef(isCalibrating);
 
-  // export const isCenter = async () => {
-  //   const right = readCharacteristic(
-  //     module[3]?.deviceId as string,
-  //     CHARACTERISTIC.IWING_TRAINERPAD,
-  //     CHARACTERISTIC.IR_RX
-  //   );
-  //   const left = readCharacteristic(
-  //     module[0]?.deviceId as string,
-  //     CHARACTERISTIC.IWING_TRAINERPAD,
-  //     CHARACTERISTIC.IR_RX
-  //   );
-  //   return { left: left, right: right };
-  // };
-
   const testMusic = async (index: number) => {
     writeCharacteristic(
       connectedDevice[index]?.device as Device,
@@ -101,43 +66,19 @@ export default function Home() {
 
   const blink = async (device: ConnectedDevice) => {
     console.log("Blinking");
-    let redLight = true;
+    // let redLight = true;
     const maxRetry = 10;
     const redColor = "/wAB";
     const blueColor = "AAD/";
 
     await device.blinkLED([redColor, blueColor]);
-    // await device.writeCharacteristic(
-    //   CHARACTERISTIC.MODE,
-    //   hexToBase64("00000102")
-    // );
-    // for (let i = 0; i < 10; i++) {
-    //   await writeCharacteristic(
-    //     device,
-    //     CHARACTERISTIC.LED,
-    //     redLight ? redColor : blueColor
-    //   );
-    //   redLight = !redLight;
-    //   await new Promise((resolve) => setTimeout(resolve, 10));
-    // }
-    // await writeCharacteristic(device, CHARACTERISTIC.LED, "AAAA");
   };
 
   const calibrate = async (sender: number, receiver: number) => {
-    // writeCharacteristic(
-    //   connectedDevice[sender]?.device as Device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("01")
-    // );
     connectedDevice[sender]?.writeCharacteristic(
       CHARACTERISTIC.IR_TX,
       hexToBase64("01")
     );
-    // writeCharacteristic(
-    //   connectedDevice[receiver]?.device as Device,
-    //   CHARACTERISTIC.MODE,
-    //   hexToBase64("01")
-    // );
     connectedDevice[receiver]?.writeCharacteristic(
       CHARACTERISTIC.MODE,
       hexToBase64("01")
@@ -146,20 +87,10 @@ export default function Home() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     console.log("Calibration done");
-    // writeCharacteristic(
-    //   connectedDevice[sender]?.device as Device,
-    //   CHARACTERISTIC.IR_TX,
-    //   hexToBase64("00")
-    // );
     connectedDevice[sender]?.writeCharacteristic(
       CHARACTERISTIC.IR_TX,
       hexToBase64("00")
     );
-    // writeCharacteristic(
-    //   connectedDevice[receiver]?.device as Device,
-    //   CHARACTERISTIC.MODE,
-    //   hexToBase64("00")
-    // );
     connectedDevice[receiver]?.writeCharacteristic(
       CHARACTERISTIC.MODE,
       hexToBase64("00")

@@ -400,7 +400,10 @@ const PatternScreen = () => {
       L1={L1}
       L2={selectedMode === 3 ? L2 : undefined}
       mode={selectedMode}
-      threshold={threshold}
+      threL1={threL1}
+      threL2={threL2}
+      threR1={threR1}
+      threR2={threR2}
     />
   );
 };
