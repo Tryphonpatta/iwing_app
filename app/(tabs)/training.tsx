@@ -4,70 +4,17 @@ import {
 	Text,
 	TouchableOpacity,
 	StyleSheet,
-	Image,
 	ScrollView,
-	Modal,
-	FlatList,
+	TouchableWithoutFeedback,
 } from "react-native";
 // import Slider from "@react-native-community/slider";
-import { Picker } from "@react-native-picker/picker";
 import { Entypo, MaterialIcons } from "@expo/vector-icons";
 import { Slider } from "@rneui/themed";
 import CounterInput from "react-native-counter-input";
 //counter lib usage:https://github.com/WrathChaos/react-native-counter-input
-import tw, { style } from "twrnc";
-import { light } from "@eva-design/eva";
+import tw from "twrnc";
 import { NativeStackNavigationProp } from "react-native-screens/lib/typescript/native-stack/types";
 import { useNavigation } from "@react-navigation/native";
-
-const Dropdown = ({ label, selectedValue, onValueChange, options }) => {
-	const [modalVisible, setModalVisible] = useState(false);
-
-	const handleSelect = (value) => {
-		onValueChange(value);
-		setModalVisible(false);
-	};
-
-	return (
-		<View style={styles.dropdownContainer}>
-			<TouchableOpacity
-				style={styles.dropdownButton}
-				onPress={() => setModalVisible(true)}
-			>
-				<Text style={styles.dropdownButtonText}>
-					{selectedValue ? selectedValue.toString() : label}
-				</Text>
-			</TouchableOpacity>
-
-			<Modal
-				visible={modalVisible}
-				transparent={true}
-				animationType="slide"
-				onRequestClose={() => setModalVisible(false)}
-			>
-				<TouchableOpacity
-					style={styles.modalOverlay}
-					onPress={() => setModalVisible(false)}
-				>
-					<View style={styles.modalContent}>
-						<FlatList
-							data={options}
-							keyExtractor={(item) => item.toString()}
-							renderItem={({ item }) => (
-								<TouchableOpacity
-									style={styles.option}
-									onPress={() => handleSelect(item)}
-								>
-									<Text style={styles.optionText}>{item}</Text>
-								</TouchableOpacity>
-							)}
-						/>
-					</View>
-				</TouchableOpacity>
-			</Modal>
-		</View>
-	);
-};
 
 export default function App() {
 	const [lightOut, setLightOut] = useState("");
@@ -85,6 +32,7 @@ export default function App() {
 	const [randomNumber, setRandomNumber] = useState<number | null>(null); // State to hold the random number
 	const [modalVisible, setModalVisible] = useState(false); // State to control modal visibility
 	const [dropdownVisible, setDropdownVisible] = useState(false); // State to control dropdown visibility
+	const [dropdownVisibleHit, setDropdownVisibleHit] = useState(false); // State to control hit dropdown visibility
 
 	const getRandomNumber = (): number => {
 		const min = 0.5;
@@ -373,6 +321,7 @@ export default function App() {
 								]}
 								onPress={() => {
 									setLightDelay("Fixed");
+									setDelaytime(0.5);
 								}}
 							>
 								<Text
@@ -408,13 +357,13 @@ export default function App() {
 						{lightDelay === "Fixed" && ( // Updated to "Fixed"
 							<View style={styles.section}>
 								<Text style={styles.labelText}>
-									Timeout : {delaytime.toFixed(2)} seconds
+									Timeout : {delaytime.toFixed(1)} seconds
 								</Text>
 								<Slider
 									style={styles.slider}
-									minimumValue={0.5}
+									minimumValue={0.1}
 									maximumValue={5}
-									step={0.01}
+									step={0.1}
 									value={delaytime}
 									onValueChange={(value) => setDelaytime(value)}
 									minimumTrackTintColor="#4caf50"
@@ -446,7 +395,10 @@ export default function App() {
 									styles.option,
 									duration === "Hit" && styles.activeOption,
 								]}
-								onPress={() => setDuration("Hit")}
+								onPress={() => {
+									setDuration("Hit");
+									setHitDuration(5);
+								}}
 							>
 								<Text
 									style={[
@@ -491,21 +443,85 @@ export default function App() {
 							</TouchableOpacity>
 						</View>
 						{duration === "Hit" && (
-							<View style={styles.section}>
-								<Text style={styles.labelText}>Hit Count : {hitduration}</Text>
-								<Slider
-									style={styles.slider}
-									minimumValue={1}
-									maximumValue={100}
-									step={1}
-									value={hitduration}
-									onValueChange={(value) => setHitDuration(value)}
-									minimumTrackTintColor="#4caf50"
-									maximumTrackTintColor="#545454" // Custom track color
-									thumbStyle={styles.thumb} // Custom thumb style
-									trackStyle={styles.track}
-								/>
-							</View>
+							<>
+								<View style={styles.section}>
+									<Text style={styles.labelText}>
+										Hit Count : {hitduration}
+									</Text>
+									<Slider
+										style={styles.slider}
+										minimumValue={1}
+										maximumValue={100}
+										step={1}
+										value={hitduration}
+										onValueChange={(value) => setHitDuration(value)}
+										minimumTrackTintColor="#4caf50"
+										maximumTrackTintColor="#545454" // Custom track color
+										thumbStyle={styles.thumb} // Custom thumb style
+										trackStyle={styles.track}
+									/>
+								</View>
+								{/* dropdown for hit duration*/}
+								<View
+									style={[
+										styles.section,
+										{ marginTop: "-5%", marginBottom: "-5%" },
+									]}
+								>
+									<Text style={[styles.labelText, { marginBottom: "2%" }]}>
+										Hit Count : {hitduration}
+									</Text>
+									<TouchableOpacity
+										style={styles.dropdownButton}
+										onPress={() => setDropdownVisibleHit(!dropdownVisibleHit)}
+									>
+										<Text style={styles.dropdownButtonText}>
+											{hitduration
+												? hitduration.toString()
+												: "Select Hit Count"}
+										</Text>
+										<MaterialIcons
+											name={
+												dropdownVisibleHit ? "arrow-drop-up" : "arrow-drop-down"
+											}
+											size={20}
+											color="#555"
+										/>
+									</TouchableOpacity>
+
+									{dropdownVisibleHit && (
+										<View style={styles.dropdownOptions}>
+											{[10, 20, 30, 40, 50].map((item) => (
+												<TouchableOpacity
+													key={item}
+													style={[
+														styles.option,
+														item === hitduration && styles.activeOption,
+														{
+															borderWidth: 1,
+															borderColor: "#ccc",
+															borderRadius: 4,
+														},
+													]}
+													onPress={() => {
+														setHitDuration(item);
+														setDropdownVisibleHit(false);
+													}}
+												>
+													<Text
+														style={[
+															styles.optionText,
+															item === hitduration && styles.activeOptionText,
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											))}
+										</View>
+									)}
+								</View>
+							</>
 						)}
 						{duration === "Timeout" && (
 							<View style={styles.section}>
@@ -570,6 +586,66 @@ export default function App() {
 									thumbStyle={styles.thumb} // Custom thumb style
 									trackStyle={styles.track}
 								/>
+								{/* dropdown for hit duration*/}
+								<View
+									style={[
+										styles.section,
+										{ marginTop: "0%", marginBottom: "-10%" },
+									]}
+								>
+									<Text style={[styles.labelText, { marginBottom: "2%" }]}>
+										Hit Count : {hitduration}
+									</Text>
+									<TouchableOpacity
+										style={styles.dropdownButton}
+										onPress={() => setDropdownVisibleHit(!dropdownVisibleHit)}
+									>
+										<Text style={styles.dropdownButtonText}>
+											{hitduration
+												? hitduration.toString()
+												: "Select Hit Count"}
+										</Text>
+										<MaterialIcons
+											name={
+												dropdownVisibleHit ? "arrow-drop-up" : "arrow-drop-down"
+											}
+											size={20}
+											color="#555"
+										/>
+									</TouchableOpacity>
+
+									{dropdownVisibleHit && (
+										<View style={styles.dropdownOptions}>
+											{[10, 20, 30, 40, 50].map((item) => (
+												<TouchableOpacity
+													key={item}
+													style={[
+														styles.option,
+														item === hitduration && styles.activeOption,
+														{
+															borderWidth: 1,
+															borderColor: "#ccc",
+															borderRadius: 4,
+														},
+													]}
+													onPress={() => {
+														setHitDuration(item);
+														setDropdownVisibleHit(false);
+													}}
+												>
+													<Text
+														style={[
+															styles.optionText,
+															item === hitduration && styles.activeOptionText,
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											))}
+										</View>
+									)}
+								</View>
 							</View>
 						)}
 					</View>
@@ -636,6 +712,7 @@ const styles = StyleSheet.create({
 	},
 	slider: {
 		width: "100%",
+		height: 40,
 	},
 	thumb: {
 		height: 30, // Size of the thumb
