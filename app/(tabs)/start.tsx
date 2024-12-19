@@ -43,6 +43,7 @@ const StartGame = () => {
   const isHitObjRef = useRef([1, 1, 1, 1, 1, 1, 1, 1, 1]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showResult, setShowresult] = useState(false);
+  const [playTime, setPlayTime] = useState(0);
 
   // Ref to store the interval ID for hit detection to allow clearing it later
   const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -154,12 +155,14 @@ const StartGame = () => {
     isHitModeDur,
     isTimeModeDur,
     onClose,
+    userhitcount,
   }: {
     isHitMode: boolean;
     isTimeMode: boolean;
     isHitModeDur: boolean;
     isTimeModeDur: boolean;
     onClose: () => void;
+    userhitcount: number;
   }) => (
     <Modal animationType="slide" transparent={true} visible={showResult}>
       <View style={styles.overlay}>
@@ -226,20 +229,13 @@ const StartGame = () => {
           <View style={styles.row}>
             <Text style={styles.label}>Total time</Text>
             <Text style={styles.output}>
-              {gameEndTimeRef.current && startTimeRef.current
-                ? (
-                    (gameEndTimeRef.current - startTimeRef.current) /
-                    1000
-                  ).toFixed(2) + " seconds"
-                : "end Game"}{" "}
+              {playTime.toFixed(2) + " seconds"}{" "}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Hit Count</Text>
             {/*  */}
-            <Text style={styles.output}>
-              {userHitCount || "end Game"} times
-            </Text>
+            <Text style={styles.output}>{userHitCount} times</Text>
           </View>
 
           <View style={styles.row}>
@@ -771,7 +767,6 @@ const StartGame = () => {
     if (isPlaying) return;
 
     let hit = 0;
-    hitCountRef.current = 0;
     setUserHitCount(0);
     setPressButton(true);
     startTimeRef.current = Date.now();
@@ -779,16 +774,24 @@ const StartGame = () => {
 
     if (lightOut === "Hit") {
       await play_hit(hit);
+      console.log("user hit count after game just end", hit);
     } else if (lightOut === "Timeout") {
       await play_timeout(hit, interval);
+      console.log("user hit count after game just end", hit);
     } else if (lightOut === "Hit or Timeout") {
       await play_hitOrTimeout(hit, interval);
+      console.log("user hit count after game just end", hit);
     }
-
-    setUserHitCount(hit); // Update the user's hit count
+    let endtime = Date.now();
+    //setUserHitCount(hit); // Update the user's hit count
+    console.log(
+      "User hit count++++++++++++++++++++++++++++++///: ",
+      userHitCount
+    );
     setPressButton(false);
     setIsPlaying(false);
     setShowresult(true);
+    setPlayTime(endtime - startTime);
   };
 
   return (
@@ -854,6 +857,7 @@ const StartGame = () => {
           isHitModeDur={isHitModeDur}
           isTimeModeDur={isTimeModeDur}
           onClose={handleCloseResult}
+          userhitcount={userHitCount}
         />
       )}
       {/* </TouchableOpacity> */}
