@@ -44,7 +44,7 @@ const StartGame = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showResult, setShowresult] = useState(false);
   const [playTime, setPlayTime] = useState(0);
-
+  const [stopGame, setStopGame] = useState(false);
   // Ref to store the interval ID for hit detection to allow clearing it later
   const hitDetectionIntervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -802,42 +802,51 @@ const StartGame = () => {
           { backgroundColor: "#419E68", fontSize: 36 },
         ]}
       >
-        Test
+        Training
       </Text>
       <TouchableOpacity
         style={styles.playButton}
-        onPress={() => {
+        onPress={async () => {
           console.log("Start Game button pressed.");
-          if (isPlaying) {
-            console.log("stop gameeeeeee...");
-            stopGameRef.current = true; // ส่งสัญญาณให้หยุดเกม
-            setIsPlaying(false);
-            gameEndTimeRef.current = Date.now();
-            setShowresult(true);
-            connectedDevice.forEach(async (deviceObj) => {
-              if (deviceObj && deviceObj.device) {
-                await blink(deviceObj.device);
-              }
-            });
-            setPressButton(false);
-          } else {
-            stopGameRef.current = false; // รีเซ็ตสัญญาณหยุดเกม
-            setIsPlaying(true);
-            startTimeRef.current = Date.now();
-            play_2(
-              (minDuration * 60 + secDuration) * 1000,
-              timeout * 1000,
-              delaytime * 1000
-            );
-            setShowresult(false);
-          }
+
+          stopGameRef.current = false; // รีเซ็ตสัญญาณหยุดเกม
+          setIsPlaying(true);
+          startTimeRef.current = Date.now();
+          await play_2(
+            (minDuration * 60 + secDuration) * 1000,
+            timeout * 1000,
+            delaytime * 1000
+          );
+          setShowresult(true);
         }}
       >
         <Text style={styles.buttonText}>
           {pressButton ? `Playing...` : "Start Game"}
           {/* {pressButton ? `force stop` : "Start Game"} */}
         </Text>
+
+        {/* force to stop button */}
       </TouchableOpacity>
+      {isPlaying && (
+        <TouchableOpacity
+          style={styles.playButton}
+          onPress={() => {
+            setIsPlaying(false);
+            setUserHitCount(0);
+            connectedDevice.forEach(async (deviceObj) => {
+              if (deviceObj && deviceObj.device) {
+                await blink(deviceObj.device);
+              }
+            });
+            setShowresult(false);
+          }}
+        >
+          <Text style={styles.buttonText}>
+            {"Stop"}
+            {/* {pressButton ? `force stop` : "Start Game"} */}
+          </Text>
+        </TouchableOpacity>
+      )}
       <View style={styles.hitCountContainer}>
         <Text style={styles.hitCountText}>
           {/* ระบบหลัก */}
