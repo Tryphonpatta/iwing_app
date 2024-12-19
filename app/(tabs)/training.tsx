@@ -85,6 +85,8 @@ export default function App() {
 	const [randomNumber, setRandomNumber] = useState<number | null>(null); // State to hold the random number
 	const [modalVisible, setModalVisible] = useState(false); // State to control modal visibility
 	const [dropdownVisible, setDropdownVisible] = useState(false); // State to control dropdown visibility
+	const [dropdownVisibleHitOrTimeout, setDropdownVisibleHitOrTimeout] =
+		useState(false); // State to control hit/timeout dropdown visibility
 
 	const getRandomNumber = (): number => {
 		const min = 0.5;
@@ -491,21 +493,88 @@ export default function App() {
 							</TouchableOpacity>
 						</View>
 						{duration === "Hit" && (
-							<View style={styles.section}>
-								<Text style={styles.labelText}>Hit Count : {hitduration}</Text>
-								<Slider
-									style={styles.slider}
-									minimumValue={1}
-									maximumValue={100}
-									step={1}
-									value={hitduration}
-									onValueChange={(value) => setHitDuration(value)}
-									minimumTrackTintColor="#4caf50"
-									maximumTrackTintColor="#545454" // Custom track color
-									thumbStyle={styles.thumb} // Custom thumb style
-									trackStyle={styles.track}
-								/>
-							</View>
+							<>
+								<View style={styles.section}>
+									<Text style={styles.labelText}>
+										Hit Count : {hitduration}
+									</Text>
+									<Slider
+										style={styles.slider}
+										minimumValue={1}
+										maximumValue={100}
+										step={1}
+										value={hitduration}
+										onValueChange={(value) => setHitDuration(value)}
+										minimumTrackTintColor="#4caf50"
+										maximumTrackTintColor="#545454" // Custom track color
+										thumbStyle={styles.thumb} // Custom thumb style
+										trackStyle={styles.track}
+									/>
+								</View>
+								<View
+									style={[
+										styles.section,
+										{ marginTop: "-3%", marginBottom: "-5%" },
+									]}
+								>
+									<Text style={styles.labelText}>Hit Count</Text>
+									<TouchableOpacity
+										style={styles.dropdownButton}
+										onPress={() =>
+											setDropdownVisibleHitOrTimeout(
+												!dropdownVisibleHitOrTimeout
+											)
+										}
+									>
+										<Text style={styles.dropdownButtonText}>
+											{hitduration
+												? hitduration.toString()
+												: "Select Hit Count"}
+										</Text>
+										<MaterialIcons
+											name={
+												dropdownVisibleHitOrTimeout
+													? "arrow-drop-up"
+													: "arrow-drop-down"
+											}
+											size={20}
+											color="#555"
+										/>
+									</TouchableOpacity>
+
+									{dropdownVisibleHitOrTimeout && (
+										<View style={styles.dropdownOptions}>
+											{[10, 20, 30, 40, 50].map((item) => (
+												<TouchableOpacity
+													key={item}
+													style={[
+														styles.option,
+														item === hitduration && styles.activeOption,
+														{
+															borderWidth: 1,
+															borderColor: "#ccc",
+															borderRadius: 4,
+														},
+													]}
+													onPress={() => {
+														setHitDuration(item);
+														setDropdownVisibleHitOrTimeout(false);
+													}}
+												>
+													<Text
+														style={[
+															styles.optionText,
+															item === hitduration && styles.activeOptionText,
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											))}
+										</View>
+									)}
+								</View>
+							</>
 						)}
 						{duration === "Timeout" && (
 							<View style={styles.section}>
@@ -532,45 +601,112 @@ export default function App() {
 							</View>
 						)}
 						{duration === "Hit or Timeout" && (
-							<View style={styles.section}>
-								<Text style={styles.labelText}>
-									Timeout : {minDuration} min {secDuration} sec
-								</Text>
-								<View style={styles.counterContainer}>
-									<CounterInput
-										min={0}
-										max={59}
-										onChange={(value) => {
-											setMinDuration(value);
-										}}
-										horizontal={true}
-										style={styles.counter}
-									/>
+							<>
+								<View style={styles.section}>
+									<Text style={styles.labelText}>
+										Timeout : {minDuration} min {secDuration} sec
+									</Text>
+									<View style={styles.counterContainer}>
+										<CounterInput
+											min={0}
+											max={59}
+											onChange={(value) => {
+												setMinDuration(value);
+											}}
+											horizontal={true}
+											style={styles.counter}
+										/>
 
-									<CounterInput
-										min={0}
-										max={59}
-										horizontal={true}
-										onChange={(value) => {
-											setSecDuration(value);
-										}}
-										style={styles.counter}
+										<CounterInput
+											min={0}
+											max={59}
+											horizontal={true}
+											onChange={(value) => {
+												setSecDuration(value);
+											}}
+											style={styles.counter}
+										/>
+									</View>
+									<Text style={styles.labelText}>
+										Hit Count : {hitduration}
+									</Text>
+									<Slider
+										style={styles.slider}
+										minimumValue={1}
+										maximumValue={100}
+										step={1}
+										value={hitduration}
+										onValueChange={(value) => setHitDuration(value)}
+										minimumTrackTintColor="#4caf50"
+										maximumTrackTintColor="#545454" // Custom track color
+										thumbStyle={styles.thumb} // Custom thumb style
+										trackStyle={styles.track}
 									/>
 								</View>
-								<Text style={styles.labelText}>Hit Count : {hitduration}</Text>
-								<Slider
-									style={styles.slider}
-									minimumValue={1}
-									maximumValue={100}
-									step={1}
-									value={hitduration}
-									onValueChange={(value) => setHitDuration(value)}
-									minimumTrackTintColor="#4caf50"
-									maximumTrackTintColor="#545454" // Custom track color
-									thumbStyle={styles.thumb} // Custom thumb style
-									trackStyle={styles.track}
-								/>
-							</View>
+								<View
+									style={[
+										styles.section,
+										{ marginTop: "-3%", marginBottom: "-5%" },
+									]}
+								>
+									<Text style={styles.labelText}>Hit Count</Text>
+									<TouchableOpacity
+										style={styles.dropdownButton}
+										onPress={() =>
+											setDropdownVisibleHitOrTimeout(
+												!dropdownVisibleHitOrTimeout
+											)
+										}
+									>
+										<Text style={styles.dropdownButtonText}>
+											{hitduration
+												? hitduration.toString()
+												: "Select Hit Count"}
+										</Text>
+										<MaterialIcons
+											name={
+												dropdownVisibleHitOrTimeout
+													? "arrow-drop-up"
+													: "arrow-drop-down"
+											}
+											size={20}
+											color="#555"
+										/>
+									</TouchableOpacity>
+
+									{dropdownVisibleHitOrTimeout && (
+										<View style={styles.dropdownOptions}>
+											{[10, 20, 30, 40, 50].map((item) => (
+												<TouchableOpacity
+													key={item}
+													style={[
+														styles.option,
+														item === hitduration && styles.activeOption,
+														{
+															borderWidth: 1,
+															borderColor: "#ccc",
+															borderRadius: 4,
+														},
+													]}
+													onPress={() => {
+														setHitDuration(item);
+														setDropdownVisibleHitOrTimeout(false);
+													}}
+												>
+													<Text
+														style={[
+															styles.optionText,
+															item === hitduration && styles.activeOptionText,
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											))}
+										</View>
+									)}
+								</View>
+							</>
 						)}
 					</View>
 					<TouchableOpacity
