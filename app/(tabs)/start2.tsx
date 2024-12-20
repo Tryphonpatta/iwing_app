@@ -1,13 +1,9 @@
 import React, { useState } from "react";
-import {
-	View,
-	Text,
-	ScrollView,
-	StyleSheet,
-	TouchableOpacity,
-} from "react-native";
-import CircularProgress from "react-native-circular-progress-indicator";
-import DateTimeDisplay from "@/components/datetime";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { AnimatedCircularProgress } from "react-native-circular-progress";
+import { Circle } from "react-native-svg";
+import ShowPad from "@/app/running";
+import { TouchableOpacity } from "react-native";
 
 export default function ResultScreen() {
 	const [total_hits, setTotalHits] = useState(0);
@@ -16,6 +12,8 @@ export default function ResultScreen() {
 	const [selected_mode, setSelectedMode] = useState("Hit");
 	const [connected_devices, setConnectedDevices] = useState(0);
 	const [duration, setDuration] = useState("0:00");
+	const [activePadIndex, setActivePadIndex] = useState(-1);
+	const [isPlaying, setIsPlaying] = useState(false);
 
 	const calculate_percentage = () => {
 		const total_attempts = total_hits + total_misses;
@@ -34,33 +32,49 @@ export default function ResultScreen() {
 
 	// zone set value
 
-	//
+	const START = () => {
+		setIsPlaying(true);
+	};
 
+	const STOP = () => {
+		setIsPlaying(false);
+	};
+
+	const togglePlay = () => {
+		if (isPlaying) {
+			STOP();
+		} else {
+			START();
+		}
+	};
 	return (
 		<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 			<View style={styles.container}>
-				<Text style={styles.header}>Result Page</Text>
-				<DateTimeDisplay />
+				<Text style={styles.header}>Training</Text>
 
-				<View style={styles.circularProgressContainer}>
-					<CircularProgress
-						value={40}
-						radius={100}
-						duration={600}
-						progressValueColor={"#000000"}
-						maxValue={100}
-						activeStrokeWidth={15}
-						inActiveStrokeWidth={15}
-						activeStrokeColor={"#52CBAA"}
-						inActiveStrokeColor={"#E5E5E5"}
-						rotation={0}
-						showProgressValue={true}
-						valueSuffix={"%"}
-					/>
-				</View>
-
-				<Text style={styles.resultHeader}>Result</Text>
 				<View style={styles.resultBlock}>
+					<Text style={styles.resultHeader}>Countdown</Text>
+					<View style={styles.circularProgressContainer}>
+						<AnimatedCircularProgress
+							size={180}
+							width={5}
+							fill={70} // value
+							tintColor="#00e0ff"
+							backgroundColor="#3d5875"
+							padding={10}
+							arcSweepAngle={180}
+							rotation={-90}
+							renderCap={({ center }) => (
+								<Circle cx={center.x} cy={center.y} r="10" fill="blue" />
+							)}
+						>
+							{(fill: number) => (
+								<View style={styles.circularContent}>
+									<Text style={styles.percentageText}>1:23</Text>
+								</View>
+							)}
+						</AnimatedCircularProgress>
+					</View>
 					<View style={styles.row}>
 						<View style={styles.col}>
 							<Text style={styles.resultText}>{total_hits}</Text>
@@ -90,12 +104,18 @@ export default function ResultScreen() {
 						</View>
 					</View>
 				</View>
-
-				<Text style={[styles.detailHeader]}>Detail</Text>
+				<View style={styles.padContainer}>
+					<ShowPad activePadIndex={activePadIndex} isPlaying={isPlaying} />
+				</View>
 				<TouchableOpacity
-					style={[styles.clickableBox, { marginBottom: "10%" }]}
-					onPress={() => console.log("Box clicked")}
-				/>
+					style={[
+						styles.buttonContainer,
+						isPlaying ? styles.activeButton : styles.inactiveButton,
+					]}
+					onPress={togglePlay}
+				>
+					<Text style={styles.buttonText}>{isPlaying ? "Stop" : "Start"}</Text>
+				</TouchableOpacity>
 			</View>
 		</ScrollView>
 	);
@@ -117,25 +137,9 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 		marginBottom: 20,
 	},
-	circularProgressContainer: {
-		alignItems: "center",
-		marginVertical: 20,
-	},
 	circularTitle: {
 		fontSize: 16,
 		fontWeight: "bold",
-	},
-	resultBlock: {
-		backgroundColor: "#ffffff",
-		borderRadius: 10,
-		padding: 20,
-		marginBottom: 20,
-		shadowColor: "#000",
-		shadowOpacity: 0.1,
-		shadowOffset: { width: 0, height: 5 },
-		shadowRadius: 10,
-		elevation: 5,
-		width: "100%",
 	},
 	backgroundCARD: {
 		backgroundColor: "#ffffff",
@@ -146,12 +150,6 @@ const styles = StyleSheet.create({
 	},
 	resultDetails: {
 		width: "100%",
-	},
-	resultHeader: {
-		fontSize: 22,
-		fontWeight: "bold",
-		marginBottom: 10,
-		color: "#333",
 	},
 	resultText: {
 		fontSize: 20,
@@ -190,7 +188,7 @@ const styles = StyleSheet.create({
 	row: {
 		flexDirection: "row",
 		justifyContent: "space-between",
-		marginBottom: 15,
+		marginBottom: 10,
 		width: "100%",
 	},
 	col: {
@@ -221,5 +219,99 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		color: "#555",
 		textAlign: "center",
+	},
+	circularContent: {
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	percentageText: {
+		fontSize: 24,
+		fontWeight: "bold",
+	},
+	accuracyText: {
+		fontSize: 14,
+		color: "#333",
+	},
+	circularProgressContainer: {
+		alignItems: "center",
+		marginVertical: 0,
+		marginBottom: "-25%",
+	},
+
+	resultBlock: {
+		backgroundColor: "#ffffff",
+		borderRadius: 10,
+		padding: 20,
+		paddingBottom: 10,
+		marginBottom: 20,
+		shadowColor: "#000",
+		shadowOpacity: 0.1,
+		shadowOffset: { width: 0, height: 5 },
+		shadowRadius: 10,
+		elevation: 5,
+		width: "100%",
+	},
+
+	infoContainer: {
+		marginTop: 0,
+	},
+
+	resultHeader: {
+		justifyContent: "center",
+		textAlign: "center",
+		fontSize: 22,
+		fontWeight: "bold",
+		marginBottom: 5,
+		color: "#333",
+	},
+	padContainer: {
+		flex: 1,
+		backgroundColor: "#ffffff",
+		borderRadius: 8,
+		padding: 20,
+		marginTop: 0,
+		marginBottom: 20,
+		shadowColor: "#000",
+		shadowOpacity: 0.1,
+		shadowOffset: { width: 0, height: 5 },
+		shadowRadius: 10,
+		elevation: 5,
+		width: "100%",
+		minHeight: 300,
+	},
+	buttonContainer: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		paddingVertical: 20,
+		paddingHorizontal: 20,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 8,
+		marginBottom: 20,
+		borderWidth: 3,
+		borderColor: "#000000",
+	},
+
+	button: {
+		paddingVertical: 12,
+		paddingHorizontal: 40,
+		borderRadius: 25,
+		minWidth: 120,
+		alignItems: "center",
+	},
+
+	activeButton: {
+		backgroundColor: "#FFFFFF",
+		opacity: 1,
+	},
+
+	inactiveButton: {
+		backgroundColor: "#FFFFFF",
+		opacity: 1,
+	},
+
+	buttonText: {
+		color: "#000000",
+		fontSize: 16,
+		fontWeight: "bold",
 	},
 });

@@ -30,7 +30,7 @@ export default function TabLayout() {
 						<Tabs.Screen
 							name="training"
 							options={{
-								tabBarLabel: "training",
+								tabBarLabel: "setup",
 								tabBarIcon: ({ color, size }) => (
 									<FontAwesome5 name="running" size={size} color={color} />
 								),
@@ -49,13 +49,32 @@ export default function TabLayout() {
 						<Tabs.Screen
 							name="start"
 							options={{
-								tabBarLabel: "Test Running",
+								tabBarLabel: "Training",
 								tabBarIcon: ({ color, size }) => (
 									<FontAwesome
 										name="hourglass-start"
 										size={size}
 										color={color}
 									/>
+								),
+							}}
+						/>
+
+						<Tabs.Screen
+							name="result"
+							options={{
+								tabBarLabel: "Result",
+								tabBarIcon: ({ color, size }) => (
+									<FontAwesome name="hourglass-end" size={size} color={color} />
+								),
+							}}
+						/>
+						<Tabs.Screen
+							name="start2"
+							options={{
+								tabBarLabel: "start2",
+								tabBarIcon: ({ color, size }) => (
+									<FontAwesome name="hourglass-end" size={size} color={color} />
 								),
 							}}
 						/>
