@@ -100,7 +100,7 @@ export default function Home() {
 				<Text
 					style={[tw`text-sm`, styles.defaultBatteryText, styles.Normal_text]}
 				>
-					Battery Voltage:{" "}
+					Battery Percentage:{" "}
 					{device?.manufacturerData
 						? `${base64toDecManu(device?.manufacturerData).toFixed(2)} V`
 						: "N/A"}

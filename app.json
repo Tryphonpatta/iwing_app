@@ -32,9 +32,7 @@
         "android.permission.BLUETOOTH_CONNECT"
       ],
       "package": "com.golfpattadon.test",
-      "runtimeVersion": {
-        "policy": "appVersion"
-      }
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
