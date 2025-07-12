@@ -210,7 +210,7 @@ const PatternScreen = () => {
                   min={0}
                   step={1}
                   value={L1}
-                  onChange={(num) => setL1(num)}
+                  onChange={(num: number) => setL1(num)}
                   style={styles.spinner}
                   skin="clean"
                   color="#2f855a"
@@ -229,7 +229,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={L1}
-                    onChange={(num) => setL1(num)}
+                    onChange={(num: number) => setL1(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -242,7 +242,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={R1}
-                    onChange={(num) => setR1(num)}
+                    onChange={(num: number) => setR1(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -257,7 +257,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={L2}
-                    onChange={(num) => setL2(num)}
+                    onChange={(num: number) => setL2(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -270,7 +270,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={R2}
-                    onChange={(num) => setR2(num)}
+                    onChange={(num: number) => setR2(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -333,7 +333,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={threL1}
-                    onChange={(num) => setThresholdL1(num)}
+                    onChange={(num: number) => setThresholdL1(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -346,7 +346,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={threR1}
-                    onChange={(num) => setThresholdR1(num)}
+                    onChange={(num: number) => setThresholdR1(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -361,7 +361,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={threL2}
-                    onChange={(num) => setThresholdL2(num)}
+                    onChange={(num: number) => setThresholdL2(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"
@@ -374,7 +374,7 @@ const PatternScreen = () => {
                     min={0}
                     step={1}
                     value={threR2}
-                    onChange={(num) => setThresholdR2(num)}
+                    onChange={(num: number) => setThresholdR2(num)}
                     style={styles.spinner}
                     skin="clean"
                     color="#2f855a"

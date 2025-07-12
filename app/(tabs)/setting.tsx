@@ -288,6 +288,9 @@ const BLE = () => {
               ? "Battery Charging"
               : `Battery Voltage: ${connectDevice?.battery?.toFixed(2)}`}
           </Text>
+          <Text style={tw`text-sm text-gray-600`}>
+            Version: {connectDevice?.version ?? "N/A"}
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -320,12 +323,14 @@ const BLE = () => {
     const isConnecting = connectingDevicesRef.current.has(device.id);
 
     return (
-      <View style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}>
+      <View
+        style={[tw`flex-row items-center p-4 my-2`, styles.deviceContainer]}
+      >
         <Image
           source={require("../../assets/images/device.png")}
           style={tw`w-20 h-20`}
         />
-        
+
         {/* Ensure text takes up remaining space */}
         <View style={tw`ml-4 flex-1`}>
           <Text style={tw`text-base font-bold text-black mb-1`}>
@@ -336,7 +341,7 @@ const BLE = () => {
 
         {/* Adjust button to avoid overlap */}
         <TouchableOpacity
-          style={[tw`ml-2 px-4 py-2`, styles.blinkButton]} 
+          style={[tw`ml-2 px-4 py-2`, styles.blinkButton]}
           onPress={() => toggleConnection(device)}
         >
           <Text style={tw`text-gray-700`}>
@@ -349,86 +354,87 @@ const BLE = () => {
 
   return (
     <View style={[tw`flex-1`, { backgroundColor: "#E8F5E9" }]}>
-  {/* Header */}
-  <Text
-    style={[
-      tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
-      { backgroundColor: "#419E68", fontSize: 36 },
-    ]}
-  >
-    Settings
-  </Text>
+      {/* Header */}
+      <Text
+        style={[
+          tw`text-center font-bold text-white my-4 mt-8 shadow-lg`,
+          { backgroundColor: "#419E68", fontSize: 36 },
+        ]}
+      >
+        Settings
+      </Text>
 
-  {/* Wrapper for both lists, ensuring they take equal height */}
-  <View style={tw`flex-1`}>
-    {/* Connected Devices Section */}
-    <View style={tw`flex-1`}>
-      <View style={tw`bg-white shadow-lg`}>
-        <Text style={tw`text-lg font-bold text-black rounded-lg p-2`}>
-          Connected Devices
-        </Text>
-      </View>
-      <FlatList
-        data={connectedDevice.filter((d) => d !== null) as ConnectedDevice[]}
-        keyExtractor={(item) => item.device.id}
-        renderItem={({ item }) => (
-          <DeviceItem
-            connectDevice={item}
-            toggleConnection={toggleConnection}
-            connectingDevicesRef={connectingDevicesRef}
-            connectedDevice={connectedDevice}
+      {/* Wrapper for both lists, ensuring they take equal height */}
+      <View style={tw`flex-1`}>
+        {/* Connected Devices Section */}
+        <View style={tw`flex-1`}>
+          <View style={tw`bg-white shadow-lg`}>
+            <Text style={tw`text-lg font-bold text-black rounded-lg p-2`}>
+              Connected Devices
+            </Text>
+          </View>
+          <FlatList
+            data={
+              connectedDevice.filter((d) => d !== null) as ConnectedDevice[]
+            }
+            keyExtractor={(item) => item.device.id}
+            renderItem={({ item }) => (
+              <DeviceItem
+                connectDevice={item}
+                toggleConnection={toggleConnection}
+                connectingDevicesRef={connectingDevicesRef}
+                connectedDevice={connectedDevice}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={tw`mx-4 my-2`}>No connected devices</Text>
+            }
+            contentContainerStyle={{ flexGrow: 1 }}
           />
-        )}
-        ListEmptyComponent={
-          <Text style={tw`mx-4 my-2`}>No connected devices</Text>
-        }
-        contentContainerStyle={{ flexGrow: 1 }}
-      />
-    </View>
+        </View>
 
-    {/* Disconnected Devices Section */}
-    <View style={tw`flex-1`}>
-      <View style={tw`bg-white shadow-lg`}>
-        <Text style={tw`text-lg font-bold text-black rounded-lg p-2`}>
-          Disconnected Devices
-        </Text>
-      </View>
-      <FlatList
-        data={disconnectedDevice.map(({ device }) => device)}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <DisconnectedItem
-            device={item}
-            toggleConnection={toggleConnection}
-            connectingDevicesRef={connectingDevicesRef}
+        {/* Disconnected Devices Section */}
+        <View style={tw`flex-1`}>
+          <View style={tw`bg-white shadow-lg`}>
+            <Text style={tw`text-lg font-bold text-black rounded-lg p-2`}>
+              Disconnected Devices
+            </Text>
+          </View>
+          <FlatList
+            data={disconnectedDevice.map(({ device }) => device)}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <DisconnectedItem
+                device={item}
+                toggleConnection={toggleConnection}
+                connectingDevicesRef={connectingDevicesRef}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={tw`mx-4 my-2`}>No disconnected devices</Text>
+            }
+            contentContainerStyle={{ flexGrow: 1 }}
           />
-        )}
-        ListEmptyComponent={
-          <Text style={tw`mx-4 my-2`}>No disconnected devices</Text>
-        }
-        contentContainerStyle={{ flexGrow: 1 }}
-      />
-    </View>
-  </View>
-
-  {/* Scan Button */}
-  <Button
-    onPress={startScan}
-    title={scanning ? "Scanning..." : "Start Scan"}
-    disabled={scanning}
-  />
-
-  {/* Loading Modal */}
-  <Modal transparent={true} animationType="fade" visible={isModalVisible}>
-    <View style={styles.modalBackground}>
-      <View style={styles.activityIndicatorWrapper}>
-        <ActivityIndicator animating={true} size="large" color="#419E68" />
-        <Text style={styles.modalText}>{modalText}</Text>
+        </View>
       </View>
-    </View>
-  </Modal>
-</View>
 
+      {/* Scan Button */}
+      <Button
+        onPress={startScan}
+        title={scanning ? "Scanning..." : "Start Scan"}
+        disabled={scanning}
+      />
+
+      {/* Loading Modal */}
+      <Modal transparent={true} animationType="fade" visible={isModalVisible}>
+        <View style={styles.modalBackground}>
+          <View style={styles.activityIndicatorWrapper}>
+            <ActivityIndicator animating={true} size="large" color="#419E68" />
+            <Text style={styles.modalText}>{modalText}</Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 

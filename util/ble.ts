@@ -107,6 +107,7 @@ export const connectingDevice = async (
           VIB_threshold: 0,
           IR_TX_status: false,
           music: "",
+          version: -1,
         },
       ]);
       console.log("set module with battery voltage:", batteryVoltageValue);

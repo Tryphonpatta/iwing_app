@@ -10,5 +10,5 @@ export type Module = {
   VIB_threshold: number;
   IR_TX_status: boolean;
   music: string;
-  device: Device;
+  version: number;
 };

@@ -30,6 +30,7 @@ export class ConnectedDevice {
   private activityTimeout: NodeJS.Timeout | null = null; // Timer for inactivity
   private isMonitoringActivity: boolean = false;
   version: number = 0;
+
   battery: number = 0;
   isCharging: boolean = false;
   // private timer: number;
@@ -85,7 +86,8 @@ export class ConnectedDevice {
       console.log("No data received");
       return;
     }
-    console.log("version", char.value);
+    // console.log("version", char.value);
+
     return base64toDec(char.value as string);
   }
 
@@ -205,6 +207,8 @@ export class ConnectedDevice {
 
     if (!version) return;
     console.log("Version: ", version % (16 * 16));
+    this.version = version % (16 * 16);
+    return version;
   }
 
   async changeRest() {
