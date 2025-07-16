@@ -285,7 +285,7 @@ const BLE = () => {
             ]}
           >
             {connectDevice?.isCharging
-              ? "Battery Charging"
+              ? `Battery Charging ${connectDevice?.battery?.toFixed(2)}`
               : `Battery Voltage: ${connectDevice?.battery?.toFixed(2)}`}
           </Text>
           <Text style={tw`text-sm text-gray-600`}>
