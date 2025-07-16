@@ -162,6 +162,7 @@ export class ConnectedDevice {
   async beep() {
     await this.changeActive();
     await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "QwJSAkMCUgJDAlIC");
+    await new Promise((resolve) => setTimeout(resolve, 200));
     await this.writeCharacteristic(CHARACTERISTIC.MUSIC, "");
   }
   async waitForVibration(): Promise<void> {
