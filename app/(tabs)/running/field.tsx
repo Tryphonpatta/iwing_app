@@ -57,6 +57,8 @@ const Field = ({
   const interactionTimes = useRef<Interaction[]>([]);
   const Miss = useRef(0 as number);
   const cancelToken = useRef({ isCancelled: false });
+  const startTimestamp = useRef(Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const [isStopped, setIsStopped] = useState(false);
 
@@ -75,6 +77,26 @@ const Field = ({
   const L1Count = L1 || 0;
   const L2Count = L2 || 0;
   const [circleSequence, setCircleSequence] = useState<CircleKey[]>([]);
+
+  useEffect(() => {
+    if (isStopped) return;
+
+    startTimestamp.current = Date.now(); // reset when component starts
+    let animationFrameId: number;
+
+    const update = () => {
+      const now = Date.now();
+      const diffInSeconds = (now - startTimestamp.current) / 1000;
+      setElapsedTime(+diffInSeconds.toFixed(2));
+      animationFrameId = requestAnimationFrame(update);
+    };
+
+    animationFrameId = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isStopped]);
 
   useEffect(() => {
     console.log(`threR1: `, threR1);
@@ -159,11 +181,10 @@ const Field = ({
           });
       });
     };
+    lastTimestamp = Date.now();
     while (index < sequence.length && !isStopped) {
       if (cancelToken.current.isCancelled) break;
       if (isStopped) break;
-      console.log();
-      lastTimestamp = Date.now();
       if (isNeedToHit) {
         pos =
           sequence[index] == 0
@@ -187,12 +208,14 @@ const Field = ({
           console.log("Cancelled");
           break;
         }
-        let timeDiff = (Date.now() - lastTimestamp) / 1000;
+        let tempTimeStamp = Date.now();
+        let timeDiff = (tempTimeStamp - lastTimestamp) / 1000;
+        lastTimestamp = tempTimeStamp;
         console.log("timeDiff", timeDiff);
         interactionTimes.current.push({
           description: `Hit to ${pos}`,
           time: timeDiff,
-          timeStamp: new Date().toISOString(),
+          timeStamp: new Date(tempTimeStamp).toISOString(),
         });
         await Promise.all([
           connectedDevice[sequence[index]]?.beep(),
@@ -218,8 +241,10 @@ const Field = ({
           }),
         ];
         const firstResolveIndex = await Promise.race(vibrationPromises);
+        let tempTimeStamp = Date.now();
+        let timeDiff = (tempTimeStamp - lastTimestamp) / 1000;
+        lastTimestamp = tempTimeStamp;
         if (firstResolveIndex == 4) {
-          let timeDiff = (Date.now() - lastTimestamp) / 1000;
           Promise.all([connectedDevice[4]?.beep(), sound.replayAsync()]);
           pos =
             sequence[index] == 0
@@ -238,10 +263,9 @@ const Field = ({
           interactionTimes.current.push({
             description: `To Center`,
             time: timeDiff,
-            timeStamp: new Date().toISOString(),
+            timeStamp: new Date(tempTimeStamp).toISOString(),
           });
         } else {
-          let timeDiff = (Date.now() - lastTimestamp) / 1000;
           Promise.all([
             connectedDevice[firstResolveIndex as number]?.beep(),
             soundMiss.replayAsync(),
@@ -250,13 +274,14 @@ const Field = ({
           interactionTimes.current.push({
             description: `Miss Center and Hit ${nextPos}`,
             time: timeDiff,
-            timeStamp: new Date().toISOString(),
+            timeStamp: new Date(tempTimeStamp).toISOString(),
           });
           Miss.current++;
           index++;
         }
       }
     }
+
     handleStopAndShowResult();
   };
 
@@ -270,6 +295,7 @@ const Field = ({
 
   const handleStopAndShowResult = () => {
     cancelToken.current.isCancelled = true;
+
     console.log("interactionTimes", interactionTimes.current);
     setIsStopped(true);
     setShowResultScreen(true);
@@ -277,6 +303,33 @@ const Field = ({
 
   return !showResultScreen ? (
     <View style={styles.containerField}>
+      <View
+        style={{
+          backgroundColor: "#333", // Dark background
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderRadius: 12,
+          marginTop: 16,
+          marginBottom: 16,
+          alignSelf: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 5, // For Android
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "600",
+            color: "#fff",
+            letterSpacing: 1,
+          }}
+        >
+          ⏱ Time: {elapsedTime.toFixed(2)}s
+        </Text>
+      </View>
       <View style={styles.circleContainer}>
         <TouchableOpacity
           style={[
