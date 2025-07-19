@@ -99,7 +99,7 @@ const Field = ({
   }, [isStopped]);
 
   useEffect(() => {
-    console.log(`threR1: `, threR1);
+    // console.log(`threR1: `, threR1);
     connectedDevice[4]?.changeMode(0, 0, 0, 2);
     Miss.current = 0;
     let sequence: number[] = [];
@@ -136,7 +136,7 @@ const Field = ({
 
       sequence = shuffleArray(sequence);
     }
-    console.log(sequence);
+    // console.log(sequence);
     play(sequence, cancelToken);
     return () => {
       cancelToken.current.isCancelled = true;
@@ -147,7 +147,7 @@ const Field = ({
     sequence: number[],
     cancelToken: MutableRefObject<{ isCancelled: boolean }>
   ) => {
-    console.log("sequence", sequence);
+    // console.log("sequence", sequence);
     let lastTimestamp = Date.now();
 
     let index = 0;
@@ -205,18 +205,19 @@ const Field = ({
             cancelToken.current
           );
         } catch (e) {
-          console.log("Cancelled");
+          // console.log("Cancelled");
           break;
         }
         let tempTimeStamp = Date.now();
         let timeDiff = (tempTimeStamp - lastTimestamp) / 1000;
         lastTimestamp = tempTimeStamp;
-        console.log("timeDiff", timeDiff);
+        // console.log("timeDiff", timeDiff);
         interactionTimes.current.push({
           description: `Hit to ${pos}`,
           time: timeDiff,
           timeStamp: new Date(tempTimeStamp).toISOString(),
         });
+        // console.log("✅beep");
         await Promise.all([
           connectedDevice[sequence[index]]?.beep(),
           sound.replayAsync(),
@@ -245,6 +246,7 @@ const Field = ({
         let timeDiff = (tempTimeStamp - lastTimestamp) / 1000;
         lastTimestamp = tempTimeStamp;
         if (firstResolveIndex == 4) {
+          // console.log("✅beep");
           Promise.all([connectedDevice[4]?.beep(), sound.replayAsync()]);
           pos =
             sequence[index] == 0
@@ -266,6 +268,7 @@ const Field = ({
             timeStamp: new Date(tempTimeStamp).toISOString(),
           });
         } else {
+          // console.log("✅beep");
           Promise.all([
             connectedDevice[firstResolveIndex as number]?.beep(),
             soundMiss.replayAsync(),
@@ -281,7 +284,22 @@ const Field = ({
         }
       }
     }
-
+    setCircleColors((prevColors) => ({
+      ...prevColors,
+      [pos]: "red",
+      Center: "yellow",
+    }));
+    await connectedDevice[4]?.waitForVibration();
+    const tempTimeStamp = Date.now();
+    const timeDiff = (tempTimeStamp - lastTimestamp) / 1000;
+    lastTimestamp = tempTimeStamp;
+    // console.log("✅beep");
+    await connectedDevice[4]?.beep();
+    interactionTimes.current.push({
+      description: `Return to Center`,
+      time: timeDiff,
+      timeStamp: new Date(tempTimeStamp).toISOString(),
+    });
     handleStopAndShowResult();
   };
 
@@ -296,7 +314,7 @@ const Field = ({
   const handleStopAndShowResult = () => {
     cancelToken.current.isCancelled = true;
 
-    console.log("interactionTimes", interactionTimes.current);
+    // console.log("interactionTimes", interactionTimes.current);
     setIsStopped(true);
     setShowResultScreen(true);
   };

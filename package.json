@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
+    "@babel/runtime": "^7.27.6",
     "@eva-design/eva": "^2.2.0",
     "@expo/config": "~9.0.0",
     "@expo/metro-config": "~0.18.11",

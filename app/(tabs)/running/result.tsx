@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  TextInput,
 } from "react-native";
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
 import * as FileSystem from "expo-file-system";
@@ -33,6 +34,7 @@ const ResultScreen = ({
 }: ResultScreenProps) => {
   // 1) State for showing/hiding the PatternScreen
   const [showRunScreen, setShowRunScreen] = useState(false);
+  const [fileName, setFileName] = useState("interaction_times");
 
   // 2) State for filters
   const [filters, setFilters] = useState({
@@ -151,14 +153,13 @@ const ResultScreen = ({
       )}`;
 
       // Define the file name
-      const fileName = "interaction_times.csv";
       let fileUri = "";
 
       if (Platform.OS === "android") {
         // Use StorageAccessFramework to create the file in the selected directory
         fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
           directoryUri,
-          fileName,
+          fileName + ".csv",
           "text/csv"
         );
 
@@ -170,7 +171,7 @@ const ResultScreen = ({
         );
       } else {
         // For iOS or other platforms, use the standard FileSystem
-        fileUri = `${directoryUri}${fileName}`;
+        fileUri = `${directoryUri}${fileName}.csv`;
         await FileSystem.writeAsStringAsync(fileUri, csvContent, {
           encoding: FileSystem.EncodingType.UTF8,
         });
@@ -204,7 +205,26 @@ const ResultScreen = ({
           marginVertical: 10,
         }}
       >
-        <Text style={{marginTop:6}}>{gameStartTimestamp}</Text>
+        <TextInput
+          style={{
+            borderWidth: 1,
+            borderColor: "#ccc",
+            borderRadius: 5,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            width: 150,
+            color: "white", // if using dark background
+            marginRight: 10,
+          }}
+          placeholder="ชื่อไฟล์"
+          placeholderTextColor="#aaa"
+          value={fileName}
+          onChangeText={setFileName}
+        />
+
+        <Text style={{ marginTop: 6, color: "white" }}>
+          {gameStartTimestamp}
+        </Text>
         <TouchableOpacity
           style={{
             flexDirection: "row",
